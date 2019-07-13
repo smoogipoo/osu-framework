@@ -1522,7 +1522,7 @@ namespace osu.Framework.Graphics
 
         private Cached<DrawInfo> drawInfoBacking;
 
-        private DrawInfo computeDrawInfo()
+        protected virtual DrawInfo ComputeDrawInfo()
         {
             DrawInfo di = Parent?.DrawInfo ?? new DrawInfo(null);
 
@@ -1540,7 +1540,7 @@ namespace osu.Framework.Graphics
         /// <summary>
         /// Contains the linear transformation of this <see cref="Drawable"/> that is used during draw.
         /// </summary>
-        public virtual DrawInfo DrawInfo => drawInfoBacking.IsValid ? drawInfoBacking : drawInfoBacking.Value = computeDrawInfo();
+        public virtual DrawInfo DrawInfo => drawInfoBacking.IsValid ? drawInfoBacking : drawInfoBacking.Value = ComputeDrawInfo();
 
         private Cached<DrawColourInfo> drawColourInfoBacking;
 

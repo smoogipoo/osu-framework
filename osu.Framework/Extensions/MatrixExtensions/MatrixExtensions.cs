@@ -116,6 +116,15 @@ namespace osu.Framework.Extensions.MatrixExtensions
             m.M31 = m31;
         }
 
+        public static void PerspectiveFromLeft(ref Matrix3 m, Vector2 perspective)
+        {
+            m = new Matrix3(1, 0, perspective.X, 0, 1, perspective.Y, 0, 0, 1) * m;
+        }
+
+        public static void PerspectiveFromRight(ref Matrix3 m, Vector2 perspective)
+        {
+        }
+
         public static void FastInvert(ref Matrix3 value)
         {
             float d11 = value.M22 * value.M33 + value.M23 * -value.M32;

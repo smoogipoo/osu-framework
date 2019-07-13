@@ -68,6 +68,15 @@ namespace osu.Framework.Graphics
             //MatrixExtensions.FastInvert(ref target.MatrixInverse);
         }
 
+        public void ApplyPerspective(Vector2 perspective)
+        {
+            if (perspective != Vector2.Zero)
+            {
+                MatrixExtensions.PerspectiveFromLeft(ref Matrix, perspective);
+                MatrixExtensions.PerspectiveFromRight(ref MatrixInverse, -perspective);
+            }
+        }
+
         public bool Equals(DrawInfo other) => Matrix.Equals(other.Matrix);
 
         public override string ToString() => $@"{GetType().ReadableName().Replace(@"DrawInfo", string.Empty)} DrawInfo";
