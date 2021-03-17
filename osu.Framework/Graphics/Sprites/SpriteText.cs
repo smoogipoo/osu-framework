@@ -42,6 +42,7 @@ namespace osu.Framework.Graphics.Sprites
 
         public SpriteText()
         {
+            current.Value = string.Empty;
             current.BindValueChanged(text =>
             {
                 // importantly, to avoid a feedback loop which will overwrite a localised text object, check equality of the resulting text before propagating a basic string to Text.
