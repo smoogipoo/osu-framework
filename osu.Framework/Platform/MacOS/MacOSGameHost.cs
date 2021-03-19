@@ -16,12 +16,12 @@ namespace osu.Framework.Platform.MacOS
 {
     public class MacOSGameHost : DesktopGameHost
     {
-        internal MacOSGameHost(string gameName, bool bindIPC = false, ToolkitOptions toolkitOptions = default, bool portableInstallation = false, bool useOsuTK = false)
-            : base(gameName, bindIPC, toolkitOptions, portableInstallation, useOsuTK)
+        internal MacOSGameHost(string gameName, bool bindIPC = false, ToolkitOptions toolkitOptions = default, bool portableInstallation = false)
+            : base(gameName, bindIPC, portableInstallation)
         {
         }
 
-        protected override IWindow CreateWindow() => UseOsuTK ? (IWindow)new OsuTKMacOSWindow() : new MacOSWindow();
+        protected override IWindow CreateWindow() => new MacOSWindow();
 
         public override string UserStoragePath
         {
@@ -65,7 +65,7 @@ namespace osu.Framework.Platform.MacOS
             foreach (var h in handlers.OfType<MouseHandler>())
             {
                 // There are several bugs we need to fix with macOS / SDL2 cursor handling before switching this on.
-                h.UseRelativeMode = false;
+                h.UseRelativeMode.Value = false;
             }
 
             return handlers;

@@ -13,6 +13,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
@@ -36,6 +37,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Video;
+using osu.Framework.IO.Serialization;
 using osu.Framework.IO.Stores;
 using osu.Framework.Platform.Linux.Native;
 using SixLabors.ImageSharp.Memory;
@@ -52,6 +54,8 @@ namespace osu.Framework.Platform
         protected FrameworkDebugConfigManager DebugConfig { get; private set; }
 
         protected FrameworkConfigManager Config { get; private set; }
+
+        protected InputConfigManager InputConfig { get; private set; }
 
         /// <summary>
         /// Whether the <see cref="IWindow"/> is active (in the foreground).
@@ -219,16 +223,16 @@ namespace osu.Framework.Platform
 
         public DependencyContainer Dependencies { get; } = new DependencyContainer();
 
-        private Toolkit toolkit;
-
-        private readonly ToolkitOptions toolkitOptions;
-
         private bool suspended;
 
-        protected GameHost(string gameName = @"", ToolkitOptions toolkitOptions = default)
+        protected GameHost(string gameName = @"")
         {
-            this.toolkitOptions = toolkitOptions;
             Name = gameName;
+
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter> { new Vector2Converter() }
+            };
         }
 
         /// <summary>
@@ -542,8 +546,6 @@ namespace osu.Framework.Platform
 
             try
             {
-                SetupToolkit();
-
                 threadRunner = CreateThreadRunner(InputThread = new InputThread());
 
                 AppDomain.CurrentDomain.UnhandledException += unhandledExceptionHandler;
@@ -580,6 +582,8 @@ namespace osu.Framework.Platform
 
                 ExecutionState = ExecutionState.Running;
 
+                initialiseInputHandlers();
+
                 SetupConfig(game.GetFrameworkConfigDefaults() ?? new Dictionary<FrameworkSetting, object>());
 
                 if (Window != null)
@@ -592,8 +596,6 @@ namespace osu.Framework.Platform
                     IsActive.BindTo(Window.IsActive);
                 }
 
-                resetInputHandlers();
-
                 threadRunner.Start();
 
                 DrawThread.WaitUntilInitialized();
@@ -601,7 +603,6 @@ namespace osu.Framework.Platform
                 bootstrapSceneGraph(game);
 
                 frameSyncMode.TriggerChange();
-                ignoredInputHandlers.TriggerChange();
 
                 IsActive.BindValueChanged(active =>
                 {
@@ -702,30 +703,30 @@ namespace osu.Framework.Platform
             Logger.Storage = Storage.GetStorageForDirectory("logs");
         }
 
-        protected virtual void SetupToolkit()
+        private void initialiseInputHandlers()
         {
-            toolkit = toolkitOptions != null ? Toolkit.Init(toolkitOptions) : Toolkit.Init();
-        }
-
-        private void resetInputHandlers()
-        {
-            if (AvailableInputHandlers != null)
-            {
-                foreach (var h in AvailableInputHandlers)
-                    h.Dispose();
-            }
-
             AvailableInputHandlers = CreateAvailableInputHandlers().ToImmutableArray();
 
             foreach (var handler in AvailableInputHandlers)
             {
-                if (!handler.Initialize(this))
-                {
-                    handler.Enabled.Value = false;
-                    continue;
-                }
-
                 (handler as IHasCursorSensitivity)?.Sensitivity.BindTo(cursorSensitivity);
+
+                if (!handler.Initialize(this))
+                    handler.Enabled.Value = false;
+            }
+        }
+
+        /// <summary>
+        /// Reset all input handlers' settings to a default state.
+        /// </summary>
+        public void ResetInputHandlers()
+        {
+            // restore any disable handlers per legacy configuration.
+            ignoredInputHandlers.TriggerChange();
+
+            foreach (var handler in AvailableInputHandlers)
+            {
+                handler.Reset();
             }
         }
 
@@ -768,7 +769,7 @@ namespace osu.Framework.Platform
 
         private Bindable<string> ignoredInputHandlers;
 
-        private Bindable<double> cursorSensitivity;
+        private readonly Bindable<double> cursorSensitivity = new Bindable<double>(1);
 
         public readonly Bindable<bool> PerformanceLogging = new Bindable<bool>();
 
@@ -847,31 +848,28 @@ namespace osu.Framework.Platform
                 MaximumUpdateHz = updateLimiter;
             };
 
+#pragma warning disable 618
             ignoredInputHandlers = Config.GetBindable<string>(FrameworkSetting.IgnoredInputHandlers);
             ignoredInputHandlers.ValueChanged += e =>
             {
                 var configIgnores = e.NewValue.Split(' ').Where(s => !string.IsNullOrWhiteSpace(s));
 
-                // for now, we always want at least one handler disabled (don't want raw and non-raw mouse at once).
-                // Todo: We renamed OpenTK to osuTK, the second condition can be removed after some time has passed
-                bool restoreDefaults = !configIgnores.Any() || e.NewValue.Contains("OpenTK");
-
-                if (restoreDefaults)
+                foreach (var handler in AvailableInputHandlers)
                 {
-                    resetInputHandlers();
-                    ignoredInputHandlers.Value = string.Join(' ', AvailableInputHandlers.Where(h => !h.Enabled.Value).Select(h => h.ToString()));
-                }
-                else
-                {
-                    foreach (var handler in AvailableInputHandlers)
-                    {
-                        var handlerType = handler.ToString();
-                        handler.Enabled.Value = configIgnores.All(ch => ch != handlerType);
-                    }
+                    var handlerType = handler.ToString();
+                    handler.Enabled.Value = configIgnores.All(ch => ch != handlerType);
                 }
             };
 
-            cursorSensitivity = Config.GetBindable<double>(FrameworkSetting.CursorSensitivity);
+            Config.BindWith(FrameworkSetting.CursorSensitivity, cursorSensitivity);
+
+            // one way binding to preserve compatibility.
+            cursorSensitivity.BindValueChanged(val =>
+            {
+                foreach (var h in AvailableInputHandlers.OfType<IHasCursorSensitivity>())
+                    h.Sensitivity.Value = val.NewValue;
+            }, true);
+#pragma warning restore 618
 
             PerformanceLogging.BindValueChanged(logging =>
             {
@@ -895,6 +893,9 @@ namespace osu.Framework.Platform
                     t.Scheduler.Add(() => { t.CurrentCulture = culture; });
                 }
             }, true);
+
+            // intentionally done after everything above to ensure the new configuration location has priority over obsoleted values.
+            Dependencies.Cache(InputConfig = new InputConfigManager(Storage, AvailableInputHandlers));
         }
 
         private void setVSyncMode()
@@ -937,12 +938,11 @@ namespace osu.Framework.Platform
 
             stoppedEvent.Dispose();
 
+            InputConfig?.Dispose();
             Config?.Dispose();
             DebugConfig?.Dispose();
 
             Window?.Dispose();
-
-            toolkit?.Dispose();
 
             Logger.Flush();
         }
