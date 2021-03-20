@@ -1125,11 +1125,16 @@ namespace osu.Framework.Graphics.Containers
                 else
                 {
                     if (j < target.Children.Count)
+                    {
+                        if (target.Children[j] != next)
+                            next.IsInvalidated = true;
                         target.Children[j] = next;
+                    }
                     else
+                    {
+                        next.IsInvalidated = true;
                         target.Children.Add(next);
-
-                    ((DrawNode)target).IsInvalidated = true;
+                    }
 
                     j++;
                 }

@@ -183,6 +183,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             {
                 memoryOwner = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate<DepthWrappingVertex<T>>(Size, AllocationOptions.Clean);
                 vertexMemory = memoryOwner.Memory;
+                isNew = true;
 
                 GLWrapper.RegisterVertexBufferUse(this);
             }

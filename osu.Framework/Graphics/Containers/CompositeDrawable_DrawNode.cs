@@ -171,7 +171,10 @@ namespace osu.Framework.Graphics.Containers
                     return;
 
                 if (quadBatch == null && mayHaveOwnVertexBatch(sourceChildrenCount))
+                {
                     quadBatch = new QuadBatch<TexturedVertex2D>(100, 1000);
+                    IsInvalidated = true;
+                }
             }
 
             protected override void OnDrawSubTree(Action<TexturedVertex2D> vertexAction)
