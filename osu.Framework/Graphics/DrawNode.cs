@@ -76,13 +76,31 @@ namespace osu.Framework.Graphics
         }
 
         /// <summary>
+        /// Draws the subtree of this <see cref="DrawNode"/> to the screen.
+        /// </summary>
+        /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
+        public void DrawSubTree(Action<TexturedVertex2D> vertexAction)
+        {
+            OnDrawSubTree(vertexAction);
+        }
+
+        /// <summary>
+        /// Invoked when the subtree of this <see cref="DrawNode"/> is to be drawn.
+        /// </summary>
+        /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
+        protected virtual void OnDrawSubTree(Action<TexturedVertex2D> vertexAction)
+        {
+            Draw(vertexAction);
+        }
+
+        /// <summary>
         /// Draws this <see cref="DrawNode"/> to the screen.
         /// </summary>
         /// <remarks>
         /// Subclasses must invoke <code>base.Draw()</code> prior to drawing vertices.
         /// </remarks>
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
-        public virtual void Draw(Action<TexturedVertex2D> vertexAction)
+        protected virtual void Draw(Action<TexturedVertex2D> vertexAction)
         {
             GLWrapper.SetBlend(DrawColourInfo.Blending);
 

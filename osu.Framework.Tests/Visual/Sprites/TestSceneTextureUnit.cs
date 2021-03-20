@@ -118,7 +118,7 @@ namespace osu.Framework.Tests.Visual.Sprites
                     blueTex = Source.blueTex;
                 }
 
-                public override void Draw(Action<TexturedVertex2D> vertexAction)
+                protected override void Draw(Action<TexturedVertex2D> vertexAction)
                 {
                     redTex.TextureGL.Bind(TextureUnit.Texture1);
                     greenTex.TextureGL.Bind(TextureUnit.Texture2);

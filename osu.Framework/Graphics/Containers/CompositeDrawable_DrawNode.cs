@@ -174,7 +174,7 @@ namespace osu.Framework.Graphics.Containers
                     quadBatch = new QuadBatch<TexturedVertex2D>(100, 1000);
             }
 
-            public override void Draw(Action<TexturedVertex2D> vertexAction)
+            protected override void OnDrawSubTree(Action<TexturedVertex2D> vertexAction)
             {
                 updateQuadBatch();
 
@@ -182,9 +182,7 @@ namespace osu.Framework.Graphics.Containers
                 if (quadBatch != null)
                     vertexAction = quadBatch.AddAction;
 
-                base.Draw(vertexAction);
-
-                drawEdgeEffect();
+                base.OnDrawSubTree(vertexAction);
 
                 if (maskingInfo != null)
                 {
@@ -198,11 +196,17 @@ namespace osu.Framework.Graphics.Containers
                 if (Children != null)
                 {
                     for (int i = 0; i < Children.Count; i++)
-                        Children[i].Draw(vertexAction);
+                        Children[i].DrawSubTree(vertexAction);
                 }
 
                 if (maskingInfo != null)
                     GLWrapper.PopMaskingInfo();
+            }
+
+            protected override void Draw(Action<TexturedVertex2D> vertexAction)
+            {
+                base.Draw(vertexAction);
+                drawEdgeEffect();
             }
 
             internal override void DrawOpaqueInteriorSubTree(DepthValue depthValue, Action<TexturedVertex2D> vertexAction)

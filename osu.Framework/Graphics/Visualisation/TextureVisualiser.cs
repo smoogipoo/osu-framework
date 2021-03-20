@@ -200,7 +200,7 @@ namespace osu.Framework.Graphics.Visualisation
                     textureReference = Source.textureReference;
                 }
 
-                public override void Draw(Action<TexturedVertex2D> vertexAction)
+                protected override void Draw(Action<TexturedVertex2D> vertexAction)
                 {
                     if (!textureReference.TryGetTarget(out var texture))
                         return;

@@ -134,7 +134,7 @@ namespace osu.Framework.Graphics.Sprites
                 sourceEffectPlacement = Source.container.EffectPlacement;
             }
 
-            public override void Draw(Action<TexturedVertex2D> vertexAction)
+            protected override void Draw(Action<TexturedVertex2D> vertexAction)
             {
                 base.Draw(vertexAction);
 

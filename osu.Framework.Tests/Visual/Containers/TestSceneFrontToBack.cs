@@ -96,7 +96,7 @@ namespace osu.Framework.Tests.Visual.Containers
             if (drawNode != null)
             {
                 labelDrawables.Text = $"boxes: {Cell(1).Children.Count * cell_count:N0}";
-                labelFrag.Text = $"samples ({nameof(DrawNode.Draw)}): {drawNode.DrawSamples:N0}";
+                labelFrag.Text = $"samples ({nameof(DrawNode.DrawSubTree)}): {drawNode.DrawSamples:N0}";
                 labelFrag2.Text = $"samples ({nameof(DrawNode.DrawOpaqueInteriorSubTree)}): {drawNode.DrawOpaqueInteriorSubTreeSamples:N0}";
             }
         }
@@ -148,7 +148,7 @@ namespace osu.Framework.Tests.Visual.Containers
                 base.ApplyState();
             }
 
-            public override void Draw(Action<TexturedVertex2D> vertexAction)
+            protected override void Draw(Action<TexturedVertex2D> vertexAction)
             {
                 startQuery();
                 base.Draw(vertexAction);

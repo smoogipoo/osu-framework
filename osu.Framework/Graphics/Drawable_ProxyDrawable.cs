@@ -88,11 +88,11 @@ namespace osu.Framework.Graphics
                 {
                 }
 
+                protected override void OnDrawSubTree(Action<TexturedVertex2D> vertexAction)
+                    => getCurrentFrameSource()?.DrawSubTree(vertexAction);
+
                 internal override void DrawOpaqueInteriorSubTree(DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
                     => getCurrentFrameSource()?.DrawOpaqueInteriorSubTree(depthValue, vertexAction);
-
-                public override void Draw(Action<TexturedVertex2D> vertexAction)
-                    => getCurrentFrameSource()?.Draw(vertexAction);
 
                 protected internal override bool CanDrawOpaqueInterior => getCurrentFrameSource()?.CanDrawOpaqueInterior ?? false;
 

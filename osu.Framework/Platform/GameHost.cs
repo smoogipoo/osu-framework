@@ -428,7 +428,7 @@ namespace osu.Framework.Platform
                     }
 
                     // Back pass
-                    buffer.Object.Draw(null);
+                    buffer.Object.DrawSubTree(null);
 
                     GLWrapper.PopDepthInfo();
 

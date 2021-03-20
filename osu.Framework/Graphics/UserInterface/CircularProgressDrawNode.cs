@@ -142,7 +142,7 @@ namespace osu.Framework.Graphics.UserInterface
             }
         }
 
-        public override void Draw(Action<TexturedVertex2D> vertexAction)
+        protected override void Draw(Action<TexturedVertex2D> vertexAction)
         {
             base.Draw(vertexAction);
 
