@@ -40,7 +40,7 @@ namespace osu.Framework.Graphics
         /// </summary>
         protected internal long InvalidationID { get; private set; }
 
-        internal bool IsInvalidated { get; private set; }
+        internal bool IsInvalidated { get; set; }
 
         /// <summary>
         /// The <see cref="Drawable"/> which this <see cref="DrawNode"/> draws.

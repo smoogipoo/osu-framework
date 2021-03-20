@@ -1086,48 +1086,51 @@ namespace osu.Framework.Graphics.Containers
         /// <param name="treeIndex">The index of the currently in-use <see cref="DrawNode"/> tree.</param>
         /// <param name="forceNewDrawNode">Whether the creation of a new <see cref="DrawNode"/> should be forced, rather than re-using an existing <see cref="DrawNode"/>.</param>
         /// <param name="j">The running index into the target List.</param>
-        /// <param name="parentComposite">The <see cref="CompositeDrawable"/> whose children's <see cref="DrawNode"/>s to add.</param>
+        /// <param name="composite">The <see cref="CompositeDrawable"/> whose children's <see cref="DrawNode"/>s to add.</param>
         /// <param name="target">The target list to fill with DrawNodes.</param>
-        private static void addFromComposite(ulong frame, int treeIndex, bool forceNewDrawNode, ref int j, CompositeDrawable parentComposite, List<DrawNode> target)
+        private static void addFromComposite(ulong frame, int treeIndex, bool forceNewDrawNode, ref int j, CompositeDrawable composite, ICompositeDrawNode target)
         {
-            SortedList<Drawable> children = parentComposite.aliveInternalChildren;
+            SortedList<Drawable> children = composite.aliveInternalChildren;
 
             for (int i = 0; i < children.Count; ++i)
             {
-                Drawable drawable = children[i];
+                Drawable child = children[i];
 
-                if (!drawable.IsLoaded)
+                if (!child.IsLoaded)
                     continue;
 
-                if (!drawable.IsProxy)
+                if (!child.IsProxy)
                 {
-                    if (!drawable.IsPresent)
+                    if (!child.IsPresent)
                         continue;
 
-                    if (drawable.IsMaskedAway)
+                    if (child.IsMaskedAway)
                         continue;
 
-                    CompositeDrawable composite = drawable as CompositeDrawable;
+                    CompositeDrawable childComposite = child as CompositeDrawable;
 
-                    if (composite?.CanBeFlattened == true)
+                    if (childComposite?.CanBeFlattened == true)
                     {
-                        addFromComposite(frame, treeIndex, forceNewDrawNode, ref j, composite, target);
+                        addFromComposite(frame, treeIndex, forceNewDrawNode, ref j, childComposite, target);
                         continue;
                     }
                 }
 
-                DrawNode next = drawable.GenerateDrawNodeSubtree(frame, treeIndex, forceNewDrawNode);
+                DrawNode next = child.GenerateDrawNodeSubtree(frame, treeIndex, forceNewDrawNode);
                 if (next == null)
                     continue;
 
-                if (drawable.HasProxy)
-                    drawable.ValidateProxyDrawNode(treeIndex, frame);
+                if (child.HasProxy)
+                    child.ValidateProxyDrawNode(treeIndex, frame);
                 else
                 {
-                    if (j < target.Count)
-                        target[j] = next;
+                    if (j < target.Children.Count)
+                        target.Children[j] = next;
                     else
-                        target.Add(next);
+                        target.Children.Add(next);
+
+                    ((DrawNode)target).IsInvalidated = true;
+
                     j++;
                 }
             }
@@ -1149,7 +1152,7 @@ namespace osu.Framework.Graphics.Containers
             if (cNode.AddChildDrawNodes)
             {
                 int j = 0;
-                addFromComposite(frame, treeIndex, forceNewDrawNode, ref j, this, cNode.Children);
+                addFromComposite(frame, treeIndex, forceNewDrawNode, ref j, this, cNode);
 
                 if (j < cNode.Children.Count)
                     cNode.Children.RemoveRange(j, cNode.Children.Count - j);
