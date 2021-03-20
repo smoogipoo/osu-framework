@@ -65,6 +65,9 @@ namespace osu.Framework.Graphics.Batches
         public void ResetCounters()
         {
             currentBufferIndex = 0;
+
+            foreach (var buf in VertexBuffers)
+                buf.ResetCounters();
         }
 
         protected abstract VertexBuffer<T> CreateVertexBuffer();

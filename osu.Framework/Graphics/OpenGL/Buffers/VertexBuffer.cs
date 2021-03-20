@@ -78,64 +78,71 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             IsDisposed = true;
         }
 
-        private int changeBegin = -1;
-        private int changeEnd = -1;
-        private int drawEnd;
+        public void ResetCounters()
+        {
+            drawStartIndex = 0;
+            drawCount = 0;
+        }
 
-        public bool IsFull => drawEnd == Size;
+        private int changeStartIndex;
+        private int changeCount;
+        private int drawStartIndex;
+        private int drawCount;
+
+        public bool IsFull => drawStartIndex + drawCount == Size;
 
         public void Push(T vertex)
         {
             if (IsFull)
                 throw new InvalidOperationException("Vertex buffer is too small to contain the requested vertex.");
 
-            ref var currentVertex = ref getMemory().Span[drawEnd];
-
+            int currentVertexIndex = drawStartIndex + drawCount;
+            ref var currentVertex = ref getMemory().Span[currentVertexIndex];
             bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != GLWrapper.BackbufferDrawDepth;
-
-            currentVertex.Vertex = vertex;
-            currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
 
             if (isNewVertex)
             {
-                if (changeBegin == -1)
-                    changeBegin = drawEnd;
-                changeEnd = drawEnd;
+                currentVertex.Vertex = vertex;
+                currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
+
+                if (changeStartIndex == -1)
+                    changeStartIndex = currentVertexIndex;
+                changeCount++;
             }
 
-            drawEnd++;
+            drawCount++;
             LastUseResetId = GLWrapper.ResetId;
         }
 
         public int Draw()
         {
-            if (drawEnd == 0)
+            if (drawCount == 0)
                 return 0;
 
             Bind(true);
 
-            if (changeBegin != -1)
+            if (changeCount > 0)
             {
-                int countToUpdate = changeEnd - changeBegin;
-                GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(changeBegin * STRIDE), (IntPtr)(countToUpdate * STRIDE), ref getMemory().Span[changeBegin]);
+                GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(changeStartIndex * STRIDE), (IntPtr)(changeCount * STRIDE), ref getMemory().Span[changeStartIndex]);
+                FrameStatistics.Add(StatisticsCounterType.VerticesUpl, changeCount);
 
-                FrameStatistics.Add(StatisticsCounterType.VerticesUpl, countToUpdate);
+                changeStartIndex = -1;
+                changeCount = 0;
             }
 
-            int countToDraw = drawEnd;
-            GL.DrawElements(Type, ToElements(countToDraw), DrawElementsType.UnsignedShort, IntPtr.Zero);
+            GL.DrawElements(Type, ToElements(drawCount), DrawElementsType.UnsignedShort, (IntPtr)(ToElementIndex(drawStartIndex) * sizeof(ushort)));
 
             FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
-            FrameStatistics.Add(StatisticsCounterType.VerticesDraw, drawEnd);
-
-            changeBegin = -1;
-            changeEnd = -1;
-            drawEnd = 0;
+            FrameStatistics.Add(StatisticsCounterType.VerticesDraw, drawCount);
 
             Unbind();
 
+            int lastDrawCount = drawCount;
+            drawStartIndex = drawCount;
+            drawCount = 0;
             LastUseResetId = GLWrapper.ResetId;
-            return countToDraw;
+
+            return lastDrawCount;
         }
 
         public virtual void Bind(bool forRendering)
@@ -171,8 +178,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
                 GLWrapper.RegisterVertexBufferUse(this);
             }
-
-            LastUseResetId = GLWrapper.ResetId;
 
             return ref vertexMemory;
         }
