@@ -100,15 +100,19 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             int currentVertexIndex = drawStartIndex + drawCount;
             ref var currentVertex = ref getMemory().Span[currentVertexIndex];
-            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != GLWrapper.BackbufferDrawDepth;
 
-            if (isNewVertex)
+            // Begin tracking changes only if the DrawNode is invalidated. This continues until the next Draw() as different counts of vertices can be pushed by the DrawNode.
+            if (GLWrapper.IsDrawNodeInvalidated)
+            {
+                if (changeStartIndex == -1)
+                    changeStartIndex = currentVertexIndex;
+            }
+
+            // Update the vertex only if we're tracking changes.
+            if (changeStartIndex != -1)
             {
                 currentVertex.Vertex = vertex;
                 currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
-
-                if (changeStartIndex == -1)
-                    changeStartIndex = currentVertexIndex;
                 changeCount++;
             }
 

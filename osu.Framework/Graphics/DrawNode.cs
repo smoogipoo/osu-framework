@@ -40,6 +40,8 @@ namespace osu.Framework.Graphics
         /// </summary>
         protected internal long InvalidationID { get; private set; }
 
+        internal bool IsInvalidated { get; private set; }
+
         /// <summary>
         /// The <see cref="Drawable"/> which this <see cref="DrawNode"/> draws.
         /// </summary>
@@ -73,6 +75,8 @@ namespace osu.Framework.Graphics
             DrawInfo = Source.DrawInfo;
             DrawColourInfo = Source.DrawColourInfo;
             InvalidationID = Source.InvalidationID;
+
+            IsInvalidated = true;
         }
 
         /// <summary>
@@ -81,7 +85,13 @@ namespace osu.Framework.Graphics
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
         public void DrawSubTree(Action<TexturedVertex2D> vertexAction)
         {
+            bool wasInvalidated = GLWrapper.IsDrawNodeInvalidated;
+            GLWrapper.IsDrawNodeInvalidated |= IsInvalidated;
+
             OnDrawSubTree(vertexAction);
+
+            GLWrapper.IsDrawNodeInvalidated = wasInvalidated;
+            IsInvalidated = false;
         }
 
         /// <summary>

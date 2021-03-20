@@ -44,6 +44,8 @@ namespace osu.Framework.Graphics.OpenGL
         public static ref readonly MaskingInfo CurrentMaskingInfo => ref currentMaskingInfo;
         private static MaskingInfo currentMaskingInfo;
 
+        internal static bool IsDrawNodeInvalidated { get; set; }
+
         public static RectangleI Viewport { get; private set; }
         public static RectangleF Ortho { get; private set; }
         public static RectangleI Scissor { get; private set; }
@@ -167,6 +169,7 @@ namespace osu.Framework.Graphics.OpenGL
 
             BindFrameBuffer(DefaultFrameBuffer);
 
+            IsDrawNodeInvalidated = true;
             Scissor = RectangleI.Empty;
             ScissorOffset = Vector2I.Zero;
             Viewport = RectangleI.Empty;
