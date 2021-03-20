@@ -80,12 +80,14 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void ResetCounters()
         {
+            isNew = memoryOwner == null;
             changeStartIndex = -1;
             changeCount = 0;
             drawStartIndex = 0;
             drawCount = 0;
         }
 
+        private bool isNew = true;
         private int changeStartIndex = -1;
         private int changeCount;
         private int drawStartIndex;
@@ -102,7 +104,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             ref var currentVertex = ref getMemory().Span[currentVertexIndex];
 
             // Begin tracking changes only if the DrawNode is invalidated. This continues until the next Draw() as different counts of vertices can be pushed by the DrawNode.
-            if (GLWrapper.IsDrawNodeInvalidated)
+            if (isNew || GLWrapper.IsDrawNodeInvalidated)
             {
                 if (changeStartIndex == -1)
                     changeStartIndex = currentVertexIndex;
