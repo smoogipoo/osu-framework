@@ -33,24 +33,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         }
 
         /// <summary>
-        /// Sets the vertex at a specific index of this <see cref="VertexBuffer{T}"/>.
-        /// </summary>
-        /// <param name="vertexIndex">The index of the vertex.</param>
-        /// <param name="vertex">The vertex.</param>
-        /// <returns>Whether the vertex changed.</returns>
-        public bool SetVertex(int vertexIndex, T vertex)
-        {
-            ref var currentVertex = ref getMemory().Span[vertexIndex];
-
-            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != GLWrapper.BackbufferDrawDepth;
-
-            currentVertex.Vertex = vertex;
-            currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
-
-            return isNewVertex;
-        }
-
-        /// <summary>
         /// Gets the number of vertices in this <see cref="VertexBuffer{T}"/>.
         /// </summary>
         public int Size { get; }
@@ -96,6 +78,66 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             IsDisposed = true;
         }
 
+        private int changeBegin = -1;
+        private int changeEnd = -1;
+        private int drawEnd;
+
+        public bool IsFull => drawEnd == Size;
+
+        public void Push(T vertex)
+        {
+            if (IsFull)
+                throw new InvalidOperationException("Vertex buffer is too small to contain the requested vertex.");
+
+            ref var currentVertex = ref getMemory().Span[drawEnd];
+
+            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != GLWrapper.BackbufferDrawDepth;
+
+            currentVertex.Vertex = vertex;
+            currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
+
+            if (isNewVertex)
+            {
+                if (changeBegin == -1)
+                    changeBegin = drawEnd;
+                changeEnd = drawEnd;
+            }
+
+            drawEnd++;
+            LastUseResetId = GLWrapper.ResetId;
+        }
+
+        public int Draw()
+        {
+            if (drawEnd == 0)
+                return 0;
+
+            Bind(true);
+
+            if (changeBegin != -1)
+            {
+                int countToUpdate = changeEnd - changeBegin;
+                GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(changeBegin * STRIDE), (IntPtr)(countToUpdate * STRIDE), ref getMemory().Span[changeBegin]);
+
+                FrameStatistics.Add(StatisticsCounterType.VerticesUpl, countToUpdate);
+            }
+
+            int countToDraw = drawEnd;
+            GL.DrawElements(Type, ToElements(countToDraw), DrawElementsType.UnsignedShort, IntPtr.Zero);
+
+            FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
+            FrameStatistics.Add(StatisticsCounterType.VerticesDraw, drawEnd);
+
+            changeBegin = -1;
+            changeEnd = -1;
+            drawEnd = 0;
+
+            Unbind();
+
+            LastUseResetId = GLWrapper.ResetId;
+            return countToDraw;
+        }
+
         public virtual void Bind(bool forRendering)
         {
             if (IsDisposed)
@@ -117,38 +159,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         protected virtual int ToElementIndex(int vertexIndex) => vertexIndex;
 
         protected abstract PrimitiveType Type { get; }
-
-        public void Draw()
-        {
-            DrawRange(0, Size);
-        }
-
-        public void DrawRange(int startIndex, int endIndex)
-        {
-            Bind(true);
-
-            int countVertices = endIndex - startIndex;
-            GL.DrawElements(Type, ToElements(countVertices), DrawElementsType.UnsignedShort, (IntPtr)(ToElementIndex(startIndex) * sizeof(ushort)));
-
-            Unbind();
-        }
-
-        public void Update()
-        {
-            UpdateRange(0, Size);
-        }
-
-        public void UpdateRange(int startIndex, int endIndex)
-        {
-            Bind(false);
-
-            int countVertices = endIndex - startIndex;
-            GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(startIndex * STRIDE), (IntPtr)(countVertices * STRIDE), ref getMemory().Span[startIndex]);
-
-            Unbind();
-
-            FrameStatistics.Add(StatisticsCounterType.VerticesUpl, countVertices);
-        }
 
         private ref Memory<DepthWrappingVertex<T>> getMemory()
         {

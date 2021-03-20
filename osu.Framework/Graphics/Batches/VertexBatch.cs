@@ -21,13 +21,13 @@ namespace osu.Framework.Graphics.Batches
         /// </summary>
         public int Size { get; }
 
-        private int changeBeginIndex = -1;
-        private int changeEndIndex = -1;
+        /// <summary>
+        /// Adds a vertex to this <see cref="VertexBatch{T}"/>.
+        /// This is a cached delegate of <see cref="Add"/> that should be used in memory-critical locations such as <see cref="DrawNode"/>s.
+        /// </summary>
+        public readonly Action<T> AddAction;
 
         private int currentBufferIndex;
-        private int currentVertexIndex;
-
-        private readonly int maxBuffers;
 
         private VertexBuffer<T> currentVertexBuffer => VertexBuffers[currentBufferIndex];
 
@@ -35,11 +35,12 @@ namespace osu.Framework.Graphics.Batches
         {
             // Vertex buffers of size 0 don't make any sense. Let's not blindly hope for good behavior of OpenGL.
             Trace.Assert(bufferSize > 0);
+            Trace.Assert(maxBuffers > 0);
 
             Size = bufferSize;
-            this.maxBuffers = maxBuffers;
 
             AddAction = Add;
+            VertexBuffers.Add(CreateVertexBuffer());
         }
 
         #region Disposal
@@ -63,9 +64,7 @@ namespace osu.Framework.Graphics.Batches
 
         public void ResetCounters()
         {
-            changeBeginIndex = -1;
             currentBufferIndex = 0;
-            currentVertexIndex = 0;
         }
 
         protected abstract VertexBuffer<T> CreateVertexBuffer();
@@ -78,56 +77,20 @@ namespace osu.Framework.Graphics.Batches
         {
             GLWrapper.SetActiveBatch(this);
 
-            if (currentBufferIndex < VertexBuffers.Count && currentVertexIndex >= currentVertexBuffer.Size)
+            if (currentVertexBuffer.IsFull)
             {
-                Draw();
+                currentVertexBuffer.Draw();
+
+                if (currentBufferIndex == VertexBuffers.Count - 1)
+                    VertexBuffers.Add(CreateVertexBuffer());
+                currentBufferIndex++;
+
                 FrameStatistics.Increment(StatisticsCounterType.VBufOverflow);
             }
 
-            // currentIndex will change after Draw() above, so this cannot be in an else-condition
-            while (currentBufferIndex >= VertexBuffers.Count)
-                VertexBuffers.Add(CreateVertexBuffer());
-
-            if (currentVertexBuffer.SetVertex(currentVertexIndex, v))
-            {
-                if (changeBeginIndex == -1)
-                    changeBeginIndex = currentVertexIndex;
-
-                changeEndIndex = currentVertexIndex + 1;
-            }
-
-            ++currentVertexIndex;
+            currentVertexBuffer.Push(v);
         }
 
-        /// <summary>
-        /// Adds a vertex to this <see cref="VertexBatch{T}"/>.
-        /// This is a cached delegate of <see cref="Add"/> that should be used in memory-critical locations such as <see cref="DrawNode"/>s.
-        /// </summary>
-        public readonly Action<T> AddAction;
-
-        public int Draw()
-        {
-            if (currentVertexIndex == 0)
-                return 0;
-
-            VertexBuffer<T> vertexBuffer = currentVertexBuffer;
-            if (changeBeginIndex >= 0)
-                vertexBuffer.UpdateRange(changeBeginIndex, changeEndIndex);
-
-            vertexBuffer.DrawRange(0, currentVertexIndex);
-
-            int count = currentVertexIndex;
-
-            // When using multiple buffers we advance to the next one with every draw to prevent contention on the same buffer with future vertex updates.
-            //TODO: let us know if we exceed and roll over to zero here.
-            currentBufferIndex = (currentBufferIndex + 1) % maxBuffers;
-            currentVertexIndex = 0;
-            changeBeginIndex = -1;
-
-            FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
-            FrameStatistics.Add(StatisticsCounterType.VerticesDraw, count);
-
-            return count;
-        }
+        public int Draw() => currentVertexBuffer.Draw();
     }
 }
