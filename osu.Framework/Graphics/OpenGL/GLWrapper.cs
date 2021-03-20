@@ -169,7 +169,7 @@ namespace osu.Framework.Graphics.OpenGL
 
             BindFrameBuffer(DefaultFrameBuffer);
 
-            IsDrawNodeInvalidated = true;
+            IsDrawNodeInvalidated = false;
             Scissor = RectangleI.Empty;
             ScissorOffset = Vector2I.Zero;
             Viewport = RectangleI.Empty;
