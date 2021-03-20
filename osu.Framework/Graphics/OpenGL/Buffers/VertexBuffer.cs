@@ -80,11 +80,13 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void ResetCounters()
         {
+            changeStartIndex = -1;
+            changeCount = 0;
             drawStartIndex = 0;
             drawCount = 0;
         }
 
-        private int changeStartIndex;
+        private int changeStartIndex = -1;
         private int changeCount;
         private int drawStartIndex;
         private int drawCount;
@@ -138,7 +140,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             Unbind();
 
             int lastDrawCount = drawCount;
-            drawStartIndex = drawCount;
+            drawStartIndex += drawCount;
             drawCount = 0;
             LastUseResetId = GLWrapper.ResetId;
 
