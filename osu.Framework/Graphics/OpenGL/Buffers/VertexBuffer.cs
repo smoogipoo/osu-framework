@@ -2,12 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Buffers;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 using osu.Framework.Statistics;
 using osu.Framework.Development;
-using SixLabors.ImageSharp.Memory;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
@@ -18,9 +16,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         private readonly BufferUsageHint usage;
 
-        private Memory<DepthWrappingVertex<T>> vertexMemory;
-        private IMemoryOwner<DepthWrappingVertex<T>> memoryOwner;
-
+        private VertexMemory<DepthWrappingVertex<T>> vertexMemory;
         private int vboId = -1;
 
         protected VertexBuffer(int amountVertices, BufferUsageHint usage)
@@ -147,21 +143,19 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             FrameStatistics.Add(StatisticsCounterType.VerticesUpl, countVertices);
         }
 
-        private ref Memory<DepthWrappingVertex<T>> getMemory()
+        private VertexMemory<DepthWrappingVertex<T>> getMemory()
         {
             ThreadSafety.EnsureDrawThread();
 
             if (!InUse)
             {
-                memoryOwner = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate<DepthWrappingVertex<T>>(Size, AllocationOptions.Clean);
-                vertexMemory = memoryOwner.Memory;
-
+                vertexMemory = VertexBufferMemoryPool<DepthWrappingVertex<T>>.Rent(Size);
                 GLWrapper.RegisterVertexBufferUse(this);
             }
 
             LastUseResetId = GLWrapper.ResetId;
 
-            return ref vertexMemory;
+            return vertexMemory;
         }
 
         public ulong LastUseResetId { get; private set; }
@@ -178,9 +172,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 vboId = -1;
             }
 
-            memoryOwner?.Dispose();
-            memoryOwner = null;
-            vertexMemory = Memory<DepthWrappingVertex<T>>.Empty;
+            vertexMemory?.Dispose();
+            vertexMemory = null;
 
             LastUseResetId = 0;
         }
