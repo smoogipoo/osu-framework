@@ -7,7 +7,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
-    internal class VertexBufferMemoryPool<T>
+    internal static class VertexBufferMemoryPool<T>
         where T : struct, IEquatable<T>, IVertex
     {
         private const int max_vertices_per_buffer = 1000;
