@@ -173,6 +173,7 @@ namespace osu.Framework.Testing
                         Width = steps_width,
                         Depth = float.MinValue,
                         RelativeSizeAxes = Axes.Y,
+                        Alpha = 0,
                         Child = StepsContainer = new FillFlowContainer<Drawable>
                         {
                             Direction = FillDirection.Vertical,
@@ -191,6 +192,7 @@ namespace osu.Framework.Testing
                     new Container
                     {
                         Masking = true,
+                        Alpha = 0,
                         Padding = new MarginPadding
                         {
                             Left = steps_width + padding,
