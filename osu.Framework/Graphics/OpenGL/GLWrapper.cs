@@ -17,6 +17,7 @@ using osu.Framework.Statistics;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.OpenGL.Buffers;
+using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Platform;
 using osu.Framework.Timing;
 
@@ -40,6 +41,15 @@ namespace osu.Framework.Graphics.OpenGL
         /// The amount of times <see cref="Reset"/> has been invoked.
         /// </summary>
         internal static ulong ResetId { get; private set; }
+
+        private static readonly QuadBatch<TexturedVertex2D>[] default_quad_batches =
+        {
+            new QuadBatch<TexturedVertex2D>(100, 1000),
+            new QuadBatch<TexturedVertex2D>(100, 1000),
+            new QuadBatch<TexturedVertex2D>(100, 1000),
+        };
+
+        internal static Action<TexturedVertex2D> DefaultQuadAction { get; private set; }
 
         public static ref readonly MaskingInfo CurrentMaskingInfo => ref currentMaskingInfo;
         private static MaskingInfo currentMaskingInfo;
@@ -89,8 +99,6 @@ namespace osu.Framework.Graphics.OpenGL
         private static readonly ConcurrentQueue<Action> expensive_operation_queue = new ConcurrentQueue<Action>();
 
         private static readonly ConcurrentQueue<TextureGL> texture_upload_queue = new ConcurrentQueue<TextureGL>();
-
-        private static readonly List<IVertexBatch> batch_reset_list = new List<IVertexBatch>();
 
         private static readonly List<IVertexBuffer> vertex_buffers_in_use = new List<IVertexBuffer>();
 
@@ -154,10 +162,6 @@ namespace osu.Framework.Graphics.OpenGL
             lastBlendingParameters = new BlendingParameters();
             lastBlendingEnabledState = null;
 
-            foreach (var b in batch_reset_list)
-                b.ResetCounters();
-            batch_reset_list.Clear();
-
             viewport_stack.Clear();
             ortho_stack.Clear();
             masking_stack.Clear();
@@ -174,6 +178,8 @@ namespace osu.Framework.Graphics.OpenGL
             ScissorOffset = Vector2I.Zero;
             Viewport = RectangleI.Empty;
             Ortho = RectangleF.Empty;
+
+            DefaultQuadAction = default_quad_batches[ResetId % 3].AddAction;
 
             PushScissorState(true);
             PushViewport(new RectangleI(0, 0, (int)size.X, (int)size.Y));
@@ -357,8 +363,6 @@ namespace osu.Framework.Graphics.OpenGL
         {
             if (lastActiveBatch == batch)
                 return;
-
-            batch_reset_list.Add(batch);
 
             FlushCurrentBatch();
 

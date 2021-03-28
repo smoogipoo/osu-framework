@@ -85,8 +85,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             changeCount = 0;
             drawStartIndex = 0;
             drawCount = 0;
+            IsTrackingChanges = false;
         }
 
+        public bool IsTrackingChanges;
         private bool isNew = true;
         private int changeStartIndex = -1;
         private int changeCount;
@@ -104,14 +106,19 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             ref var currentVertex = ref getMemory().Span[currentVertexIndex];
 
             // Begin tracking changes only if the DrawNode is invalidated. This continues until the next Draw() as different counts of vertices can be pushed by the DrawNode.
-            if (isNew || GLWrapper.IsDrawNodeInvalidated)
+            if (isNew || GLWrapper.IsDrawNodeInvalidated || IsTrackingChanges)
             {
                 if (changeStartIndex == -1)
                     changeStartIndex = currentVertexIndex;
+                IsTrackingChanges = true;
+            }
+
+            if (!IsTrackingChanges && !currentVertex.Vertex.Equals(vertex))
+            {
             }
 
             // Update the vertex only if we're tracking changes.
-            if (changeStartIndex != -1)
+            if (IsTrackingChanges)
             {
                 currentVertex.Vertex = vertex;
                 currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
@@ -183,7 +190,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             {
                 memoryOwner = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate<DepthWrappingVertex<T>>(Size, AllocationOptions.Clean);
                 vertexMemory = memoryOwner.Memory;
-                isNew = true;
 
                 GLWrapper.RegisterVertexBufferUse(this);
             }

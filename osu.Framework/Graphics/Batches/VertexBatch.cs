@@ -27,6 +27,7 @@ namespace osu.Framework.Graphics.Batches
         /// </summary>
         public readonly Action<T> AddAction;
 
+        private ulong lastUseFrame;
         private int currentBufferIndex;
 
         private VertexBuffer<T> currentVertexBuffer => VertexBuffers[currentBufferIndex];
@@ -40,7 +41,6 @@ namespace osu.Framework.Graphics.Batches
             Size = bufferSize;
 
             AddAction = Add;
-            VertexBuffers.Add(CreateVertexBuffer());
         }
 
         #region Disposal
@@ -80,20 +80,34 @@ namespace osu.Framework.Graphics.Batches
         {
             GLWrapper.SetActiveBatch(this);
 
+            if (GLWrapper.ResetId != lastUseFrame)
+                ResetCounters();
+
+            if (VertexBuffers.Count == 0)
+                VertexBuffers.Add(CreateVertexBuffer());
+
             if (currentVertexBuffer.IsFull)
             {
+                bool isNew = currentVertexBuffer.IsTrackingChanges;
+
                 currentVertexBuffer.Draw();
 
                 if (currentBufferIndex == VertexBuffers.Count - 1)
                     VertexBuffers.Add(CreateVertexBuffer());
                 currentBufferIndex++;
 
+                currentVertexBuffer.IsTrackingChanges |= isNew;
+
                 FrameStatistics.Increment(StatisticsCounterType.VBufOverflow);
             }
 
             currentVertexBuffer.Push(v);
+            lastUseFrame = GLWrapper.ResetId;
         }
 
-        public int Draw() => currentVertexBuffer.Draw();
+        public int Draw()
+        {
+            return VertexBuffers.Count > 0 ? currentVertexBuffer.Draw() : 0;
+        }
     }
 }
