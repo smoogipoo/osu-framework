@@ -7,7 +7,6 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 using osu.Framework.Statistics;
 using osu.Framework.Development;
-using osu.Framework.Platform;
 using SixLabors.ImageSharp.Memory;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
@@ -21,7 +20,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         private Memory<DepthWrappingVertex<T>> vertexMemory;
         private IMemoryOwner<DepthWrappingVertex<T>> memoryOwner;
-        private NativeMemoryTracker.NativeMemoryLease memoryLease;
 
         private bool isInitialised;
         private int vaoId;
@@ -69,7 +67,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             vboId = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, vboId);
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)size, IntPtr.Zero, usage);
-            memoryLease = NativeMemoryTracker.AddMemory(this, size);
 
             VertexUtils<DepthWrappingVertex<T>>.SetAttributes();
         }
@@ -174,9 +171,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         {
             if (isInitialised)
             {
-                memoryLease?.Dispose();
-                memoryLease = null;
-
                 GL.DeleteBuffer(vboId);
                 GL.DeleteVertexArray(vaoId);
             }

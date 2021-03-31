@@ -26,7 +26,12 @@ namespace osu.Framework.Platform.SDL2
             // Minimum for core profile
             SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, 2);
-            return SDL.SDL_GL_CreateContext(sdlWindowHandle);
+
+            IntPtr context = SDL.SDL_GL_CreateContext(sdlWindowHandle);
+            if (context == IntPtr.Zero)
+                throw new InvalidOperationException($"Failed to create an SDL2 GL context ({SDL.SDL_GetError()})");
+
+            return context;
         }
 
         protected override void MakeCurrent(IntPtr context) => SDL.SDL_GL_MakeCurrent(sdlWindowHandle, context);

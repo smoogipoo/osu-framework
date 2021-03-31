@@ -12,6 +12,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Bindables;
 using osu.Framework.Configuration;
+using osu.Framework.Development;
 using osu.Framework.Extensions;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
@@ -336,7 +337,16 @@ namespace osu.Framework.Testing
             base.LoadComplete();
 
             if (CurrentTest == null)
-                LoadTest(TestTypes.Find(t => t.Name == config.Get<string>(TestBrowserSetting.LastTest)));
+            {
+                var lastTest = config.Get<string>(TestBrowserSetting.LastTest);
+
+                var foundTest = TestTypes.Find(t => t.FullName == lastTest)
+                                // full name was not always stored in this value, so fallback to matching on just test name.
+                                // can be removed 20210622
+                                ?? TestTypes.Find(t => t.Name == lastTest);
+
+                LoadTest(foundTest);
+            }
         }
 
         private void toggleTestList()
@@ -368,7 +378,7 @@ namespace osu.Framework.Testing
             return base.OnKeyDown(e);
         }
 
-        public override IEnumerable<KeyBinding> DefaultKeyBindings => new[]
+        public override IEnumerable<IKeyBinding> DefaultKeyBindings => new[]
         {
             new KeyBinding(new[] { InputKey.Control, InputKey.F }, TestBrowserAction.Search),
             new KeyBinding(new[] { InputKey.Control, InputKey.R }, TestBrowserAction.Reload), // for macOS
@@ -419,7 +429,7 @@ namespace osu.Framework.Testing
             if (testType == null && TestTypes.Count > 0)
                 testType = TestTypes[0];
 
-            config.Set(TestBrowserSetting.LastTest, testType?.Name ?? string.Empty);
+            config.SetValue(TestBrowserSetting.LastTest, testType?.FullName ?? string.Empty);
 
             if (testType == null)
                 return;
@@ -564,8 +574,8 @@ namespace osu.Framework.Testing
 
             void addSetUpSteps()
             {
-                var setUpMethods = Reflect.GetMethodsWithAttribute(newTest.GetType(), typeof(SetUpAttribute), true)
-                                          .Where(m => m.Name != nameof(TestScene.SetUpTestForNUnit));
+                var setUpMethods = ReflectionUtils.GetMethodsWithAttribute(newTest.GetType(), typeof(SetUpAttribute), true)
+                                                  .Where(m => m.Name != nameof(TestScene.SetUpTestForNUnit));
 
                 if (setUpMethods.Any())
                 {
