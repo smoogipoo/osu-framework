@@ -221,7 +221,6 @@ namespace osu.Framework.Graphics.OpenGL
 
             last_bound_texture.AsSpan().Clear();
             last_bound_texture_is_atlas.AsSpan().Clear();
-            last_bound_buffers.AsSpan().Clear();
         }
 
         private static ClearInfo currentClearInfo;
