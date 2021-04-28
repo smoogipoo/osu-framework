@@ -264,6 +264,7 @@ namespace osu.Framework.Testing
                 // - The single IdentifierName child of a foreach expression (source variable name), below.
                 // - The single 'var' IdentifierName child of a variable declaration, below.
                 // - Element access expressions.
+                // - Anything but the accessed member of a member access expression, which is then looked up by its containing type.
 
                 return kind != SyntaxKind.UsingDirective
                        && kind != SyntaxKind.NamespaceKeyword
@@ -273,6 +274,7 @@ namespace osu.Framework.Testing
                        && (kind != SyntaxKind.QualifiedName || n.Parent?.Kind() != SyntaxKind.NamespaceDeclaration)
                        && kind != SyntaxKind.NameColon
                        && kind != SyntaxKind.ElementAccessExpression
+                       && (n.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression || n == ((MemberAccessExpressionSyntax)n.Parent).Name)
                        && (n.Parent?.Kind() != SyntaxKind.InvocationExpression || n != ((InvocationExpressionSyntax)n.Parent).Expression);
             });
 
@@ -333,6 +335,19 @@ namespace osu.Framework.Testing
 
             bool tryNode(SyntaxNode node, out INamedTypeSymbol symbol)
             {
+                if (node.Parent?.Kind() == SyntaxKind.SimpleMemberAccessExpression)
+                {
+                    if (semanticModel.GetSymbolInfo(node).Symbol?.ContainingType is INamedTypeSymbol parentType)
+                    {
+                        addTypeSymbol(parentType);
+                        symbol = parentType;
+                        return true;
+                    }
+
+                    symbol = null;
+                    return false;
+                }
+
                 if (semanticModel.GetSymbolInfo(node).Symbol is INamedTypeSymbol sType)
                 {
                     addTypeSymbol(sType);
