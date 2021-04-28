@@ -374,19 +374,6 @@ namespace osu.Framework.Testing
 
             bool tryNode(SyntaxNode node, out INamedTypeSymbol symbol)
             {
-                if (node.Parent?.Kind() == SyntaxKind.SimpleMemberAccessExpression)
-                {
-                    if (semanticModel.GetSymbolInfo(node).Symbol?.ContainingType is INamedTypeSymbol parentType)
-                    {
-                        addTypeSymbol(parentType);
-                        symbol = parentType;
-                        return true;
-                    }
-
-                    symbol = null;
-                    return false;
-                }
-
                 if (semanticModel.GetSymbolInfo(node).Symbol is INamedTypeSymbol sType)
                 {
                     addTypeSymbol(sType);
