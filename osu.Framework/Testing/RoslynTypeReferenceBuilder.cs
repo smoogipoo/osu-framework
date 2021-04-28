@@ -109,6 +109,12 @@ namespace osu.Framework.Testing
         /// <exception cref="InvalidOperationException">If <paramref name="testType"/> could not be retrieved from the solution.</exception>
         private async Task buildReferenceMapAsync(Type testType, string changedFile)
         {
+            var loadedTypeNames = AppDomain.CurrentDomain.GetAssemblies()
+                                           .Where(a => !a.IsDynamic)
+                                           .SelectMany(a => a.GetLoadableTypes())
+                                           .Select(t => t.Name)
+                                           .ToHashSet();
+
             // We want to find a graph of types from the testType symbol (P) to all the types which it references recursively.
             //
             //                            P
@@ -169,19 +175,19 @@ namespace osu.Framework.Testing
                     var compilation = await compileProjectAsync(project).ConfigureAwait(false);
                     var syntaxTree = compilation.SyntaxTrees.Single(tree => tree.FilePath == typePath);
                     var semanticModel = await getSemanticModelAsync(syntaxTree).ConfigureAwait(false);
-                    var referencedTypes = await getReferencedTypesAsync(semanticModel).ConfigureAwait(false);
+                    var referencedTypes = await getReferencedTypesAsync(semanticModel, loadedTypeNames).ConfigureAwait(false);
 
                     referenceMap[TypeReference.FromSymbol(t.Symbol)] = referencedTypes.ToHashSet();
 
                     foreach (var referenced in referencedTypes)
-                        await buildReferenceMapRecursiveAsync(referenced).ConfigureAwait(false);
+                        await buildReferenceMapRecursiveAsync(referenced, loadedTypeNames).ConfigureAwait(false);
                 }
             }
 
             if (referenceMap.Count == 0)
             {
                 // We have no cache available, so we must rebuild the whole map.
-                await buildReferenceMapRecursiveAsync(TypeReference.FromSymbol(compiledTestType)).ConfigureAwait(false);
+                await buildReferenceMapRecursiveAsync(TypeReference.FromSymbol(compiledTestType), loadedTypeNames).ConfigureAwait(false);
             }
         }
 
@@ -192,7 +198,7 @@ namespace osu.Framework.Testing
         /// This should not be used by itself. Use <see cref="buildReferenceMapAsync"/> instead.
         /// </remarks>
         /// <param name="rootReference">The root, where the map should start being build from.</param>
-        private async Task buildReferenceMapRecursiveAsync(TypeReference rootReference)
+        private async Task buildReferenceMapRecursiveAsync(TypeReference rootReference, HashSet<string> loadedTypeNames)
         {
             var searchQueue = new ConcurrentBag<TypeReference> { rootReference };
 
@@ -203,7 +209,7 @@ namespace osu.Framework.Testing
 
                 await Task.WhenAll(toProcess.Select(async toCheck =>
                 {
-                    var referencedTypes = await getReferencedTypesAsync(toCheck).ConfigureAwait(false);
+                    var referencedTypes = await getReferencedTypesAsync(toCheck, loadedTypeNames).ConfigureAwait(false);
                     referenceMap[toCheck] = referencedTypes;
 
                     foreach (var referenced in referencedTypes)
@@ -221,14 +227,14 @@ namespace osu.Framework.Testing
         /// </summary>
         /// <param name="typeReference">The target <see cref="TypeReference"/>.</param>
         /// <returns>All <see cref="TypeReference"/>s referenced to across all symbol sources by <paramref name="typeReference"/>.</returns>
-        private async Task<HashSet<TypeReference>> getReferencedTypesAsync(TypeReference typeReference)
+        private async Task<HashSet<TypeReference>> getReferencedTypesAsync(TypeReference typeReference, HashSet<string> loadedTypeNames)
         {
             var result = new HashSet<TypeReference>();
 
             foreach (var reference in typeReference.Symbol.DeclaringSyntaxReferences)
             {
                 var semanticModel = await getSemanticModelAsync(reference.SyntaxTree).ConfigureAwait(false);
-                var referencedTypes = await getReferencedTypesAsync(semanticModel).ConfigureAwait(false);
+                var referencedTypes = await getReferencedTypesAsync(semanticModel, loadedTypeNames).ConfigureAwait(false);
 
                 foreach (var type in referencedTypes)
                     result.Add(type);
@@ -242,7 +248,7 @@ namespace osu.Framework.Testing
         /// </summary>
         /// <param name="semanticModel">The target <see cref="SemanticModel"/>.</param>
         /// <returns>All <see cref="TypeReference"/>s referenced by <paramref name="semanticModel"/>.</returns>
-        private async Task<ICollection<TypeReference>> getReferencedTypesAsync(SemanticModel semanticModel)
+        private async Task<ICollection<TypeReference>> getReferencedTypesAsync(SemanticModel semanticModel, HashSet<string> loadedTypeNames)
         {
             var result = new ConcurrentDictionary<TypeReference, byte>();
 
@@ -264,7 +270,7 @@ namespace osu.Framework.Testing
                 // - The single IdentifierName child of a foreach expression (source variable name), below.
                 // - The single 'var' IdentifierName child of a variable declaration, below.
                 // - Element access expressions.
-                // - Anything but the accessed member of a member access expression, which is then looked up by its containing type.
+                // - Any children of member access expressions. They're handled in a special way below.
 
                 return kind != SyntaxKind.UsingDirective
                        && kind != SyntaxKind.NamespaceKeyword
@@ -274,7 +280,7 @@ namespace osu.Framework.Testing
                        && (kind != SyntaxKind.QualifiedName || n.Parent?.Kind() != SyntaxKind.NamespaceDeclaration)
                        && kind != SyntaxKind.NameColon
                        && kind != SyntaxKind.ElementAccessExpression
-                       && (n.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression || n == ((MemberAccessExpressionSyntax)n.Parent).Name)
+                       && kind != SyntaxKind.SimpleMemberAccessExpression
                        && (n.Parent?.Kind() != SyntaxKind.InvocationExpression || n != ((InvocationExpressionSyntax)n.Parent).Expression);
             });
 
@@ -284,6 +290,39 @@ namespace osu.Framework.Testing
 
             await Task.WhenAll(descendantNodes.Select(node => Task.Run(() =>
             {
+                // When a member access is encountered, we can optimise the symbol lookup but need to take care around two cases:
+                //
+                // 1. References to local fields (var localValue = field.X.Y).
+                // 2. References to const values through namespaces (var localValue = NsA.NsB.Type.ConstValue).
+                //
+                // Note: Static classes are explicitly excluded from type resolution and won't be recompiled, so we don't need to worry about non-primitive types.
+                //
+                // In both cases, the optimisation happens by looking at the second-last identifier ('X' in (1), 'Type' in (2)), and seeing whether it matches any type
+                // loaded in the current app domain. If it matches, then the member must be explored as a const value (2) may be referenced.
+                // This happens even if the member referenced isn't really the type itself as we can't easily prove that the opposite isn't true.
+                // Todo: This can be improved in the future by pre-scanning locals.
+                //
+                if (node is MemberAccessExpressionSyntax accessSyntax)
+                {
+                    switch (accessSyntax.Expression)
+                    {
+                        case IdentifierNameSyntax _:
+                            node = accessSyntax.Expression;
+                            break;
+
+                        case MemberAccessExpressionSyntax nestedAccess:
+                            node = nestedAccess.Name;
+                            break;
+
+                        default:
+                            // Should never arrive here, but just in case.
+                            return;
+                    }
+
+                    if (!loadedTypeNames.Contains(node.ToString()))
+                        return;
+                }
+
                 if (node.Kind() == SyntaxKind.IdentifierName && node.Parent != null)
                 {
                     // Ignore the variable name of assignment expressions.
