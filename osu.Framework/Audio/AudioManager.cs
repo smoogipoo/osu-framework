@@ -216,6 +216,8 @@ namespace osu.Framework.Audio
         /// <param name="deviceName">Name of the audio device, or null to use the configured device preference <see cref="AudioDevice"/>.</param>
         private bool setAudioDevice(string deviceName = null)
         {
+            Logger.Log($"Setting audio device (name: {deviceName})", LoggingTarget.Runtime, LogLevel.Important);
+
             deviceName ??= AudioDevice.Value;
 
             // try using the specified device
@@ -236,15 +238,23 @@ namespace osu.Framework.Audio
 
         private bool setAudioDevice(int deviceIndex)
         {
+            Logger.Log($"Setting audio device (index: {deviceIndex})", LoggingTarget.Runtime, LogLevel.Important);
+
             var device = audioDevices.ElementAtOrDefault(deviceIndex);
 
             // device is invalid
             if (!device.IsEnabled)
+            {
+                Logger.Log($"Device {device} not enabled.", LoggingTarget.Runtime, LogLevel.Important);
                 return false;
+            }
 
             // same device
             if (device.IsInitialized && deviceIndex == Bass.CurrentDevice)
+            {
+                Logger.Log($"Device {device} already current.", LoggingTarget.Runtime, LogLevel.Important);
                 return true;
+            }
 
             // initialize new device
             bool initSuccess = InitBass(deviceIndex);
@@ -314,12 +324,20 @@ namespace osu.Framework.Audio
 
         private void syncAudioDevices()
         {
+            Logger.Log("Attempting to sync audio devices...", LoggingTarget.Runtime, LogLevel.Important);
+
             // audioDevices are updated if:
             // - A new device is added
             // - An existing device is Enabled/Disabled or set as Default
             var updatedAudioDevices = EnumerateAllDevices().ToImmutableList();
+
+            Logger.Log($"Enumerated devices: {string.Join(", ", updatedAudioDevices.Select(d => d.Name))}", LoggingTarget.Runtime, LogLevel.Important);
+
             if (audioDevices.SequenceEqual(updatedAudioDevices, updateComparer))
+            {
+                Logger.Log("Devices haven't changed, exiting...", LoggingTarget.Runtime, LogLevel.Important);
                 return;
+            }
 
             audioDevices = updatedAudioDevices;
 

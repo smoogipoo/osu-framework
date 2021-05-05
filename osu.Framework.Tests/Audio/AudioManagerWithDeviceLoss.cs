@@ -6,6 +6,7 @@ using System.Linq;
 using ManagedBass;
 using osu.Framework.Audio;
 using osu.Framework.IO.Stores;
+using osu.Framework.Logging;
 using osu.Framework.Threading;
 
 namespace osu.Framework.Tests.Audio
@@ -30,8 +31,12 @@ namespace osu.Framework.Tests.Audio
             if (simulateLoss)
             {
                 if (device != Bass.NoSoundDevice || !base.InitBass(device))
+                {
+                    Logger.Log("A", LoggingTarget.Runtime, LogLevel.Important);
                     return false;
+                }
 
+                Logger.Log("B", LoggingTarget.Runtime, LogLevel.Important);
                 CurrentDevice = device;
                 return true;
             }
@@ -63,6 +68,8 @@ namespace osu.Framework.Tests.Audio
 
         public void SimulateDeviceLoss()
         {
+            Logger.Log("Simulating device loss...", LoggingTarget.Runtime, LogLevel.Important);
+
             var current = CurrentDevice;
 
             simulateLoss = true;
