@@ -14,8 +14,6 @@ namespace osu.Framework.Tests.Audio
             base.SetUp();
 
             Bass.Init(0);
-            if (Bass.LastError != Errors.OK)
-                Assert.Fail($"Failed to init no-sound device!!!: {Bass.LastError}");
 
             // lose all devices
             Manager.SimulateDeviceLoss();
