@@ -250,11 +250,11 @@ namespace osu.Framework.Audio
             }
 
             // same device
-            if (device.IsInitialized && deviceIndex == Bass.CurrentDevice)
-            {
-                Logger.Log($"Device {device} already current.", LoggingTarget.Runtime, LogLevel.Important);
-                return true;
-            }
+            // if (device.IsInitialized && deviceIndex == Bass.CurrentDevice)
+            // {
+            //     Logger.Log($"Device {device} already current.", LoggingTarget.Runtime, LogLevel.Important);
+            //     return true;
+            // }
 
             // initialize new device
             bool initSuccess = InitBass(deviceIndex);
