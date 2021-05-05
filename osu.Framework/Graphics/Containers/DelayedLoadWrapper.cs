@@ -64,7 +64,13 @@ namespace osu.Framework.Graphics.Containers
 
         public override double LifetimeStart
         {
-            get => Content?.LifetimeStart ?? lifetimeStart;
+            get
+            {
+                if (DelayedLoadCompleted && Content != null)
+                    return Content.LifetimeStart;
+
+                return lifetimeStart;
+            }
             set
             {
                 if (Content != null)
@@ -77,7 +83,13 @@ namespace osu.Framework.Graphics.Containers
 
         public override double LifetimeEnd
         {
-            get => Content?.LifetimeEnd ?? lifetimeEnd;
+            get
+            {
+                if (DelayedLoadCompleted && Content != null)
+                    return Content.LifetimeEnd;
+
+                return lifetimeEnd;
+            }
             set
             {
                 if (Content != null)
