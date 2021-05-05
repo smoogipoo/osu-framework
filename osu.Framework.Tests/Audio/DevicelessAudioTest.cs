@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using ManagedBass;
 using NUnit.Framework;
 
 namespace osu.Framework.Tests.Audio
@@ -11,6 +12,10 @@ namespace osu.Framework.Tests.Audio
         public override void SetUp()
         {
             base.SetUp();
+
+            Bass.Init(0);
+            if (Bass.LastError != Errors.OK)
+                Assert.Fail($"Failed to init no-sound device!!!: {Bass.LastError}");
 
             // lose all devices
             Manager.SimulateDeviceLoss();
