@@ -1125,8 +1125,6 @@ namespace osu.Framework.Graphics.Containers
         /// <param name="target">The target list to fill with DrawNodes.</param>
         private static void addFromComposite(ulong frame, int treeIndex, bool forceNewDrawNode, ref int j, CompositeDrawable parentComposite, List<DrawNode> target)
         {
-            parentComposite.updateChildrenSizeDependencies();
-
             SortedList<Drawable> children = parentComposite.aliveInternalChildren;
 
             for (int i = 0; i < children.Count; ++i)
