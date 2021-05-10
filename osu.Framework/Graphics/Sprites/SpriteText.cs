@@ -555,7 +555,12 @@ namespace osu.Framework.Graphics.Sprites
             parentScreenSpaceCache.Invalidate();
             localScreenSpaceCache.Invalidate();
 
-            Invalidate(Invalidation.DrawNode);
+            Invalidation invalidation = Invalidation.DrawNode;
+
+            if (requiresAutoSizedWidth || requiresAutoSizedHeight)
+                invalidation |= Invalidation.DrawSize;
+
+            Invalidate(invalidation);
         }
 
         #endregion

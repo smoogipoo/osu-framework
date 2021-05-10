@@ -339,7 +339,8 @@ namespace osu.Framework.Graphics.Containers
             get
             {
                 if (InternalChildren.Count != 1)
-                    throw new InvalidOperationException($"Cannot call {nameof(InternalChild)} unless there's exactly one {nameof(Drawable)} in {nameof(InternalChildren)} (currently {InternalChildren.Count})!");
+                    throw new InvalidOperationException(
+                        $"Cannot call {nameof(InternalChild)} unless there's exactly one {nameof(Drawable)} in {nameof(InternalChildren)} (currently {InternalChildren.Count})!");
 
                 return InternalChildren[0];
             }
@@ -475,7 +476,7 @@ namespace osu.Framework.Graphics.Containers
             drawable.IsAlive = false;
 
             if (AutoSizeAxes != Axes.None)
-                Invalidate(Invalidation.RequiredParentSizeToFit, InvalidationSource.Child);
+                InvalidateChildrenSizeDependencies(Invalidation.RequiredParentSizeToFit, AutoSizeAxes & ~drawable.BypassAutoSizeAxes, drawable);
 
             return true;
         }
@@ -513,7 +514,7 @@ namespace osu.Framework.Graphics.Containers
             RequestsPositionalInputSubTree = RequestsPositionalInput;
 
             if (AutoSizeAxes != Axes.None)
-                Invalidate(Invalidation.RequiredParentSizeToFit, InvalidationSource.Child);
+                InvalidateChildrenSizeDependencies(Invalidation.RequiredParentSizeToFit, AutoSizeAxes, null);
         }
 
         /// <summary>
@@ -558,7 +559,7 @@ namespace osu.Framework.Graphics.Containers
             internalChildren.Add(drawable);
 
             if (AutoSizeAxes != Axes.None)
-                Invalidate(Invalidation.RequiredParentSizeToFit, InvalidationSource.Child);
+                InvalidateChildrenSizeDependencies(Invalidation.RequiredParentSizeToFit, AutoSizeAxes & ~drawable.BypassAutoSizeAxes, drawable);
         }
 
         /// <summary>
@@ -970,18 +971,20 @@ namespace osu.Framework.Graphics.Containers
 
         #region Invalidation
 
+        private Drawable skipChildInvalidation;
+
         protected override bool OnInvalidate(Invalidation invalidation, InvalidationSource source)
         {
             bool anyInvalidated = base.OnInvalidate(invalidation, source);
 
             // Child invalidations should not propagate to other children.
             if (source == InvalidationSource.Child)
-                return anyInvalidated;
+                goto Done;
 
             // DrawNode invalidations should not propagate to children.
             invalidation &= ~Invalidation.DrawNode;
             if (invalidation == Invalidation.None)
-                return anyInvalidated;
+                goto Done;
 
             IReadOnlyList<Drawable> targetChildren = aliveInternalChildren;
 
@@ -992,6 +995,9 @@ namespace osu.Framework.Graphics.Containers
             for (int i = 0; i < targetChildren.Count; ++i)
             {
                 Drawable c = targetChildren[i];
+
+                if (c == skipChildInvalidation)
+                    continue;
 
                 Invalidation childInvalidation = invalidation;
                 if ((invalidation & Invalidation.RequiredParentSizeToFit) > 0)
@@ -1011,6 +1017,8 @@ namespace osu.Framework.Graphics.Containers
                 anyInvalidated |= c.Invalidate(childInvalidation, InvalidationSource.Parent);
             }
 
+            Done:
+            skipChildInvalidation = null;
             return anyInvalidated;
         }
 
@@ -1020,8 +1028,13 @@ namespace osu.Framework.Graphics.Containers
         /// <param name="invalidation">The <see cref="Invalidation"/> to invalidate with.</param>
         /// <param name="axes">The position or size <see cref="Axes"/> that changed.</param>
         /// <param name="source">The source <see cref="Drawable"/>.</param>
-        internal void InvalidateChildrenSizeDependencies(Invalidation invalidation, Axes axes, Drawable source)
+        internal void InvalidateChildrenSizeDependencies(Invalidation invalidation, Axes axes, [CanBeNull] Drawable source)
         {
+            // The axes changed on the source which contribute to the auto-size of this composite.
+            Axes changedAutoSizeAxes = axes & AutoSizeAxes;
+            if (source != null)
+                changedAutoSizeAxes &= ~source.BypassAutoSizeAxes;
+
             // Store the current state of the children size dependencies.
             // This state may be restored later if the invalidation proved to be unnecessary.
             bool wasValid = childrenSizeDependencies.IsValid;
@@ -1029,10 +1042,32 @@ namespace osu.Framework.Graphics.Containers
             // The invalidation still needs to occur as normal, since a derived CompositeDrawable may want to respond to children size invalidations.
             Invalidate(invalidation, InvalidationSource.Child);
 
-            // If all the changed axes were bypassed and an invalidation occurred, the children size dependencies can immediately be
-            // re-validated without a recomputation, as a recomputation would not change the auto-sized size.
-            if (wasValid && (axes & source.BypassAutoSizeAxes) == axes)
-                childrenSizeDependencies.Validate();
+            if (wasValid)
+            {
+                if (changedAutoSizeAxes == Axes.None)
+                {
+                    // If no auto-sizable axes were changed and the computed auto-size was already valid,
+                    // the auto-size can be re-validated immediately to elide the unnecessary computation that would result in the same auto-size.
+                    childrenSizeDependencies.Validate();
+                }
+            }
+
+            if (changedAutoSizeAxes != Axes.None && AutoSizeDuration == 0)
+            {
+                // In order to avoid a one-frame issue (see case 1 from: https://github.com/ppy/osu-framework/issues/3369), autosize invalidations:
+                // 1. Immediately invalidate DrawSize.
+                // 2. Propagate all the way throughout the hierarchy.
+
+                // If the auto-size was invalidated, DrawSize also needs to be invalidated. This is done via a special path which results in:
+                // 1. Invalidating the current composite.
+                // 2. Invalidating all children except the source of this invalidation.
+                // 3. Not invalidating the parent (see below).
+                skipChildInvalidation = source;
+                Invalidate(Invalidation.DrawSize, InvalidationSource.Self, false);
+
+                // Propagate through the hierarchy using this optimised invalidation path.
+                Parent?.InvalidateChildrenSizeDependencies(invalidation, changedAutoSizeAxes, this);
+            }
         }
 
         #endregion
@@ -1090,6 +1125,8 @@ namespace osu.Framework.Graphics.Containers
         /// <param name="target">The target list to fill with DrawNodes.</param>
         private static void addFromComposite(ulong frame, int treeIndex, bool forceNewDrawNode, ref int j, CompositeDrawable parentComposite, List<DrawNode> target)
         {
+            parentComposite.updateChildrenSizeDependencies();
+
             SortedList<Drawable> children = parentComposite.aliveInternalChildren;
 
             for (int i = 0; i < children.Count; ++i)

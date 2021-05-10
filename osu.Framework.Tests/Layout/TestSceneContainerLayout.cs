@@ -405,6 +405,96 @@ namespace osu.Framework.Tests.Layout
             AddAssert("child not invalidated", () => !invalidated);
         }
 
+        [Test]
+        public void TestNestedAutoSizeUpdatesImmediatelyOnAdd()
+        {
+            Container firstContainer = null;
+            Container nestedContainer = null;
+
+            AddStep("create test", () =>
+            {
+                Child = firstContainer = new Container
+                {
+                    AutoSizeAxes = Axes.Both,
+                    Child = nestedContainer = new Container
+                    {
+                        AutoSizeAxes = Axes.Both
+                    }
+                };
+            });
+
+            Vector2 size = Vector2.Zero;
+
+            AddStep("add child and get first container size", () =>
+            {
+                nestedContainer.Add(new Box { Size = new Vector2(100) });
+                size = firstContainer.DrawSize;
+            });
+
+            AddAssert("first container has size 100", () => Precision.AlmostEquals(new Vector2(100), size));
+        }
+
+        [Test]
+        public void TestNestedAutoSizeUpdatesImmediatelyOnChange()
+        {
+            Container firstContainer = null;
+            Drawable mostNestedDrawable = null;
+
+            AddStep("create test", () =>
+            {
+                Child = firstContainer = new Container
+                {
+                    AutoSizeAxes = Axes.Both,
+                    Child = new Container
+                    {
+                        AutoSizeAxes = Axes.Both,
+                        Child = mostNestedDrawable = new Box { Size = new Vector2(5) }
+                    }
+                };
+            });
+
+            Vector2 size = Vector2.Zero;
+
+            AddStep("change most nested size and get first container size", () =>
+            {
+                mostNestedDrawable.Size = new Vector2(100);
+                size = firstContainer.DrawSize;
+            });
+
+            AddUntilStep("first container has size 100", () => Precision.AlmostEquals(new Vector2(100), size));
+        }
+
+        [Test]
+        public void TestNestedAutoSizeUpdatesImmediatelyOnRemove()
+        {
+            Container firstContainer = null;
+            Container nestedContainer = null;
+            Drawable mostNestedDrawable = null;
+
+            AddStep("create test", () =>
+            {
+                Child = firstContainer = new Container
+                {
+                    AutoSizeAxes = Axes.Both,
+                    Child = nestedContainer = new Container
+                    {
+                        AutoSizeAxes = Axes.Both,
+                        Child = mostNestedDrawable = new Box { Size = new Vector2(100) }
+                    }
+                };
+            });
+
+            Vector2 size = Vector2.Zero;
+
+            AddStep("remove child and get first container size", () =>
+            {
+                nestedContainer.Remove(mostNestedDrawable);
+                size = firstContainer.DrawSize;
+            });
+
+            AddAssert("first container has size 0", () => Precision.AlmostEquals(Vector2.Zero, size));
+        }
+
         private class TestBox1 : Box
         {
             public override bool RemoveWhenNotAlive => false;

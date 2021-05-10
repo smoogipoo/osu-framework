@@ -1749,7 +1749,7 @@ namespace osu.Framework.Graphics
         /// <param name="invalidation">The flags to invalidate with.</param>
         /// <param name="source">The source that triggered the invalidation.</param>
         /// <returns>If any layout was invalidated.</returns>
-        public bool Invalidate(Invalidation invalidation = Invalidation.All, InvalidationSource source = InvalidationSource.Self) => invalidate(invalidation, source);
+        public bool Invalidate(Invalidation invalidation = Invalidation.All, InvalidationSource source = InvalidationSource.Self) => Invalidate(invalidation, source, true);
 
         /// <summary>
         /// Invalidates the layout of this <see cref="Drawable"/>.
@@ -1759,7 +1759,7 @@ namespace osu.Framework.Graphics
         /// <param name="propagateToParent">Whether to propagate the invalidation to the parent of this <see cref="Drawable"/>.
         /// Only has an effect if <paramref name="source"/> is <see cref="InvalidationSource.Self"/>.</param>
         /// <returns>If any layout was invalidated.</returns>
-        private bool invalidate(Invalidation invalidation = Invalidation.All, InvalidationSource source = InvalidationSource.Self, bool propagateToParent = true)
+        internal bool Invalidate(Invalidation invalidation, InvalidationSource source , bool propagateToParent)
         {
             if (source != InvalidationSource.Child && source != InvalidationSource.Parent && source != InvalidationSource.Self)
                 throw new InvalidOperationException($"A {nameof(Drawable)} can only be invalidated with a singular {nameof(source)} (child, parent, or self).");
@@ -1850,7 +1850,7 @@ namespace osu.Framework.Graphics
         private void invalidateParentSizeDependencies(Invalidation invalidation, Axes changedAxes)
         {
             // We're invalidating the parent manually, so we should not propagate it upwards.
-            invalidate(invalidation, InvalidationSource.Self, false);
+            Invalidate(invalidation, InvalidationSource.Self, false);
 
             // The fast path, which performs an invalidation on the parent along with optimisations for bypassed sizing axes.
             Parent?.InvalidateChildrenSizeDependencies(invalidation, changedAxes, this);
