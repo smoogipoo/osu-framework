@@ -15,8 +15,10 @@ using osu.Framework.Threading;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osuTK;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -60,6 +62,11 @@ namespace osu.Framework.Graphics.Performance
         private readonly Dictionary<StatisticsCounterType, CounterBar> counterBars = new Dictionary<StatisticsCounterType, CounterBar>();
 
         private readonly FrameTimeDisplay frameTimeDisplay;
+
+        [Resolved]
+        private GameHost host { get; set; }
+
+        private StreamWriter frameTimeWriter;
 
         private FrameStatisticsMode state;
 
@@ -240,6 +247,8 @@ namespace osu.Framework.Graphics.Performance
         [BackgroundDependencyLoader]
         private void load()
         {
+            frameTimeWriter = new StreamWriter(host.Storage.GetStream($"frametimes/{Name}-frametimes.csv", FileAccess.ReadWrite, FileMode.Create));
+
             //initialise background
             var columnUpload = new ArrayPoolTextureUpload(1, HEIGHT);
             var fullBackground = new Image<Rgba32>(WIDTH, HEIGHT);
@@ -396,6 +405,9 @@ namespace osu.Framework.Graphics.Performance
             applyFrameCounts(frame);
         }
 
+        private double maxWorkTimeThisBatch;
+        private double lastLoggedBatchTime;
+
         protected override void Update()
         {
             base.Update();
@@ -407,8 +419,27 @@ namespace osu.Framework.Graphics.Performance
                     applyFrame(frame);
                     frameTimeDisplay.NewFrame(frame);
                     monitor.FramesPool.Return(frame);
+
+                    double workTimeThisFrame = 0;
+                    for (int i = 0; i < FrameStatistics.NUM_PERFORMANCE_COLLECTION_TYPES; i++)
+                        workTimeThisFrame += frame.CollectedTimes.GetValueOrDefault((PerformanceCollectionType)i);
+                    maxWorkTimeThisBatch = Math.Max(maxWorkTimeThisBatch, workTimeThisFrame);
+
+                    if (Time.Current - lastLoggedBatchTime > 10)
+                    {
+                        frameTimeWriter.WriteLine($"{maxWorkTimeThisBatch}");
+
+                        maxWorkTimeThisBatch = 0;
+                        lastLoggedBatchTime = Time.Current;
+                    }
                 }
             }
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            frameTimeWriter?.Dispose();
         }
 
         private Color4 getColour(PerformanceCollectionType type)
