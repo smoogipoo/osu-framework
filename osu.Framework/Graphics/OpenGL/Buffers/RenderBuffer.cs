@@ -20,16 +20,16 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         {
             this.format = format;
 
+            attachment = format.GetAttachmentType();
+            sizePerPixel = format.GetBytesPerPixel();
+
             renderBuffer = GL.GenRenderbuffer();
 
             GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderBuffer);
-
             // OpenGL docs don't specify that this is required, but seems to be required on some platforms
             // to correctly attach in the GL.FramebufferRenderbuffer() call below
             GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, format, 1, 1);
-
-            attachment = format.GetAttachmentType();
-            sizePerPixel = format.GetBytesPerPixel();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
 
             GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, attachment, RenderbufferTarget.Renderbuffer, renderBuffer);
         }
@@ -49,6 +49,9 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             {
                 GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderBuffer);
                 GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, format, (int)Math.Ceiling(size.X), (int)Math.Ceiling(size.Y));
+                GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+
+                GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, attachment, RenderbufferTarget.Renderbuffer, renderBuffer);
 
                 if (!GLWrapper.IsEmbedded)
                 {
