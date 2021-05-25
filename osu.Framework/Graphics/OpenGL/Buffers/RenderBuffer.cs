@@ -11,27 +11,17 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     internal class RenderBuffer : IDisposable
     {
         private readonly RenderbufferInternalFormat format;
-        private readonly int renderBuffer;
         private readonly int sizePerPixel;
 
+        private int renderBuffer = -1;
         private FramebufferAttachment attachment;
 
         public RenderBuffer(RenderbufferInternalFormat format)
         {
             this.format = format;
 
-            renderBuffer = GL.GenRenderbuffer();
-
-            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderBuffer);
-
-            // OpenGL docs don't specify that this is required, but seems to be required on some platforms
-            // to correctly attach in the GL.FramebufferRenderbuffer() call below
-            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, format, 1, 1);
-
             attachment = format.GetAttachmentType();
             sizePerPixel = format.GetBytesPerPixel();
-
-            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, attachment, RenderbufferTarget.Renderbuffer, renderBuffer);
         }
 
         private Vector2 internalSize;
@@ -47,15 +37,15 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             // Such discard does not exist on non-embedded platforms, so they are only re-initialised when required.
             if (GLWrapper.IsEmbedded || internalSize.X < size.X || internalSize.Y < size.Y)
             {
+                delete();
+
+                renderBuffer = GL.GenRenderbuffer();
                 GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderBuffer);
                 GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, format, (int)Math.Ceiling(size.X), (int)Math.Ceiling(size.Y));
+                GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+                GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, attachment, RenderbufferTarget.Renderbuffer, renderBuffer);
 
-                if (!GLWrapper.IsEmbedded)
-                {
-                    memoryLease?.Dispose();
-                    memoryLease = NativeMemoryTracker.AddMemory(this, (long)(size.X * size.Y * sizePerPixel));
-                }
-
+                memoryLease = NativeMemoryTracker.AddMemory(this, (long)(size.X * size.Y * sizePerPixel));
                 internalSize = size;
             }
         }
@@ -67,6 +57,17 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 // Renderbuffers are not automatically discarded on all embedded devices, so invalidation is forced for extra performance and to unify logic between devices.
                 GL.InvalidateFramebuffer(FramebufferTarget.Framebuffer, 1, ref attachment);
             }
+        }
+
+        private void delete()
+        {
+            if (renderBuffer == -1)
+                return;
+
+            GL.DeleteRenderbuffer(renderBuffer);
+            renderBuffer = -1;
+
+            memoryLease?.Dispose();
         }
 
         #region Disposal
@@ -89,11 +90,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             if (isDisposed)
                 return;
 
-            if (renderBuffer != -1)
-            {
-                memoryLease?.Dispose();
-                GL.DeleteRenderbuffer(renderBuffer);
-            }
+            delete();
 
             isDisposed = true;
         }
