@@ -65,11 +65,11 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget2d.Texture2D, Texture.TextureId, 0);
             GLWrapper.BindTexture(null);
 
-            if (renderBufferFormats != null)
-            {
-                foreach (var format in renderBufferFormats)
-                    attachedRenderBuffers.Add(new RenderBuffer(format));
-            }
+            // if (renderBufferFormats != null)
+            // {
+            //     foreach (var format in renderBufferFormats)
+            //         attachedRenderBuffers.Add(new RenderBuffer(format));
+            // }
         }
 
         /// <summary>
@@ -89,8 +89,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 GLWrapper.BindFrameBuffer(frameBuffer);
             }
 
-            foreach (var buffer in attachedRenderBuffers)
-                buffer.Bind(Size);
+            // foreach (var buffer in attachedRenderBuffers)
+            //     buffer.Bind(Size);
         }
 
         /// <summary>
@@ -101,8 +101,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             // See: https://community.arm.com/developer/tools-software/graphics/b/blog/posts/mali-performance-2-how-to-correctly-handle-framebuffers
             // Unbinding renderbuffers causes an invalidation of the relevant attachment of this framebuffer on embedded devices, causing the renderbuffers to remain transient.
             // This must be done _before_ the framebuffer is flushed via the framebuffer unbind process, otherwise the renderbuffer may be copied to system memory.
-            foreach (var buffer in attachedRenderBuffers)
-                buffer.Unbind();
+            // foreach (var buffer in attachedRenderBuffers)
+            //     buffer.Unbind();
 
             GLWrapper.UnbindFrameBuffer(frameBuffer);
         }
@@ -134,8 +134,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
                 GLWrapper.DeleteFrameBuffer(frameBuffer);
 
-                foreach (var buffer in attachedRenderBuffers)
-                    buffer.Dispose();
+                // foreach (var buffer in attachedRenderBuffers)
+                //     buffer.Dispose();
             }
 
             isDisposed = true;

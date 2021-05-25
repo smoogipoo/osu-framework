@@ -80,8 +80,6 @@ namespace osu.Framework.Graphics
 
         public sealed override void Draw(Action<TexturedVertex2D> vertexAction)
         {
-            return;
-
             if (RequiresRedraw)
             {
                 FrameStatistics.Increment(StatisticsCounterType.FBORedraw);
