@@ -51,6 +51,17 @@ namespace osu.Framework.Input.Handlers.Mouse
         /// </summary>
         private bool absolutePositionReceived;
 
+        /// <summary>
+        /// Whether the application should be handling the cursor.
+        /// </summary>
+        private bool cursorCaptured => isActive.Value && (window.CursorInWindow.Value || window.CursorState.HasFlagFast(CursorState.Confined));
+
+        /// <summary>
+        /// Whether the last position (as reported by <see cref="FeedbackMousePositionChange"/>)
+        /// was outside the window.
+        /// </summary>
+        private bool previousPositionOutsideWindow = true;
+
         public override bool Initialize(GameHost host)
         {
             if (!base.Initialize(host))
@@ -106,10 +117,12 @@ namespace osu.Framework.Input.Handlers.Mouse
             if (!Enabled.Value)
                 return;
 
-            if (!isSelfFeedback)
+            if (!isSelfFeedback && isActive.Value)
                 // if another handler has updated the cursor position, handle updating the OS cursor so we can seamlessly revert
                 // to mouse control at any point.
                 window.UpdateMousePosition(position);
+
+            bool positionOutsideWindow = position.X < 0 || position.Y < 0 || position.X >= window.Size.Width || position.Y >= window.Size.Height;
 
             if (window.RelativeMouseMode)
             {
@@ -120,19 +133,16 @@ namespace osu.Framework.Input.Handlers.Mouse
 
                 // handle the case where relative / raw input is active, but the cursor may have exited the window
                 // bounds and is not intended to be confined.
-                if (!window.CursorState.HasFlagFast(CursorState.Confined))
+                if (!window.CursorState.HasFlagFast(CursorState.Confined) && positionOutsideWindow && !previousPositionOutsideWindow)
                 {
-                    bool positionOutsideWindow = position.X < 0 || position.Y < 0 || position.X >= window.Size.Width || position.Y >= window.Size.Height;
-
-                    if (positionOutsideWindow)
-                    {
-                        // setting relative mode to false will allow the window manager to take control until the next
-                        // updateRelativeMode() call succeeds (likely from the cursor returning inside the window).
-                        window.RelativeMouseMode = false;
-                        transferLastPositionToHostCursor();
-                    }
+                    // setting relative mode to false will allow the window manager to take control until the next
+                    // updateRelativeMode() call succeeds (likely from the cursor returning inside the window).
+                    window.RelativeMouseMode = false;
+                    transferLastPositionToHostCursor();
                 }
             }
+
+            previousPositionOutsideWindow = positionOutsideWindow;
         }
 
         public override void Reset()
@@ -151,7 +161,7 @@ namespace osu.Framework.Input.Handlers.Mouse
                 // relative mode requires at least one absolute input to arrive, to gain an additional position to work with.
                 && absolutePositionReceived
                 // relative mode only works when the window is active and the cursor is contained. aka the OS cursor isn't being displayed outside the window.
-                && (isActive.Value && (window.CursorInWindow.Value || window.CursorState.HasFlagFast(CursorState.Confined)))
+                && cursorCaptured
                 // relative mode shouldn't ever be enabled if the framework or a consumer has chosen not to hide the cursor.
                 && window.CursorState.HasFlagFast(CursorState.Hidden);
 

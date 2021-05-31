@@ -67,7 +67,7 @@ namespace osu.Framework.Platform
         /// <remarks>
         /// To preserve battery life on mobile devices, this should be left on whenever possible.
         /// </remarks>
-        public readonly Bindable<bool> AllowScreenSuspension = new Bindable<bool>(true);
+        public readonly AggregateBindable<bool> AllowScreenSuspension = new AggregateBindable<bool>((a, b) => a & b, new Bindable<bool>(true));
 
         public bool IsPrimaryInstance { get; protected set; } = true;
 
@@ -249,7 +249,7 @@ namespace osu.Framework.Platform
             var exception = (Exception)args.ExceptionObject;
 
             logException(exception, "unhandled");
-            abortExecutionFromException(sender, exception);
+            abortExecutionFromException(sender, exception, args.IsTerminating);
         }
 
         private void unobservedExceptionHandler(object sender, UnobservedTaskExceptionEventArgs args)
@@ -268,7 +268,8 @@ namespace osu.Framework.Platform
         /// </summary>
         /// <param name="sender">The source, generally a <see cref="GameThread"/>.</param>
         /// <param name="exception">The unhandled exception.</param>
-        private void abortExecutionFromException(object sender, Exception exception)
+        /// <param name="isTerminating">Whether the CLR is terminating.</param>
+        private void abortExecutionFromException(object sender, Exception exception, bool isTerminating)
         {
             // nothing needs to be done if the consumer has requested continuing execution.
             if (ExceptionThrown?.Invoke(exception) == true) return;
@@ -304,10 +305,11 @@ namespace osu.Framework.Platform
 
             void waitForThrow()
             {
-                // This is bypassed for GameThread sources in two situations where deadlocks can occur:
-                // 1. When the exceptioning thread is the input thread.
+                // This is bypassed for sources in a few situations where deadlocks can occur:
+                // 1. When the exceptioning thread is GameThread.Input.
                 // 2. When the game is running in single-threaded mode. Single threaded stacks will be displayed correctly at the point of rethrow.
-                if (sender is GameThread && (sender == InputThread || executionMode.Value == ExecutionMode.SingleThread))
+                // 3. When the CLR is terminating. We can't guarantee the input thread is still running, and may delay application termination.
+                if (isTerminating || sender is GameThread && (sender == InputThread || executionMode.Value == ExecutionMode.SingleThread))
                     return;
 
                 // The process can deadlock in an extreme case such as the input thread dying before the delegate executes, so wait up to a maximum of 10 seconds at all times.
@@ -581,9 +583,11 @@ namespace osu.Framework.Platform
 
                 ExecutionState = ExecutionState.Running;
 
-                initialiseInputHandlers();
+                populateInputHandlers();
 
                 SetupConfig(game.GetFrameworkConfigDefaults() ?? new Dictionary<FrameworkSetting, object>());
+
+                initialiseInputHandlers();
 
                 if (Window != null)
                 {
@@ -702,14 +706,15 @@ namespace osu.Framework.Platform
             Logger.Storage = Storage.GetStorageForDirectory("logs");
         }
 
-        private void initialiseInputHandlers()
+        private void populateInputHandlers()
         {
             AvailableInputHandlers = CreateAvailableInputHandlers().ToImmutableArray();
+        }
 
+        private void initialiseInputHandlers()
+        {
             foreach (var handler in AvailableInputHandlers)
             {
-                (handler as IHasCursorSensitivity)?.Sensitivity.BindTo(cursorSensitivity);
-
                 if (!handler.Initialize(this))
                     handler.Enabled.Value = false;
             }
@@ -848,6 +853,7 @@ namespace osu.Framework.Platform
             };
 
 #pragma warning disable 618
+            // pragma region can be removed 20210911
             ignoredInputHandlers = Config.GetBindable<string>(FrameworkSetting.IgnoredInputHandlers);
             ignoredInputHandlers.ValueChanged += e =>
             {
@@ -862,12 +868,17 @@ namespace osu.Framework.Platform
 
             Config.BindWith(FrameworkSetting.CursorSensitivity, cursorSensitivity);
 
-            // one way binding to preserve compatibility.
+            var cursorSensitivityHandlers = AvailableInputHandlers.OfType<IHasCursorSensitivity>();
+
+            // one way bindings to preserve compatibility.
             cursorSensitivity.BindValueChanged(val =>
             {
-                foreach (var h in AvailableInputHandlers.OfType<IHasCursorSensitivity>())
+                foreach (var h in cursorSensitivityHandlers)
                     h.Sensitivity.Value = val.NewValue;
             }, true);
+
+            foreach (var h in cursorSensitivityHandlers)
+                h.Sensitivity.BindValueChanged(s => cursorSensitivity.Value = s.NewValue);
 #pragma warning restore 618
 
             PerformanceLogging.BindValueChanged(logging =>
@@ -887,10 +898,7 @@ namespace osu.Framework.Platform
                 CultureInfo.DefaultThreadCurrentCulture = culture;
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-                foreach (var t in Threads)
-                {
-                    t.Scheduler.Add(() => { t.CurrentCulture = culture; });
-                }
+                threadRunner.SetCulture(culture);
             }, true);
 
             // intentionally done after everything above to ensure the new configuration location has priority over obsoleted values.
