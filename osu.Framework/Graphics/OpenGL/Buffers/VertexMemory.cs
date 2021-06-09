@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             totalBytes = count * sizeof(T);
             bytes = Marshal.AllocHGlobal(totalBytes);
-            GC.AddMemoryPressure(totalBytes);
+            // GC.AddMemoryPressure(totalBytes);
 
             Span.Clear();
         }
@@ -30,7 +30,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         public void Dispose()
         {
             Marshal.FreeHGlobal(bytes);
-            GC.RemoveMemoryPressure(totalBytes);
+            // GC.RemoveMemoryPressure(totalBytes);
         }
     }
 }
