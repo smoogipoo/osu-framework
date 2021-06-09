@@ -9,7 +9,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 namespace osu.Framework.Graphics.Batches
 {
     public class LinearBatch<T> : VertexBatch<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly PrimitiveType type;
 

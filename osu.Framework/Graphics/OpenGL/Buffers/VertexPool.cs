@@ -8,7 +8,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
     internal static class VertexPool<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         // ReSharper disable once StaticMemberInGenericType
         private static readonly ArrayPool<byte> pool;

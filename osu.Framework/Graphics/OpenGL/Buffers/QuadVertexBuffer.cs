@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     }
 
     public class QuadVertexBuffer<T> : VertexBuffer<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly int amountQuads;
 

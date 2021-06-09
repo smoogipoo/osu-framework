@@ -9,7 +9,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
     internal class VertexMemory<T> : IDisposable
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly ArrayPool<byte> pool;
         private readonly byte[] bytes;
