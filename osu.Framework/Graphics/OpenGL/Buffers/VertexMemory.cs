@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Buffers;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.OpenGL.Vertices;
 
@@ -11,21 +10,27 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     internal class VertexMemory<T> : IDisposable
         where T : unmanaged, IEquatable<T>, IVertex
     {
-        private readonly ArrayPool<byte> pool;
-        private readonly byte[] bytes;
+        private readonly IntPtr bytes;
+        private readonly int count;
+        private readonly int totalBytes;
 
-        public VertexMemory(ArrayPool<byte> pool, int count)
+        public unsafe VertexMemory(int count)
         {
-            this.pool = pool;
-            bytes = pool.Rent(count * VertexUtils<T>.STRIDE);
-            bytes.AsSpan().Clear();
+            this.count = count;
+
+            totalBytes = count * sizeof(T);
+            bytes = Marshal.AllocHGlobal(totalBytes);
+            GC.AddMemoryPressure(totalBytes);
+
+            Span.Clear();
         }
 
-        public Span<T> Span => MemoryMarshal.Cast<byte, T>(bytes);
+        public unsafe Span<T> Span => new Span<T>(bytes.ToPointer(), count);
 
         public void Dispose()
         {
-            pool.Return(bytes);
+            Marshal.FreeHGlobal(bytes);
+            GC.RemoveMemoryPressure(totalBytes);
         }
     }
 }
