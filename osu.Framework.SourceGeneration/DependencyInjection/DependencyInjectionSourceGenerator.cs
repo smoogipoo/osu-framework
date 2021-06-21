@@ -51,9 +51,19 @@ namespace osu.Framework.SourceGeneration.DependencyInjection
                 foreach (var p in requiredDependencies.Properties)
                 {
                     var attributeData = p.GetAttributes().Single(a => a.AttributeClass!.Equals(resolvedSymbol, SymbolEqualityComparer.Default));
-                    Type? resolvedParentType = (Type?)attributeData.NamedArguments.SingleOrDefault(arg => arg.Key == "Parent").Value.Value;
-                    string? resolvedName = (string?)attributeData.NamedArguments.SingleOrDefault(arg => arg.Key == "Name").Value.Value;
-                    bool resolvedCanBeNull = (bool)(attributeData.NamedArguments.SingleOrDefault(arg => arg.Key == "CanBeNull").Value.Value ?? false);
+
+                    Type? resolvedParentType = (Type?)
+                        (attributeData.NamedArguments.SingleOrDefault(arg => arg.Key == "Parent").Value.Value
+                         ?? attributeData.ConstructorArguments.ElementAtOrDefault(0).Value);
+
+                    string? resolvedName = (string?)
+                        (attributeData.NamedArguments.SingleOrDefault(arg => arg.Key == "Name").Value.Value
+                         ?? attributeData.ConstructorArguments.ElementAtOrDefault(1).Value);
+
+                    bool resolvedCanBeNull = (bool)
+                        (attributeData.NamedArguments.SingleOrDefault(arg => arg.Key == "CanBeNull").Value.Value
+                         ?? attributeData.ConstructorArguments.ElementAtOrDefault(2).Value
+                         ?? false);
 
                     injectionBuilder.Append($"\t\t\tthis.{p.Name} = dependencyContainer.Get<{p.Type.ToDisplayString()}>(");
 
