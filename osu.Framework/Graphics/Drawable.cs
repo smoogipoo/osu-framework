@@ -296,21 +296,7 @@ namespace osu.Framework.Graphics
         /// Injects dependencies from an <see cref="IReadOnlyDependencyContainer"/> into this <see cref="Drawable"/>.
         /// </summary>
         /// <param name="dependencies">The dependencies to inject.</param>
-        protected virtual void InjectDependencies(IReadOnlyDependencyContainer dependencies)
-        {
-            foreach (var type in GetType().EnumerateBaseTypes().Reverse())
-            {
-                var generatedDependencyInjectorType = typeof(IGeneratedDependencyInjector<>).MakeGenericType(type);
-                if (!generatedDependencyInjectorType.IsInstanceOfType(this))
-                    continue;
-
-                var injectMethod = generatedDependencyInjectorType.GetMethod(nameof(IGeneratedDependencyInjector<Drawable>.Inject), BindingFlags.Instance | BindingFlags.Public);
-                Debug.Assert(injectMethod != null);
-                injectMethod.Invoke(this, new object[] { dependencies });
-            }
-
-            dependencies.Inject(this);
-        }
+        protected virtual void InjectDependencies(IReadOnlyDependencyContainer dependencies) => dependencies.Inject(this);
 
         /// <summary>
         /// Runs once on the update thread after loading has finished.

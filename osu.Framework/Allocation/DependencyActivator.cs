@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using osu.Framework.Extensions.TypeExtensions;
+using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 
 namespace osu.Framework.Allocation
@@ -27,12 +29,24 @@ namespace osu.Framework.Allocation
         private readonly List<InjectDependencyDelegate> injectionActivators = new List<InjectDependencyDelegate>();
         private readonly List<CacheDependencyDelegate> buildCacheActivators = new List<CacheDependencyDelegate>();
 
+        private readonly MethodInfo injectorMethod;
         private readonly DependencyActivator baseActivator;
 
         private DependencyActivator(Type type)
         {
-            injectionActivators.Add(ResolvedAttribute.CreateActivator(type));
-            injectionActivators.Add(BackgroundDependencyLoaderAttribute.CreateActivator(type));
+            var injectorType = typeof(IGeneratedDependencyInjector<>).MakeGenericType(type);
+
+            if (injectorType.IsAssignableFrom(type))
+            {
+                injectorMethod = injectorType.GetMethod(nameof(IGeneratedDependencyInjector<Drawable>.Inject), BindingFlags.Instance | BindingFlags.Public);
+                Debug.Assert(injectorMethod != null);
+            }
+            else
+            {
+                injectionActivators.Add(ResolvedAttribute.CreateActivator(type));
+                injectionActivators.Add(BackgroundDependencyLoaderAttribute.CreateActivator(type));
+            }
+
             buildCacheActivators.Add(CachedAttribute.CreateActivator(type));
 
             if (type.BaseType != typeof(object))
@@ -71,8 +85,13 @@ namespace osu.Framework.Allocation
         {
             baseActivator?.activate(obj, dependencies);
 
-            foreach (var a in injectionActivators)
-                a(obj, dependencies);
+            if (injectorMethod != null)
+                injectorMethod.Invoke(obj, new object[] { dependencies });
+            else
+            {
+                foreach (var a in injectionActivators)
+                    a(obj, dependencies);
+            }
         }
 
         private IReadOnlyDependencyContainer mergeDependencies(object obj, IReadOnlyDependencyContainer dependencies, CacheInfo info)
