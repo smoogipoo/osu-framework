@@ -7,7 +7,8 @@
       "osu.Framework.NativeLibs\\osu.Framework.NativeLibs.csproj",
       "osu.Framework.Tests\\osu.Framework.Tests.csproj",
       "osu.Framework\\osu.Framework.csproj",
-      "osu.Framework.Benchmarks\\osu.Framework.Benchmarks.csproj"
+      "osu.Framework.Benchmarks\\osu.Framework.Benchmarks.csproj",
+      "osu.Framework.SourceGeneration\\osu.Framework.SourceGeneration.csproj"
     ]
   }
 }

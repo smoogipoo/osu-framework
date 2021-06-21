@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Label="Project">
     <TargetFrameworks>net5.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>9</LangVersion>
     <OutputType>Library</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyTitle>osu!framework</AssemblyTitle>
@@ -51,5 +52,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="3.9.0">
       <NoWarn>NU1701</NoWarn> <!-- Requires .NETFramework for MSBuild, but we use Microsoft.Build.Locator which allows this package to work in .NETCoreApp. -->
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\osu.Framework.SourceGeneration\osu.Framework.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>
