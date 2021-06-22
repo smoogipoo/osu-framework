@@ -1,10 +1,12 @@
 #include "sh_Utils.h"
 
-varying mediump vec2 v_TexCoord;
-varying mediump vec4 v_TexRect;
+in mediump vec2 v_TexCoord;
+in mediump vec4 v_TexRect;
+
+out lowp vec4 f_Colour;
 
 void main(void)
 {
     float hueValue = v_TexCoord.x / (v_TexRect[2] - v_TexRect[0]);
-    gl_FragColor = hsv2rgb(vec4(hueValue, 1, 1, 1));
+    f_Colour = hsv2rgb(vec4(hueValue, 1, 1, 1));
 }
