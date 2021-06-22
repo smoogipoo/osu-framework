@@ -25,6 +25,11 @@ namespace osu.Framework.SourceGeneration.DependencyInjection
 
         private void analyseClass(SyntaxNodeAnalysisContext context)
         {
+            var classSyntax = (ClassDeclarationSyntax)context.Node;
+
+            if (classSyntax.Modifiers.Any(m => m.Kind() == SyntaxKind.PartialKeyword))
+                return;
+
             foreach (var n in context.Node.DescendantNodes())
             {
                 switch (n.Kind())
