@@ -68,7 +68,7 @@ namespace osu.Framework.Platform
         /// <remarks>
         /// To preserve battery life on mobile devices, this should be left on whenever possible.
         /// </remarks>
-        public readonly Bindable<bool> AllowScreenSuspension = new Bindable<bool>(true);
+        public readonly AggregateBindable<bool> AllowScreenSuspension = new AggregateBindable<bool>((a, b) => a & b, new Bindable<bool>(true));
 
         public bool IsPrimaryInstance { get; protected set; } = true;
 
@@ -181,10 +181,10 @@ namespace osu.Framework.Platform
             thread.UnhandledException = null;
         }
 
-        public DrawThread DrawThread;
-        public GameThread UpdateThread;
-        public InputThread InputThread;
-        public AudioThread AudioThread;
+        public DrawThread DrawThread { get; private set; }
+        public GameThread UpdateThread { get; private set; }
+        public InputThread InputThread { get; private set; }
+        public AudioThread AudioThread { get; private set; }
 
         private double maximumUpdateHz;
 
@@ -250,7 +250,7 @@ namespace osu.Framework.Platform
             var exception = (Exception)args.ExceptionObject;
 
             logException(exception, "unhandled");
-            abortExecutionFromException(sender, exception);
+            abortExecutionFromException(sender, exception, args.IsTerminating);
         }
 
         private void unobservedExceptionHandler(object sender, UnobservedTaskExceptionEventArgs args)
@@ -269,7 +269,8 @@ namespace osu.Framework.Platform
         /// </summary>
         /// <param name="sender">The source, generally a <see cref="GameThread"/>.</param>
         /// <param name="exception">The unhandled exception.</param>
-        private void abortExecutionFromException(object sender, Exception exception)
+        /// <param name="isTerminating">Whether the CLR is terminating.</param>
+        private void abortExecutionFromException(object sender, Exception exception, bool isTerminating)
         {
             // nothing needs to be done if the consumer has requested continuing execution.
             if (ExceptionThrown?.Invoke(exception) == true) return;
@@ -299,16 +300,13 @@ namespace osu.Framework.Platform
             // To avoid this, pause the exceptioning thread until the rethrow takes place.
             waitForThrow();
 
-            // schedule an exit to the input thread.
-            // this is required for single threaded execution, else the draw thread may get stuck looping before the above schedule finishes.
-            PerformExit(false);
-
             void waitForThrow()
             {
-                // This is bypassed for GameThread sources in two situations where deadlocks can occur:
-                // 1. When the exceptioning thread is the input thread.
+                // This is bypassed for sources in a few situations where deadlocks can occur:
+                // 1. When the exceptioning thread is GameThread.Input.
                 // 2. When the game is running in single-threaded mode. Single threaded stacks will be displayed correctly at the point of rethrow.
-                if (sender is GameThread && (sender == InputThread || executionMode.Value == ExecutionMode.SingleThread))
+                // 3. When the CLR is terminating. We can't guarantee the input thread is still running, and may delay application termination.
+                if (isTerminating || sender is GameThread && (sender == InputThread || executionMode.Value == ExecutionMode.SingleThread))
                     return;
 
                 // The process can deadlock in an extreme case such as the input thread dying before the delegate executes, so wait up to a maximum of 10 seconds at all times.
@@ -391,14 +389,20 @@ namespace osu.Framework.Platform
             if (Root == null)
                 return;
 
-            while (ExecutionState > ExecutionState.Stopping)
+            while (ExecutionState == ExecutionState.Running)
             {
                 using (var buffer = DrawRoots.Get(UsageType.Read))
                 {
                     if (buffer?.Object == null || buffer.FrameId == lastDrawFrameId)
                     {
+                        // if a buffer is not available in single threaded mode there's no point in looping.
+                        // in the general case this should never happen, but may occur during exception handling.
+                        if (executionMode.Value == ExecutionMode.SingleThread)
+                            break;
+
                         using (drawMonitor.BeginCollecting(PerformanceCollectionType.Sleep))
                             Thread.Sleep(1);
+
                         continue;
                     }
 
@@ -496,7 +500,20 @@ namespace osu.Framework.Platform
             }
         }
 
-        public ExecutionState ExecutionState { get; private set; }
+        public ExecutionState ExecutionState
+        {
+            get => executionState;
+            private set
+            {
+                if (executionState == value)
+                    return;
+
+                executionState = value;
+                Logger.Log($"Host execution state changed to {value}");
+            }
+        }
+
+        private ExecutionState executionState;
 
         /// <summary>
         /// Schedules the game to exit in the next frame.
@@ -509,13 +526,15 @@ namespace osu.Framework.Platform
         /// <param name="immediately">If true, exits the game immediately.  If false (default), schedules the game to exit in the next frame.</param>
         protected virtual void PerformExit(bool immediately)
         {
+            if (executionState == ExecutionState.Stopped || executionState == ExecutionState.Idle)
+                return;
+
+            ExecutionState = ExecutionState.Stopping;
+
             if (immediately)
                 exit();
             else
-            {
-                ExecutionState = ExecutionState.Stopping;
                 InputThread.Scheduler.Add(exit, false);
-            }
         }
 
         /// <summary>
@@ -523,10 +542,11 @@ namespace osu.Framework.Platform
         /// </summary>
         private void exit()
         {
-            // exit() may be called without having been scheduled from Exit(), so ensure the correct exiting state
-            ExecutionState = ExecutionState.Stopping;
+            Debug.Assert(ExecutionState == ExecutionState.Stopping);
+
             Window?.Close();
             threadRunner.Stop();
+
             ExecutionState = ExecutionState.Stopped;
             stoppedEvent.Set();
         }
@@ -580,11 +600,11 @@ namespace osu.Framework.Platform
 
                 Window = CreateWindow();
 
-                ExecutionState = ExecutionState.Running;
-
-                initialiseInputHandlers();
+                populateInputHandlers();
 
                 SetupConfig(game.GetFrameworkConfigDefaults() ?? new Dictionary<FrameworkSetting, object>());
+
+                initialiseInputHandlers();
 
                 if (Window != null)
                 {
@@ -596,6 +616,7 @@ namespace osu.Framework.Platform
                     IsActive.BindTo(Window.IsActive);
                 }
 
+                ExecutionState = ExecutionState.Running;
                 threadRunner.Start();
 
                 DrawThread.WaitUntilInitialized();
@@ -664,8 +685,8 @@ namespace osu.Framework.Platform
         /// </summary>
         public void Suspend()
         {
-            threadRunner.Suspend();
             suspended = true;
+            threadRunner.Suspend();
         }
 
         /// <summary>
@@ -703,14 +724,15 @@ namespace osu.Framework.Platform
             Logger.Storage = Storage.GetStorageForDirectory("logs");
         }
 
-        private void initialiseInputHandlers()
+        private void populateInputHandlers()
         {
             AvailableInputHandlers = CreateAvailableInputHandlers().ToImmutableArray();
+        }
 
+        private void initialiseInputHandlers()
+        {
             foreach (var handler in AvailableInputHandlers)
             {
-                (handler as IHasCursorSensitivity)?.Sensitivity.BindTo(cursorSensitivity);
-
                 if (!handler.Initialize(this))
                     handler.Enabled.Value = false;
             }
@@ -849,6 +871,7 @@ namespace osu.Framework.Platform
             };
 
 #pragma warning disable 618
+            // pragma region can be removed 20210911
             ignoredInputHandlers = Config.GetBindable<string>(FrameworkSetting.IgnoredInputHandlers);
             ignoredInputHandlers.ValueChanged += e =>
             {
@@ -863,12 +886,17 @@ namespace osu.Framework.Platform
 
             Config.BindWith(FrameworkSetting.CursorSensitivity, cursorSensitivity);
 
-            // one way binding to preserve compatibility.
+            var cursorSensitivityHandlers = AvailableInputHandlers.OfType<IHasCursorSensitivity>();
+
+            // one way bindings to preserve compatibility.
             cursorSensitivity.BindValueChanged(val =>
             {
-                foreach (var h in AvailableInputHandlers.OfType<IHasCursorSensitivity>())
+                foreach (var h in cursorSensitivityHandlers)
                     h.Sensitivity.Value = val.NewValue;
             }, true);
+
+            foreach (var h in cursorSensitivityHandlers)
+                h.Sensitivity.BindValueChanged(s => cursorSensitivity.Value = s.NewValue);
 #pragma warning restore 618
 
             PerformanceLogging.BindValueChanged(logging =>
@@ -888,10 +916,7 @@ namespace osu.Framework.Platform
                 CultureInfo.DefaultThreadCurrentCulture = culture;
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-                foreach (var t in Threads)
-                {
-                    t.Scheduler.Add(() => { t.CurrentCulture = culture; });
-                }
+                threadRunner.SetCulture(culture);
             }, true);
 
             // intentionally done after everything above to ensure the new configuration location has priority over obsoleted values.
@@ -905,6 +930,9 @@ namespace osu.Framework.Platform
             DrawThread.Scheduler.Add(() => Window.VerticalSync = frameSyncMode.Value == FrameSync.VSync);
         }
 
+        /// <summary>
+        /// Construct all input handlers for this host. The order here decides the priority given to handlers, with the earliest occurring having higher priority.
+        /// </summary>
         protected abstract IEnumerable<InputHandler> CreateAvailableInputHandlers();
 
         public ImmutableArray<InputHandler> AvailableInputHandlers { get; private set; }
@@ -924,11 +952,17 @@ namespace osu.Framework.Platform
 
             isDisposed = true;
 
-            if (ExecutionState > ExecutionState.Stopping)
-                throw new InvalidOperationException($"{nameof(Exit)} must be called before the {nameof(GameHost)} is disposed.");
+            switch (ExecutionState)
+            {
+                case ExecutionState.Running:
+                    throw new InvalidOperationException($"{nameof(Exit)} must be called before the {nameof(GameHost)} is disposed.");
 
-            // Delay disposal until the game has exited
-            stoppedEvent.Wait();
+                case ExecutionState.Stopping:
+                case ExecutionState.Stopped:
+                    // Delay disposal until the game has exited
+                    stoppedEvent.Wait();
+                    break;
+            }
 
             AppDomain.CurrentDomain.UnhandledException -= unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException -= unobservedExceptionHandler;
@@ -1010,9 +1044,8 @@ namespace osu.Framework.Platform
         /// decoder implementation.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> to decode.</param>
-        /// <param name="scheduler">The <see cref="Scheduler"/> to use when scheduling tasks from the decoder thread.</param>
         /// <returns>An instance of <see cref="VideoDecoder"/> initialised with the given stream.</returns>
-        public virtual VideoDecoder CreateVideoDecoder(Stream stream, Scheduler scheduler) => new VideoDecoder(stream, scheduler);
+        public virtual VideoDecoder CreateVideoDecoder(Stream stream) => new VideoDecoder(stream);
 
         /// <summary>
         /// Creates the <see cref="ThreadRunner"/> to run the threads of this <see cref="GameHost"/>.

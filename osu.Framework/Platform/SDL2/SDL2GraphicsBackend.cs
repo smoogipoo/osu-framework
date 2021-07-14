@@ -24,10 +24,19 @@ namespace osu.Framework.Platform.SDL2
             SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 2);
             SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_ES);
 
-            return SDL.SDL_GL_CreateContext(sdlWindowHandle);
+            IntPtr context = SDL.SDL_GL_CreateContext(sdlWindowHandle);
+            if (context == IntPtr.Zero)
+                throw new InvalidOperationException($"Failed to create an SDL2 GL context ({SDL.SDL_GetError()})");
+
+            return context;
         }
 
-        protected override void MakeCurrent(IntPtr context) => SDL.SDL_GL_MakeCurrent(sdlWindowHandle, context);
+        protected override void MakeCurrent(IntPtr context)
+        {
+            int result = SDL.SDL_GL_MakeCurrent(sdlWindowHandle, context);
+            if (result < 0)
+                throw new InvalidOperationException($"Failed to acquire GL context ({SDL.SDL_GetError()})");
+        }
 
         public override void SwapBuffers() => SDL.SDL_GL_SwapWindow(sdlWindowHandle);
 
