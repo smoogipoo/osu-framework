@@ -39,7 +39,6 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Video;
 using osu.Framework.IO.Serialization;
 using osu.Framework.IO.Stores;
-using osu.Framework.Platform.Linux.Native;
 using SixLabors.ImageSharp.Memory;
 using Image = SixLabors.ImageSharp.Image;
 using PixelFormat = osuTK.Graphics.ES30.PixelFormat;
