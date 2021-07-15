@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
@@ -57,7 +58,8 @@ namespace osu.Framework.Graphics.UserInterface
                             hueBox = new Box
                             {
                                 Name = "Hue",
-                                RelativeSizeAxes = Axes.Both
+                                RelativeSizeAxes = Axes.Both,
+                                Colour = new Colour4(255, 0, 0, 255)
                             },
                             new Box
                             {
@@ -92,11 +94,14 @@ namespace osu.Framework.Graphics.UserInterface
             {
                 base.LoadComplete();
 
-                Current.BindValueChanged(_ => currentChanged(), true);
+                // the following handlers aren't fired immediately to avoid mutating Current by accident when ran prematurely.
+                // if necessary, they will run when the Current value change callback fires at the end of this method.
+                Hue.BindValueChanged(_ => debounce(hueChanged));
+                Saturation.BindValueChanged(_ => debounce(saturationChanged));
+                Value.BindValueChanged(_ => debounce(valueChanged));
 
-                Hue.BindValueChanged(_ => Scheduler.AddOnce(hueChanged), true);
-                Saturation.BindValueChanged(_ => Scheduler.AddOnce(saturationChanged), true);
-                Value.BindValueChanged(_ => Scheduler.AddOnce(valueChanged), true);
+                // Current takes precedence over HSV controls, and as such it must run last after HSV handlers have been set up for correct operation.
+                Current.BindValueChanged(_ => currentChanged(), true);
             }
 
             // As Current and {Hue,Saturation,Value} are mutually bound together,
@@ -105,6 +110,23 @@ namespace osu.Framework.Graphics.UserInterface
             // To prevent this, this flag is set on every original change on each of the four bindables,
             // and any subsequent value change callbacks are supposed to not mutate any of those bindables further if the flag is set.
             private bool changeInProgress;
+
+            private void debounce(Action updateFunc)
+            {
+                if (changeInProgress)
+                {
+                    // if changeInProgress is set, it means that this call is triggered by Current changing.
+                    // the update cannot be scheduled, because due to floating-point / HSV-to-RGB conversion foibles it could potentially slightly change Current again in the next frame.
+                    // running immediately is fine, however, as updateCurrent() guards against that by checking changeInProgress itself.
+                    updateFunc.Invoke();
+                }
+                else
+                {
+                    // if changeInProgress is not set, it means that this call is triggered by actual user input on the hue/saturation/value controls.
+                    // as such it can be debounced to reduce the amount of performed work.
+                    Scheduler.AddOnce(updateFunc);
+                }
+            }
 
             private void currentChanged()
             {
