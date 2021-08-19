@@ -11,7 +11,6 @@ using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Handlers;
 using osu.Framework.Input.Handlers.Mouse;
 using osu.Framework.Platform.Windows.Native;
-using osuTK;
 
 namespace osu.Framework.Platform.Windows
 {
@@ -28,7 +27,7 @@ namespace osu.Framework.Platform.Windows
 #endif
         public override bool CapsLockEnabled => Console.CapsLock;
 
-        internal WindowsGameHost(string gameName, bool bindIPC = false, ToolkitOptions toolkitOptions = default, bool portableInstallation = false)
+        internal WindowsGameHost(string gameName, bool bindIPC = false, bool portableInstallation = false)
             : base(gameName, bindIPC, portableInstallation)
         {
         }
@@ -66,7 +65,7 @@ namespace osu.Framework.Platform.Windows
 
         public override IEnumerable<KeyBinding> PlatformKeyBindings => base.PlatformKeyBindings.Concat(new[]
         {
-            new KeyBinding(new KeyCombination(InputKey.Alt, InputKey.F4), new PlatformAction(PlatformActionType.Exit))
+            new KeyBinding(new KeyCombination(InputKey.Alt, InputKey.F4), PlatformAction.Exit)
         }).ToList();
 
         protected override void Dispose(bool isDisposing)
