@@ -417,8 +417,6 @@ namespace osu.Framework.Graphics.Performance
                 while (monitor.PendingFrames.TryDequeue(out FrameStatistics frame))
                 {
                     applyFrame(frame);
-                    frameTimeDisplay.NewFrame(frame);
-                    monitor.FramesPool.Return(frame);
 
                     double workTimeThisFrame = 0;
                     for (int i = 0; i < FrameStatistics.NUM_PERFORMANCE_COLLECTION_TYPES; i++)
@@ -432,6 +430,9 @@ namespace osu.Framework.Graphics.Performance
                         maxWorkTimeThisBatch = 0;
                         lastLoggedBatchTime = Time.Current;
                     }
+
+                    frameTimeDisplay.NewFrame(frame);
+                    monitor.FramesPool.Return(frame);
                 }
             }
         }
