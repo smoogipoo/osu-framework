@@ -366,7 +366,7 @@ namespace osu.Framework.Threading
 
         private void updateMaximumHz()
         {
-            Scheduler.Add(() => Clock.MaximumUpdateHz = IsActive.Value ? activeHz : inactiveHz);
+            // Scheduler.Add(() => Clock.MaximumUpdateHz = IsActive.Value ? activeHz : inactiveHz);
         }
 
         /// <summary>
