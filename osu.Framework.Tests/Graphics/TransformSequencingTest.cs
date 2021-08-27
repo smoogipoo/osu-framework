@@ -82,6 +82,37 @@ namespace osu.Framework.Tests.Graphics
             checkDelay(inner, 0);
         }
 
+        [Test]
+        public void TestAbsoluteSequenceResetsParentDelays()
+        {
+            using (outer.BeginDelayedSequence(1000))
+            {
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+
+                using (outer.BeginAbsoluteSequence(2000, false))
+                {
+                    checkDelay(outer, 2000);
+                    checkDelay(inner, 1000);
+                }
+
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+
+                using (outer.BeginAbsoluteSequence(2000, true))
+                {
+                    checkDelay(outer, 2000);
+                    checkDelay(inner, 2000);
+                }
+
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+            }
+
+            checkDelay(outer, 0);
+            checkDelay(inner, 0);
+        }
+
         private void checkDelay(TestReceiver receiver, double delay) => Assert.That(receiver.TransformDelay, Is.EqualTo(delay));
 
         private class TestReceiver : Transformable
