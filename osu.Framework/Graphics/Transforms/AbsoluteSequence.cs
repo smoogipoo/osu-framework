@@ -8,16 +8,19 @@ namespace osu.Framework.Graphics.Transforms
     /// </summary>
     public readonly ref struct AbsoluteSequence
     {
-        private readonly TransformSequenceStateMachine.AbsoluteSequenceData? lastSequence;
+        private readonly TransformSequenceStateMachine.AbsoluteSequenceData? lastAbsoluteSequence;
+        private readonly TransformSequenceStateMachine.DelayedSequenceData? lastDelayedSequence;
 
-        internal AbsoluteSequence(TransformSequenceStateMachine.AbsoluteSequenceData? lastSequence)
+        internal AbsoluteSequence(TransformSequenceStateMachine.AbsoluteSequenceData? lastAbsoluteSequence, TransformSequenceStateMachine.DelayedSequenceData? lastDelayedSequence)
         {
-            this.lastSequence = lastSequence;
+            this.lastAbsoluteSequence = lastAbsoluteSequence;
+            this.lastDelayedSequence = lastDelayedSequence;
         }
 
         public void Dispose()
         {
-            TransformSequenceStateMachine.CurrentAbsoluteSequence = lastSequence;
+            TransformSequenceStateMachine.CurrentAbsoluteSequence = lastAbsoluteSequence;
+            TransformSequenceStateMachine.CurrentDelayedSequence = lastDelayedSequence;
         }
     }
 }

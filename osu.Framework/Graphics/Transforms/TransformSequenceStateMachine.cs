@@ -15,20 +15,25 @@ namespace osu.Framework.Graphics.Transforms
 
         public static AbsoluteSequence BeginAbsoluteSequence(object sender, double newTransformStartTime, bool recursive)
         {
-            AbsoluteSequenceData? lastSequence = CurrentAbsoluteSequence;
-
-            double lastRecursiveStartTime = lastSequence?.RecursiveTransformStartTime ?? 0;
+            AbsoluteSequenceData? lastAbsoluteSequence = CurrentAbsoluteSequence;
+            double lastRecursiveStartTime = lastAbsoluteSequence?.RecursiveTransformStartTime ?? 0;
             double newRecursiveStartTime = recursive ? newTransformStartTime : lastRecursiveStartTime;
 
             CurrentAbsoluteSequence = new AbsoluteSequenceData(sender, newTransformStartTime, newRecursiveStartTime);
 
-            return new AbsoluteSequence(lastSequence);
+            // Delay should also be reset to 0 after an absolute sequence.
+            DelayedSequenceData? lastDelayedSequence = CurrentDelayedSequence;
+            double lastRecursiveDelay = lastDelayedSequence?.RecursiveDelay ?? 0;
+            double newRecursiveDelay = recursive ? 0 : lastRecursiveDelay;
+
+            CurrentDelayedSequence = new DelayedSequenceData(sender, 0, newRecursiveDelay);
+
+            return new AbsoluteSequence(lastAbsoluteSequence, lastDelayedSequence);
         }
 
         public static DelayedSequence BeginDelayedSequence(object sender, double delay, bool recursive)
         {
             DelayedSequenceData? lastSequence = CurrentDelayedSequence;
-
             double lastRecursiveDelay = lastSequence?.RecursiveDelay ?? 0;
             double newRecursiveDelay = recursive ? lastRecursiveDelay + delay : lastRecursiveDelay;
 
