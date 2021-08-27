@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Timing;
-using osu.Framework.Utils;
 
 namespace osu.Framework.Graphics.Transforms
 {
@@ -35,7 +34,7 @@ namespace osu.Framework.Graphics.Transforms
         /// <summary>
         /// Delay from the current time until new <see cref="Transform"/>s are started, in milliseconds.
         /// </summary>
-        protected double TransformDelay { get; private set; }
+        protected double TransformDelay => TransformSequenceStateMachine.GetTransformStartTime(this) + TransformSequenceStateMachine.GetTransformDelay(this);
 
         /// <summary>
         /// A lazily-initialized list of <see cref="Transform"/>s applied to this object.
@@ -84,7 +83,6 @@ namespace osu.Framework.Graphics.Transforms
         /// </summary>
         protected void UpdateTransforms()
         {
-            TransformDelay = 0;
             updateTransforms(Time.Current);
         }
 
@@ -230,58 +228,13 @@ namespace osu.Framework.Graphics.Transforms
         }
 
         /// <summary>
-        /// Add a delay duration to <see cref="TransformDelay"/>, in milliseconds.
-        /// </summary>
-        /// <param name="duration">The delay duration to add.</param>
-        /// <param name="propagateChildren">Whether we also delay down the child tree.</param>
-        /// <returns>This</returns>
-        internal virtual void AddDelay(double duration, bool propagateChildren = false) => TransformDelay += duration;
-
-        /// <summary>
         /// Start a sequence of <see cref="Transform"/>s with a (cumulative) relative delay applied.
         /// </summary>
         /// <param name="delay">The offset in milliseconds from current time. Note that this stacks with other nested sequences.</param>
         /// <param name="recursive">Whether this should be applied to all children. True by default.</param>
         /// <returns>An <see cref="InvokeOnDisposal"/> to be used in a using() statement.</returns>
-        public IDisposable BeginDelayedSequence(double delay, bool recursive = true)
-        {
-            EnsureTransformMutationAllowed();
-
-            if (delay == 0)
-                return null;
-
-            AddDelay(delay, recursive);
-            double newTransformDelay = TransformDelay;
-
-            return new ValueInvokeOnDisposal<DelayedSequenceSender>(new DelayedSequenceSender(this, delay, recursive, newTransformDelay), sender =>
-            {
-                if (!Precision.AlmostEquals(sender.NewTransformDelay, sender.Transformable.TransformDelay))
-                {
-                    throw new InvalidOperationException(
-                        $"{nameof(sender.Transformable.TransformStartTime)} at the end of delayed sequence is not the same as at the beginning, but should be. " +
-                        $"(begin={sender.NewTransformDelay} end={sender.Transformable.TransformDelay})");
-                }
-
-                AddDelay(-sender.Delay, sender.Recursive);
-            });
-        }
-
-        /// An ad-hoc struct used as a closure environment in <see cref="BeginDelayedSequence" />.
-        private readonly struct DelayedSequenceSender
-        {
-            public readonly Transformable Transformable;
-            public readonly double Delay;
-            public readonly bool Recursive;
-            public readonly double NewTransformDelay;
-
-            public DelayedSequenceSender(Transformable transformable, double delay, bool recursive, double newTransformDelay)
-            {
-                Transformable = transformable;
-                Delay = delay;
-                Recursive = recursive;
-                NewTransformDelay = newTransformDelay;
-            }
-        }
+        public DelayedSequence BeginDelayedSequence(double delay, bool recursive = true)
+            => TransformSequenceStateMachine.BeginDelayedSequence(this, delay, recursive);
 
         /// <summary>
         /// Start a sequence of <see cref="Transform"/>s from an absolute time value (adjusts <see cref="TransformStartTime"/>).
@@ -290,54 +243,8 @@ namespace osu.Framework.Graphics.Transforms
         /// <param name="recursive">Whether this should be applied to all children. True by default.</param>
         /// <returns>An <see cref="InvokeOnDisposal"/> to be used in a using() statement.</returns>
         /// <exception cref="InvalidOperationException">Absolute sequences should never be nested inside another existing sequence.</exception>
-        public virtual IDisposable BeginAbsoluteSequence(double newTransformStartTime, bool recursive = true)
-        {
-            EnsureTransformMutationAllowed();
-
-            return createAbsoluteSequenceAction(newTransformStartTime);
-        }
-
-        internal virtual void CollectAbsoluteSequenceActionsFromSubTree(double newTransformStartTime, List<AbsoluteSequenceSender> actions)
-        {
-            actions.Add(createAbsoluteSequenceAction(newTransformStartTime));
-        }
-
-        private AbsoluteSequenceSender createAbsoluteSequenceAction(double newTransformStartTime)
-        {
-            double oldTransformDelay = TransformDelay;
-            double newTransformDelay = TransformDelay = newTransformStartTime - (Clock?.CurrentTime ?? 0);
-
-            return new AbsoluteSequenceSender(this, oldTransformDelay, newTransformDelay);
-        }
-
-        /// An ad-hoc struct used as a closure environment in <see cref="BeginAbsoluteSequence" />.
-        internal readonly struct AbsoluteSequenceSender : IDisposable
-        {
-            public readonly Transformable Sender;
-
-            public readonly double OldTransformDelay;
-            public readonly double NewTransformDelay;
-
-            public AbsoluteSequenceSender(Transformable sender, double oldTransformDelay, double newTransformDelay)
-            {
-                OldTransformDelay = oldTransformDelay;
-                NewTransformDelay = newTransformDelay;
-
-                Sender = sender;
-            }
-
-            public void Dispose()
-            {
-                if (!Precision.AlmostEquals(NewTransformDelay, Sender.TransformDelay))
-                {
-                    throw new InvalidOperationException(
-                        $"{nameof(Sender.TransformStartTime)} at the end of absolute sequence is not the same as at the beginning, but should be. " +
-                        $"(begin={NewTransformDelay} end={Sender.TransformDelay})");
-                }
-
-                Sender.TransformDelay = OldTransformDelay;
-            }
-        }
+        public AbsoluteSequence BeginAbsoluteSequence(double newTransformStartTime, bool recursive = true)
+            => TransformSequenceStateMachine.BeginAbsoluteSequence(this, newTransformStartTime, recursive);
 
         /// <summary>
         /// Adds to this object a <see cref="Transform"/> which was previously populated using this object via

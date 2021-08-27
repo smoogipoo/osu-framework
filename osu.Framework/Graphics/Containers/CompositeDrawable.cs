@@ -1222,56 +1222,7 @@ namespace osu.Framework.Graphics.Containers
                 c.ClearTransformsAfter(time, true, targetMember);
         }
 
-        internal override void AddDelay(double duration, bool propagateChildren = false)
-        {
-            if (duration == 0)
-                return;
-
-            base.AddDelay(duration, propagateChildren);
-
-            if (propagateChildren)
-            {
-                foreach (var c in internalChildren)
-                    c.AddDelay(duration, true);
-            }
-        }
-
         protected ScheduledDelegate ScheduleAfterChildren(Action action) => SchedulerAfterChildren.AddDelayed(action, TransformDelay);
-
-        private static readonly ThreadLocal<List<AbsoluteSequenceSender>> thread_local_sender_list = new ThreadLocal<List<AbsoluteSequenceSender>>(() => new List<AbsoluteSequenceSender>());
-
-        public override IDisposable BeginAbsoluteSequence(double newTransformStartTime, bool recursive = true)
-        {
-            if (!recursive || internalChildren.Count == 0)
-                return base.BeginAbsoluteSequence(newTransformStartTime, false);
-
-            List<AbsoluteSequenceSender> disposalActions = thread_local_sender_list.Value;
-            disposalActions.Clear();
-
-            Thread retrievalThread = Thread.CurrentThread;
-
-            base.CollectAbsoluteSequenceActionsFromSubTree(newTransformStartTime, disposalActions);
-
-            foreach (var c in internalChildren)
-                c.CollectAbsoluteSequenceActionsFromSubTree(newTransformStartTime, disposalActions);
-
-            return new ValueInvokeOnDisposal<List<AbsoluteSequenceSender>>(disposalActions, actions =>
-            {
-                if (Thread.CurrentThread != retrievalThread)
-                    throw new InvalidOperationException($"Detected cross-thread usage of {nameof(BeginAbsoluteSequence)}. Make sure to dispose on the same thread as beginning the sequence.");
-
-                foreach (var a in actions)
-                    a.Dispose();
-            });
-        }
-
-        internal override void CollectAbsoluteSequenceActionsFromSubTree(double newTransformStartTime, List<AbsoluteSequenceSender> actions)
-        {
-            base.CollectAbsoluteSequenceActionsFromSubTree(newTransformStartTime, actions);
-
-            foreach (var c in internalChildren)
-                c.CollectAbsoluteSequenceActionsFromSubTree(newTransformStartTime, actions);
-        }
 
         public override void FinishTransforms(bool propagateChildren = false, string targetMember = null)
         {
