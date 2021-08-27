@@ -83,6 +83,61 @@ namespace osu.Framework.Tests.Graphics
         }
 
         [Test]
+        public void TestSingleDelayedSequenceAffectsOuter()
+        {
+            using (outer.BeginDelayedSequence(1000, false))
+                checkDelay(outer, 1000);
+
+            checkDelay(outer, 0);
+
+            using (outer.BeginDelayedSequence(1000, true))
+                checkDelay(outer, 1000);
+        }
+
+        [Test]
+        public void TestSingleDelayedSequenceAffectsInner()
+        {
+            using (outer.BeginDelayedSequence(1000, false))
+                checkDelay(inner, 0);
+
+            checkDelay(inner, 0);
+
+            using (outer.BeginDelayedSequence(1000, true))
+                checkDelay(inner, 1000);
+        }
+
+        [Test]
+        public void TestNestedDelayedSequence()
+        {
+            using (outer.BeginDelayedSequence(1000, true))
+            {
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+
+                using (outer.BeginDelayedSequence(500, false))
+                {
+                    checkDelay(outer, 1500);
+                    checkDelay(inner, 1000);
+
+                    using (outer.BeginDelayedSequence(2000, true))
+                    {
+                        checkDelay(outer, 3500);
+                        checkDelay(inner, 3000);
+                    }
+
+                    checkDelay(outer, 1500);
+                    checkDelay(inner, 1000);
+                }
+
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+            }
+
+            checkDelay(outer, 0);
+            checkDelay(inner, 0);
+        }
+
+        [Test]
         public void TestAbsoluteSequenceResetsParentDelays()
         {
             using (outer.BeginDelayedSequence(1000))
