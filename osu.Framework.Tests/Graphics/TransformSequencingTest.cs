@@ -10,82 +10,79 @@ namespace osu.Framework.Tests.Graphics
     [TestFixture]
     public class TransformSequencingTest
     {
-        private TestReceiver receiver;
-        private TestReceiver nestedReceiver;
+        private TestReceiver outer;
+        private TestReceiver inner;
 
         [SetUp]
         public void Setup()
         {
-            receiver = new TestReceiver();
-            nestedReceiver = new TestReceiver();
+            outer = new TestReceiver();
+            inner = new TestReceiver();
         }
 
         [Test]
-        public void TestSingleAbsoluteSequence([Values] bool recursive)
+        public void TestDefaultZeroDelay()
         {
-            using (receiver.BeginAbsoluteSequence(1000, recursive))
-                checkDelay(1000, recursive);
-
-            checkDelay(0, recursive);
+            checkDelay(outer, 0);
+            checkDelay(inner, 0);
         }
 
         [Test]
-        public void TestNestedAbsoluteSequence([Values] bool recursive)
+        public void TestSingleAbsoluteSequenceAffectsOuter()
         {
-            using (receiver.BeginAbsoluteSequence(1000, recursive))
+            using (outer.BeginAbsoluteSequence(1000, false))
+                checkDelay(outer, 1000);
+
+            checkDelay(outer, 0);
+
+            using (outer.BeginAbsoluteSequence(1000, true))
+                checkDelay(outer, 1000);
+        }
+
+        [Test]
+        public void TestSingleAbsoluteSequenceAffectsInner()
+        {
+            using (outer.BeginAbsoluteSequence(1000, false))
+                checkDelay(inner, 0);
+
+            checkDelay(inner, 0);
+
+            using (outer.BeginAbsoluteSequence(1000, true))
+                checkDelay(inner, 1000);
+        }
+
+        [Test]
+        public void TestNestedAbsoluteSequence()
+        {
+            using (outer.BeginAbsoluteSequence(1000, true))
             {
-                checkDelay(1000, recursive);
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
 
-                using (receiver.BeginAbsoluteSequence(500, recursive))
+                using (outer.BeginAbsoluteSequence(500, false))
                 {
-                    checkDelay(500, recursive);
+                    checkDelay(outer, 500);
+                    checkDelay(inner, 1000);
 
-                    using (receiver.BeginAbsoluteSequence(2000, recursive))
-                        checkDelay(2000, recursive);
-
-                    checkDelay(500, recursive);
-                }
-
-                checkDelay(1000, recursive);
-            }
-
-            checkDelay(0, recursive);
-        }
-
-        [Test]
-        public void TestNestedDoesNotReceiveNonRecursiveSequence()
-        {
-            using (receiver.BeginAbsoluteSequence(1000, false))
-            {
-                checkDelay(1000, false);
-                checkDelay(0, true);
-
-                using (receiver.BeginAbsoluteSequence(500))
-                {
-                    checkDelay(500, false);
-                    checkDelay(500, true);
-
-                    using (receiver.BeginAbsoluteSequence(2000, false))
+                    using (outer.BeginAbsoluteSequence(2000, true))
                     {
-                        checkDelay(2000, false);
-                        checkDelay(500, true);
+                        checkDelay(outer, 2000);
+                        checkDelay(inner, 2000);
                     }
 
-                    checkDelay(500, false);
-                    checkDelay(500, true);
+                    checkDelay(outer, 500);
+                    checkDelay(inner, 1000);
                 }
 
-                checkDelay(1000, false);
-                checkDelay(0, true);
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
             }
 
-            checkDelay(0, false);
-            checkDelay(0, true);
+            checkDelay(outer, 0);
+            checkDelay(inner, 0);
         }
 
-        private TestReceiver getReceiver(bool nested) => nested ? nestedReceiver : receiver;
-
-        private void checkDelay(double delay, bool nested) => Assert.That(getReceiver(nested).TransformDelay, Is.EqualTo(delay));
+        private void checkDelay(TestReceiver receiver, double delay) => Assert.That(receiver.TransformDelay, Is.EqualTo(delay));
 
         private class TestReceiver : Transformable
         {
