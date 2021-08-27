@@ -83,6 +83,34 @@ namespace osu.Framework.Tests.Graphics
         }
 
         [Test]
+        public void TestNestedAbsoluteSequenceWithBackAndForthTargets()
+        {
+            using (outer.BeginAbsoluteSequence(1000, true))
+            {
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+
+                using (inner.BeginAbsoluteSequence(2000, true))
+                {
+                    checkDelay(outer, 1000);
+                    checkDelay(inner, 2000);
+
+                    using (outer.BeginAbsoluteSequence(1000, true))
+                    {
+                        checkDelay(outer, 1000);
+                        checkDelay(inner, 1000);
+                    }
+
+                    checkDelay(outer, 1000);
+                    checkDelay(inner, 2000);
+                }
+
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+            }
+        }
+
+        [Test]
         public void TestSingleDelayedSequenceAffectsOuter()
         {
             using (outer.BeginDelayedSequence(1000, false))
@@ -155,7 +183,13 @@ namespace osu.Framework.Tests.Graphics
                         checkDelay(outer, 2000);
                         checkDelay(inner, 3000);
                     }
+
+                    checkDelay(outer, 1000);
+                    checkDelay(inner, 2000);
                 }
+
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
             }
         }
 
