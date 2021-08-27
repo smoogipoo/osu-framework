@@ -34,7 +34,7 @@ namespace osu.Framework.Graphics.Transforms
         /// <summary>
         /// Delay from the current time until new <see cref="Transform"/>s are started, in milliseconds.
         /// </summary>
-        protected double TransformDelay => TransformSequenceStateMachine.GetTransformStartTime(this) + TransformSequenceStateMachine.GetTransformDelay(this);
+        protected double TransformDelay => TransformSequenceStateMachine.GetTransformDelay(this);
 
         /// <summary>
         /// A lazily-initialized list of <see cref="Transform"/>s applied to this object.

@@ -34,20 +34,20 @@ namespace osu.Framework.Graphics.Transforms
             return new DelayedSequence(lastSequence);
         }
 
-        public static double GetTransformStartTime(Transformable sender)
+        public static double GetTransformDelay(Transformable sender)
         {
-            if (!(CurrentAbsoluteSequence.Value is AbsoluteSequenceData sequence))
-                return 0;
+            double delay = 0;
 
-            return (sender == sequence.Sender ? sequence.TransformStartTime : sequence.RecursiveTransformStartTime) - (sender.Clock?.CurrentTime ?? 0);
-        }
+            if (CurrentDelayedSequence.Value is DelayedSequenceData delayedSequence)
+                delay += sender == delayedSequence.Sender ? delayedSequence.Delay : delayedSequence.RecursiveDelay;
 
-        public static double GetTransformDelay(ITransformable sender)
-        {
-            if (!(CurrentDelayedSequence.Value is DelayedSequenceData sequence))
-                return 0;
+            if (CurrentAbsoluteSequence.Value is AbsoluteSequenceData absoluteSequence)
+            {
+                delay += sender == absoluteSequence.Sender ? absoluteSequence.TransformStartTime : absoluteSequence.RecursiveTransformStartTime;
+                delay -= sender.Clock?.CurrentTime ?? 0;
+            }
 
-            return sender == sequence.Sender ? sequence.Delay : sequence.RecursiveDelay;
+            return delay;
         }
 
         /// <summary>
