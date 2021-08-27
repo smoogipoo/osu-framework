@@ -138,6 +138,28 @@ namespace osu.Framework.Tests.Graphics
         }
 
         [Test]
+        public void TestNestedDelayedSequenceWithBackAndForthDelayTargets()
+        {
+            using (outer.BeginDelayedSequence(1000, true))
+            {
+                checkDelay(outer, 1000);
+                checkDelay(inner, 1000);
+
+                using (inner.BeginDelayedSequence(1000, true))
+                {
+                    checkDelay(outer, 1000);
+                    checkDelay(inner, 2000);
+
+                    using (outer.BeginDelayedSequence(1000, true))
+                    {
+                        checkDelay(outer, 2000);
+                        checkDelay(inner, 3000);
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void TestAbsoluteSequenceResetsParentDelays()
         {
             using (outer.BeginDelayedSequence(1000))
