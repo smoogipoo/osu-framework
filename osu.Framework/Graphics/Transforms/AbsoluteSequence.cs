@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Transforms
 
         public void Dispose()
         {
-            TransformSequenceStateMachine.CurrentAbsoluteSequence.Value = lastSequence;
+            TransformSequenceStateMachine.CurrentAbsoluteSequence = lastSequence;
         }
     }
 }

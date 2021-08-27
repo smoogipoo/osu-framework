@@ -14,7 +14,7 @@ namespace osu.Framework.Graphics.Transforms
 
         public void Dispose()
         {
-            TransformSequenceStateMachine.CurrentDelayedSequence.Value = lastSequence;
+            TransformSequenceStateMachine.CurrentDelayedSequence = lastSequence;
         }
     }
 }
