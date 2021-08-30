@@ -103,7 +103,7 @@ namespace osu.Framework.Graphics.Performance
                         break;
                 }
 
-                Running = true;
+                Running = state != FrameStatisticsMode.None;
                 Expanded = false;
 
                 StateChanged?.Invoke(State);
@@ -194,7 +194,7 @@ namespace osu.Framework.Graphics.Performance
                                     new TimeBar(),
                                 },
                             },
-                            frameTimeDisplay = new FrameTimeDisplay(monitor.Clock, thread)
+                            frameTimeDisplay = new FrameTimeDisplay(monitor.Clock)
                             {
                                 Anchor = Anchor.BottomRight,
                                 Origin = Anchor.BottomRight,
