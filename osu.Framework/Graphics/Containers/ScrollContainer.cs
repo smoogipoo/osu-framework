@@ -374,7 +374,7 @@ namespace osu.Framework.Graphics.Containers
             return true;
         }
 
-        private void onScrollbarMovement(float value) => scrollTo(Clamp(fromScrollbarPosition(value)), false);
+        private void onScrollbarMovement(float value) => OnUserScroll(Clamp(fromScrollbarPosition(value)), false);
 
         /// <summary>
         /// Immediately offsets the current and target scroll position.
@@ -635,13 +635,13 @@ namespace osu.Framework.Graphics.Containers
             if (!IsHandlingKeyboardScrolling)
                 return false;
 
-            switch (action.ActionType)
+            switch (action)
             {
-                case PlatformActionType.LineStart:
+                case PlatformAction.MoveBackwardLine:
                     ScrollToStart();
                     return true;
 
-                case PlatformActionType.LineEnd:
+                case PlatformAction.MoveForwardLine:
                     ScrollToEnd();
                     return true;
 

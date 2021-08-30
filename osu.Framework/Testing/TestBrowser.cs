@@ -124,12 +124,10 @@ namespace osu.Framework.Testing
 
         private Action exit;
 
-        private Bindable<bool> showLogOverlay;
-
         private readonly BindableDouble audioRateAdjust = new BindableDouble(1);
 
         [BackgroundDependencyLoader]
-        private void load(Storage storage, GameHost host, FrameworkConfigManager frameworkConfig, FontStore fonts, Game game, AudioManager audio)
+        private void load(Storage storage, GameHost host, FrameworkConfigManager frameworkConfig, FontStore fonts, AudioManager audio)
         {
             interactive = host.Window != null;
             config = new TestBrowserConfig(storage);
@@ -137,18 +135,6 @@ namespace osu.Framework.Testing
             exit = host.Exit;
 
             audio.AddAdjustment(AdjustableProperty.Frequency, audioRateAdjust);
-
-            var resources = game.Resources;
-
-            //Roboto
-            game.AddFont(resources, @"Fonts/Roboto/Roboto-Regular");
-            game.AddFont(resources, @"Fonts/Roboto/Roboto-Bold");
-
-            //RobotoCondensed
-            game.AddFont(resources, @"Fonts/RobotoCondensed/RobotoCondensed-Regular");
-            game.AddFont(resources, @"Fonts/RobotoCondensed/RobotoCondensed-Bold");
-
-            showLogOverlay = frameworkConfig.GetBindable<bool>(FrameworkSetting.ShowLogOverlay);
 
             var rateAdjustClock = new StopwatchClock(true);
             var framedClock = new FramedClock(rateAdjustClock);
@@ -188,7 +174,7 @@ namespace osu.Framework.Testing
                                         },
                                         new SpriteText
                                         {
-                                            Font = new FontUsage(size: 30),
+                                            Font = FrameworkFont.Regular.With(size: 30),
                                             Text = @"Compiling new version..."
                                         }
                                     },
@@ -303,7 +289,6 @@ namespace osu.Framework.Testing
 
         private void compileFailed(Exception ex) => Schedule(() =>
         {
-            showLogOverlay.Value = true;
             Logger.Error(ex, "Error with dynamic compilation!");
 
             compilingNotice.FadeIn(100, Easing.OutQuint).Then().FadeOut(800, Easing.InQuint);
@@ -343,10 +328,7 @@ namespace osu.Framework.Testing
             {
                 var lastTest = config.Get<string>(TestBrowserSetting.LastTest);
 
-                var foundTest = TestTypes.Find(t => t.FullName == lastTest)
-                                // full name was not always stored in this value, so fallback to matching on just test name.
-                                // can be removed 20210622
-                                ?? TestTypes.Find(t => t.Name == lastTest);
+                var foundTest = TestTypes.Find(t => t.FullName == lastTest);
 
                 LoadTest(foundTest);
             }

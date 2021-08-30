@@ -13,6 +13,7 @@ using osu.Framework.Graphics.Performance;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Visualisation;
+using osu.Framework.Graphics.Visualisation.Audio;
 using osu.Framework.Input;
 using osu.Framework.Input.Bindings;
 using osu.Framework.IO.Stores;
@@ -62,6 +63,8 @@ namespace osu.Framework
         private TextureVisualiser textureVisualiser;
 
         private LogOverlay logOverlay;
+
+        private AudioMixerVisualiser audioMixerVisualiser;
 
         protected override Container<Drawable> Content => content;
 
@@ -157,10 +160,15 @@ namespace osu.Framework
             // note that currently this means there could be two async font load operations.
             Fonts.AddStore(localFonts = new FontStore(useAtlas: false));
 
-            addFont(localFonts, Resources, @"Fonts/OpenSans/OpenSans-Regular");
-            addFont(localFonts, Resources, @"Fonts/OpenSans/OpenSans-Bold");
-            addFont(localFonts, Resources, @"Fonts/OpenSans/OpenSans-RegularItalic");
-            addFont(localFonts, Resources, @"Fonts/OpenSans/OpenSans-BoldItalic");
+            // Roboto (FrameworkFont.Regular)
+            addFont(localFonts, Resources, @"Fonts/Roboto/Roboto-Regular");
+            addFont(localFonts, Resources, @"Fonts/Roboto/Roboto-RegularItalic");
+            addFont(localFonts, Resources, @"Fonts/Roboto/Roboto-Bold");
+            addFont(localFonts, Resources, @"Fonts/Roboto/Roboto-BoldItalic");
+
+            // RobotoCondensed (FrameworkFont.Condensed)
+            addFont(localFonts, Resources, @"Fonts/RobotoCondensed/RobotoCondensed-Regular");
+            addFont(localFonts, Resources, @"Fonts/RobotoCondensed/RobotoCondensed-Bold");
 
             addFont(Fonts, Resources, @"Fonts/FontAwesome5/FontAwesome-Solid");
             addFont(Fonts, Resources, @"Fonts/FontAwesome5/FontAwesome-Regular");
@@ -262,6 +270,20 @@ namespace osu.Framework
 
                     return true;
 
+                case FrameworkAction.ToggleDrawVisualiser:
+
+                    if (drawVisualiser == null)
+                    {
+                        LoadComponentAsync(drawVisualiser = new DrawVisualiser
+                        {
+                            ToolPosition = getCascadeLocation(0),
+                            Depth = float.MinValue / 2,
+                        }, AddInternal);
+                    }
+
+                    drawVisualiser.ToggleVisibility();
+                    return true;
+
                 case FrameworkAction.ToggleGlobalStatistics:
 
                     if (globalStatistics == null)
@@ -269,25 +291,11 @@ namespace osu.Framework
                         LoadComponentAsync(globalStatistics = new GlobalStatisticsDisplay
                         {
                             Depth = float.MinValue / 2,
-                            Position = new Vector2(100 + ToolWindow.WIDTH, 100)
+                            Position = getCascadeLocation(1),
                         }, AddInternal);
                     }
 
                     globalStatistics.ToggleVisibility();
-                    return true;
-
-                case FrameworkAction.ToggleDrawVisualiser:
-
-                    if (drawVisualiser == null)
-                    {
-                        LoadComponentAsync(drawVisualiser = new DrawVisualiser
-                        {
-                            ToolPosition = new Vector2(100),
-                            Depth = float.MinValue / 2,
-                        }, AddInternal);
-                    }
-
-                    drawVisualiser.ToggleVisibility();
                     return true;
 
                 case FrameworkAction.ToggleAtlasVisualiser:
@@ -296,12 +304,25 @@ namespace osu.Framework
                     {
                         LoadComponentAsync(textureVisualiser = new TextureVisualiser
                         {
-                            Position = new Vector2(100 + 2 * ToolWindow.WIDTH, 100),
+                            Position = getCascadeLocation(2),
                             Depth = float.MinValue / 2,
                         }, AddInternal);
                     }
 
                     textureVisualiser.ToggleVisibility();
+                    return true;
+
+                case FrameworkAction.ToggleAudioMixerVisualiser:
+                    if (audioMixerVisualiser == null)
+                    {
+                        LoadComponentAsync(audioMixerVisualiser = new AudioMixerVisualiser
+                        {
+                            Position = getCascadeLocation(3),
+                            Depth = float.MinValue / 2,
+                        }, AddInternal);
+                    }
+
+                    audioMixerVisualiser.ToggleVisibility();
                     return true;
 
                 case FrameworkAction.ToggleLogOverlay:
@@ -332,6 +353,9 @@ namespace osu.Framework
             }
 
             return false;
+
+            Vector2 getCascadeLocation(int index)
+                => new Vector2(100 + index * (TitleBar.HEIGHT + 10));
         }
 
         public void OnReleased(FrameworkAction action)
@@ -340,9 +364,9 @@ namespace osu.Framework
 
         public virtual bool OnPressed(PlatformAction action)
         {
-            switch (action.ActionType)
+            switch (action)
             {
-                case PlatformActionType.Exit:
+                case PlatformAction.Exit:
                     Host.Window?.Close();
                     return true;
             }

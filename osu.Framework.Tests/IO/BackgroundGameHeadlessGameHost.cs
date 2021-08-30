@@ -4,13 +4,14 @@
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Platform;
+using osu.Framework.Testing;
 
 namespace osu.Framework.Tests.IO
 {
     /// <summary>
-    /// Ad headless host for testing purposes. Contains an arbitrary game that is running after construction.
+    /// A headless host for testing purposes. Contains an arbitrary game that is running after construction.
     /// </summary>
-    public class BackgroundGameHeadlessGameHost : HeadlessGameHost
+    public class BackgroundGameHeadlessGameHost : TestRunHeadlessGameHost
     {
         private TestGame testGame;
 

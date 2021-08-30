@@ -25,6 +25,8 @@ using Point = System.Drawing.Point;
 using Rectangle = System.Drawing.Rectangle;
 using Size = System.Drawing.Size;
 
+// ReSharper disable UnusedParameter.Local (Class regularly handles native events where we don't consume all parameters)
+
 namespace osu.Framework.Platform
 {
     /// <summary>
@@ -283,22 +285,12 @@ namespace osu.Framework.Platform
 
         public readonly Bindable<ConfineMouseMode> ConfineMouseMode = new Bindable<ConfineMouseMode>();
 
-        private DisplayMode currentDisplayMode;
+        private readonly Bindable<DisplayMode> currentDisplayMode = new Bindable<DisplayMode>();
 
         /// <summary>
-        /// Gets or sets the <see cref="DisplayMode"/> for the display that this window is currently on.
+        /// The <see cref="DisplayMode"/> for the display that this window is currently on.
         /// </summary>
-        public DisplayMode CurrentDisplayMode
-        {
-            get => currentDisplayMode;
-            set
-            {
-                currentDisplayMode = value;
-
-                // todo: proper handling of this, if we decide we want it.
-                pendingWindowState = windowState;
-            }
-        }
+        public IBindable<DisplayMode> CurrentDisplayMode => currentDisplayMode;
 
         /// <summary>
         /// Gets the native window handle as provided by the operating system.
@@ -434,10 +426,7 @@ namespace osu.Framework.Platform
 
                 if (e.type == SDL.SDL_EventType.SDL_WINDOWEVENT && e.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED)
                 {
-                    // This function will be invoked before the SDL internal states are all changed. (as documented here: https://wiki.libsdl.org/SDL_SetEventFilter)
-                    // Therefore we should only update the client size without saving to config, as we don't know what state the window would end up in.
                     updateWindowSize();
-                    return 0;
                 }
 
                 return 1;
@@ -478,11 +467,14 @@ namespace osu.Framework.Platform
         private void updateWindowSize()
         {
             SDL.SDL_GL_GetDrawableSize(SDLWindowHandle, out var w, out var h);
-
             SDL.SDL_GetWindowSize(SDLWindowHandle, out var actualW, out var _);
-            Scale = (float)w / actualW;
 
+            Scale = (float)w / actualW;
             Size = new Size(w, h);
+
+            // This function may be invoked before the SDL internal states are all changed. (as documented here: https://wiki.libsdl.org/SDL_SetEventFilter)
+            // Scheduling the store to config until after the event poll has run will ensure the window is in the correct state.
+            eventScheduler.Add(storeWindowSizeToConfig, true);
         }
 
         /// <summary>
@@ -914,9 +906,6 @@ namespace osu.Framework.Platform
 
                 case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_SIZE_CHANGED:
                     updateWindowSize();
-                    if (WindowState == WindowState.Normal)
-                        storeWindowSizeToConfig();
-
                     break;
 
                 case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_ENTER:
@@ -1011,7 +1000,7 @@ namespace osu.Framework.Platform
                     break;
 
                 case WindowState.Fullscreen:
-                    var closestMode = getClosestDisplayMode(sizeFullscreen.Value, currentDisplayMode.RefreshRate, currentDisplay.Index);
+                    var closestMode = getClosestDisplayMode(sizeFullscreen.Value, currentDisplayMode.Value.RefreshRate, currentDisplay.Index);
 
                     Size = new Size(closestMode.w, closestMode.h);
 
@@ -1024,6 +1013,7 @@ namespace osu.Framework.Platform
                     break;
 
                 case WindowState.Maximised:
+                    SDL.SDL_RestoreWindow(SDLWindowHandle);
                     SDL.SDL_MaximizeWindow(SDLWindowHandle);
 
                     SDL.SDL_GL_GetDrawableSize(SDLWindowHandle, out int w, out int h);
@@ -1038,7 +1028,7 @@ namespace osu.Framework.Platform
             updateMaximisedState();
 
             if (SDL.SDL_GetWindowDisplayMode(SDLWindowHandle, out var mode) >= 0)
-                currentDisplayMode = new DisplayMode(mode.format.ToString(), new Size(mode.w, mode.h), 32, mode.refresh_rate, displayIndex, displayIndex);
+                currentDisplayMode.Value = new DisplayMode(mode.format.ToString(), new Size(mode.w, mode.h), 32, mode.refresh_rate, displayIndex, displayIndex);
         }
 
         private void updateMaximisedState()
@@ -1085,6 +1075,9 @@ namespace osu.Framework.Platform
 
         private void storeWindowSizeToConfig()
         {
+            if (WindowState != WindowState.Normal)
+                return;
+
             storingSizeToConfig = true;
             sizeWindowed.Value = (Size / Scale).ToSize();
             storingSizeToConfig = false;

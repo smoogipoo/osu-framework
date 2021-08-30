@@ -162,7 +162,7 @@ namespace osu.Framework.Graphics.UserInterface
                     return t.Text;
 
                 case Enum e:
-                    return e.GetDescription();
+                    return e.GetLocalisableDescription();
 
                 default:
                     return item?.ToString() ?? "null";
@@ -581,13 +581,13 @@ namespace osu.Framework.Graphics.UserInterface
 
             public bool OnPressed(PlatformAction action)
             {
-                switch (action.ActionType)
+                switch (action)
                 {
-                    case PlatformActionType.ListStart:
+                    case PlatformAction.MoveToListStart:
                         PreselectItem(Items.FirstOrDefault());
                         return true;
 
-                    case PlatformActionType.ListEnd:
+                    case PlatformAction.MoveToListEnd:
                         PreselectItem(Items.LastOrDefault());
                         return true;
 

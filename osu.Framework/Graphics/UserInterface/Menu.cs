@@ -55,7 +55,7 @@ namespace osu.Framework.Graphics.UserInterface
         /// <summary>
         /// Gets the item representations contained by this <see cref="Menu"/>.
         /// </summary>
-        protected internal IReadOnlyList<DrawableMenuItem> Children => ItemsContainer;
+        protected internal IReadOnlyList<DrawableMenuItem> Children => ItemsContainer.Children;
 
         protected readonly Direction Direction;
 
@@ -233,7 +233,7 @@ namespace osu.Framework.Graphics.UserInterface
             if (!IsLoaded)
                 return;
 
-            submenu?.Close();
+            resetState();
 
             switch (State)
             {
@@ -258,7 +258,14 @@ namespace osu.Framework.Graphics.UserInterface
 
                     break;
             }
+        }
 
+        private void resetState()
+        {
+            if (!IsLoaded)
+                return;
+
+            submenu?.Close();
             sizeCache.Invalidate();
         }
 
@@ -307,7 +314,7 @@ namespace osu.Framework.Graphics.UserInterface
         public void Clear()
         {
             ItemsContainer.Clear();
-            updateState();
+            resetState();
         }
 
         /// <summary>

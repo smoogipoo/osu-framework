@@ -3,13 +3,21 @@
 
 using System;
 using System.Collections.Generic;
+using osu.Framework.Graphics.Sprites;
 
 namespace osu.Framework.Graphics.Containers
 {
+    /// <inheritdoc />
+    public class CustomizableTextContainer : CustomizableTextContainer<SpriteText>
+    {
+        protected override SpriteText CreateSpriteText() => new SpriteText();
+    }
+
     /// <summary>
     /// A <see cref="TextFlowContainer"/> that supports adding icons into its text. Inherit from this class to define reusable custom placeholders for icons.
     /// </summary>
-    public class CustomizableTextContainer : TextFlowContainer
+    public abstract class CustomizableTextContainer<T> : TextFlowContainer<T>
+        where T : SpriteText
     {
         private const string unescaped_left = "[";
         private const string escaped_left = "[[";
@@ -79,14 +87,14 @@ namespace osu.Framework.Graphics.Containers
         /// <param name="factory">The factory method creating drawables.</param>
         protected void AddIconFactory(string name, Func<int, int, Drawable> factory) => iconFactories.Add(name, factory);
 
-        internal override IEnumerable<Drawable> AddLine(TextLine line, bool newLineIsParagraph)
+        internal override IEnumerable<Drawable> AddLine(TextChunk<T> chunk)
         {
-            if (!newLineIsParagraph)
+            if (!chunk.NewLineIsParagraph)
                 AddInternal(new NewLineContainer(true));
 
             var sprites = new List<Drawable>();
             int index = 0;
-            string str = line.Text;
+            string str = chunk.Text;
 
             while (index < str.Length)
             {
@@ -172,7 +180,7 @@ namespace osu.Framework.Graphics.Containers
 
                 // unescape stuff
                 strPiece = Unescape(strPiece);
-                sprites.AddRange(AddString(new TextLine(strPiece, line.CreationParameters), newLineIsParagraph));
+                sprites.AddRange(AddString(new TextChunk<T>(strPiece, chunk.NewLineIsParagraph, chunk.CreationParameters)));
 
                 if (placeholderDrawable != null)
                 {
