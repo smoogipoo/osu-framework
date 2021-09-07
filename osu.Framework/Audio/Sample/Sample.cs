@@ -38,6 +38,12 @@ namespace osu.Framework.Audio.Sample
 
         private void onPlay(SampleChannel channel)
         {
+            EnqueueAction(() =>
+            {
+                if (Items.Count == PlaybackConcurrency.Value)
+                    Items[0].Stop();
+            });
+
             AddItem(channel);
             OnPlay?.Invoke(this);
         }
