@@ -48,13 +48,12 @@ namespace osu.Framework.Audio.Sample
         {
             EnqueueAction(() =>
             {
-                // Broken in ManagedBass (https://github.com/ManagedBass/ManagedBass/pull/85).
-                // if (!IsLoaded)
-                //     return;
-                //
-                // var sampleInfo = Bass.SampleGetInfo(SampleId);
-                // sampleInfo.Max = concurrency.NewValue;
-                // Bass.SampleSetInfo(SampleId, sampleInfo);
+                if (!IsLoaded)
+                    return;
+
+                var sampleInfo = Bass.SampleGetInfo(SampleId);
+                sampleInfo.Max = concurrency.NewValue;
+                Bass.SampleSetInfo(SampleId, sampleInfo);
             });
         }
 
