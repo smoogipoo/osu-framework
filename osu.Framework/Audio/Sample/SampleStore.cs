@@ -16,12 +16,9 @@ namespace osu.Framework.Audio.Sample
 {
     internal class SampleStore : AudioCollectionManager<AdjustableAudioComponent>, ISampleStore
     {
+        private readonly ConcurrentDictionary<string, SampleBassFactory> factories = new ConcurrentDictionary<string, SampleBassFactory>();
         private readonly IResourceStore<byte[]> store;
         private readonly AudioMixer mixer;
-
-        private readonly ConcurrentDictionary<string, SampleBassFactory> factories = new ConcurrentDictionary<string, SampleBassFactory>();
-
-        public int PlaybackConcurrency { get; set; } = Sample.DEFAULT_CONCURRENCY;
 
         internal SampleStore([NotNull] IResourceStore<byte[]> store, [NotNull] AudioMixer mixer)
         {
@@ -30,6 +27,23 @@ namespace osu.Framework.Audio.Sample
 
             (store as ResourceStore<byte[]>)?.AddExtension(@"wav");
             (store as ResourceStore<byte[]>)?.AddExtension(@"mp3");
+        }
+
+        private int defaultPlaybackConcurrency = Sample.DEFAULT_CONCURRENCY;
+
+        public int DefaultPlaybackConcurrency
+        {
+            get => defaultPlaybackConcurrency;
+            set
+            {
+                defaultPlaybackConcurrency = value;
+
+                EnqueueAction(() =>
+                {
+                    foreach (var factory in factories.Values)
+                        factory.DefaultPlaybackConcurrency = value;
+                });
+            }
         }
 
         public Sample Get(string name)
@@ -45,7 +59,7 @@ namespace osu.Framework.Audio.Sample
                     this.LogIfNonBackgroundThread(name);
 
                     byte[] data = store.Get(name);
-                    factory = factories[name] = data == null ? null : new SampleBassFactory(data, (BassAudioMixer)mixer) { PlaybackConcurrency = { Value = PlaybackConcurrency } };
+                    factory = factories[name] = data == null ? null : new SampleBassFactory(data, (BassAudioMixer)mixer) { DefaultPlaybackConcurrency = DefaultPlaybackConcurrency };
 
                     if (factory != null)
                         AddItem(factory);

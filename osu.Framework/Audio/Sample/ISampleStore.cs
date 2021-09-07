@@ -6,8 +6,8 @@ namespace osu.Framework.Audio.Sample
     public interface ISampleStore : IAdjustableResourceStore<Sample>
     {
         /// <summary>
-        /// How many instances of a single sample should be allowed to playback concurrently before stopping the longest playing.
+        /// The default number of <see cref="SampleChannel"/>s allowed to be played back simultaneously from individual <see cref="Sample"/>s.
         /// </summary>
-        int PlaybackConcurrency { get; set; }
+        int DefaultPlaybackConcurrency { get; set; }
     }
 }

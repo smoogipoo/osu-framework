@@ -90,9 +90,62 @@ namespace osu.Framework.Tests.Audio
         }
 
         [Test]
-        public void TestPlaybackDoesNotExceedConcurrency()
+        public void TestSampleFactoryDefaultConcurrencyPassedToSamples()
         {
-            bass.RunOnAudioThread(() => sample.PlaybackConcurrency.Value = 2);
+            bass.SampleStore.DefaultPlaybackConcurrency = 1;
+            bass.Update();
+
+            var sample1 = bass.GetSample();
+            Assert.That(sample1.PlaybackConcurrency, Is.EqualTo(1));
+
+            bass.SampleStore.DefaultPlaybackConcurrency = 2;
+            bass.Update();
+
+            var sample2 = bass.GetSample();
+            Assert.That(sample1.PlaybackConcurrency, Is.EqualTo(1)); // Ensure the first sample keeps the previous concurrency.
+            Assert.That(sample2.PlaybackConcurrency, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestOldSamplesStoppedWhenConcurrencyLimitExceeded()
+        {
+            sample.PlaybackConcurrency = 2;
+            bass.Update();
+
+            var channel1 = sample.GetChannel();
+            var channel2 = sample.GetChannel();
+            var channel3 = sample.GetChannel();
+            var channel4 = sample.GetChannel();
+
+            channel1.Looping = true;
+            channel2.Looping = true;
+            channel3.Looping = true;
+            channel4.Looping = true;
+
+            channel1.Play();
+            channel2.Play();
+            bass.Update();
+
+            Assert.That(channel1.Playing, Is.True);
+            Assert.That(channel2.Playing, Is.True);
+            Assert.That(channel3.Playing, Is.False);
+            Assert.That(channel4.Playing, Is.False);
+
+            channel3.Play();
+            channel4.Play();
+            bass.Update();
+
+            Assert.That(channel1.Playing, Is.False);
+            Assert.That(channel2.Playing, Is.False);
+            Assert.That(channel3.Playing, Is.True);
+            Assert.That(channel4.Playing, Is.True);
+        }
+
+        [Test]
+        public void TestStoppedConcurrencyConsidersStoppedSamples()
+        {
+            sample.PlaybackConcurrency = 2;
+            bass.Update();
 
             var channel1 = sample.GetChannel();
             var channel2 = sample.GetChannel();
@@ -110,12 +163,39 @@ namespace osu.Framework.Tests.Audio
             Assert.That(channel2.Playing, Is.True);
             Assert.That(channel3.Playing, Is.False);
 
+            channel2.Stop();
             channel3.Play();
+            bass.Update();
+
+            Assert.That(channel1.Playing, Is.True);
+            Assert.That(channel2.Playing, Is.False);
+            Assert.That(channel3.Playing, Is.True);
+        }
+
+        [Test]
+        public void TestSettingSampleConcurrencyStopsSamplesExceedingConcurrency()
+        {
+            sample.PlaybackConcurrency = 2;
+            bass.Update();
+
+            var channel1 = sample.GetChannel();
+            var channel2 = sample.GetChannel();
+
+            channel1.Looping = true;
+            channel2.Looping = true;
+
+            channel1.Play();
+            channel2.Play();
+            bass.Update();
+
+            Assert.That(channel1.Playing, Is.True);
+            Assert.That(channel2.Playing, Is.True);
+
+            sample.PlaybackConcurrency = 1;
             bass.Update();
 
             Assert.That(channel1.Playing, Is.False);
             Assert.That(channel2.Playing, Is.True);
-            Assert.That(channel3.Playing, Is.True);
         }
     }
 }

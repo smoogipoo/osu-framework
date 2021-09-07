@@ -1,8 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using osu.Framework.Bindables;
-
 namespace osu.Framework.Audio.Sample
 {
     /// <summary>
@@ -21,7 +19,7 @@ namespace osu.Framework.Audio.Sample
         /// <remarks>
         /// This affects all <see cref="ISample"/> instances identified by the same sample name.
         /// </remarks>
-        Bindable<int> PlaybackConcurrency { get; }
+        int PlaybackConcurrency { get; set; }
 
         /// <summary>
         /// Creates a new unique playback channel for this <see cref="ISample"/> and immediately plays it.

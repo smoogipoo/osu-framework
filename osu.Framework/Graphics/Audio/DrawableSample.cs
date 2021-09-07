@@ -28,8 +28,6 @@ namespace osu.Framework.Graphics.Audio
             : base(sample, disposeSampleOnDisposal)
         {
             this.sample = sample;
-
-            PlaybackConcurrency.BindTo(sample.PlaybackConcurrency);
         }
 
         public SampleChannel Play()
@@ -51,7 +49,11 @@ namespace osu.Framework.Graphics.Audio
 
         public double Length => sample.Length;
 
-        public Bindable<int> PlaybackConcurrency { get; } = new Bindable<int>(Sample.DEFAULT_CONCURRENCY);
+        public int PlaybackConcurrency
+        {
+            get => sample.PlaybackConcurrency;
+            set => sample.PlaybackConcurrency = value;
+        }
 
         private IAudioMixer? mixer;
 

@@ -21,11 +21,13 @@ namespace osu.Framework.Audio.Sample
                 throw new ObjectDisposedException(ToString(), "Can not play disposed sample channels.");
 
             Played = true;
+            Stopping = false;
             OnPlay?.Invoke(this);
         }
 
         public virtual void Stop()
         {
+            Stopping = true;
         }
 
         protected override void UpdateState()
@@ -35,6 +37,11 @@ namespace osu.Framework.Audio.Sample
         }
 
         public bool Played { get; private set; }
+
+        /// <summary>
+        /// Whether this <see cref="SampleChannel"/> is in the process of stopping or has stopped.
+        /// </summary>
+        internal bool Stopping { get; private set; }
 
         public abstract bool Playing { get; }
 

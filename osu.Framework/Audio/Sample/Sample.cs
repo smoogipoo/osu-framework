@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Bindables;
 
 namespace osu.Framework.Audio.Sample
 {
@@ -12,9 +11,19 @@ namespace osu.Framework.Audio.Sample
 
         public double Length { get; protected set; }
 
-        public Bindable<int> PlaybackConcurrency { get; } = new Bindable<int>(DEFAULT_CONCURRENCY);
-
         internal Action<Sample> OnPlay;
+
+        private int playbackConcurrency = DEFAULT_CONCURRENCY;
+
+        public int PlaybackConcurrency
+        {
+            get => playbackConcurrency;
+            set
+            {
+                playbackConcurrency = value;
+                updateSampleConcurrency();
+            }
+        }
 
         public SampleChannel Play()
         {
@@ -38,15 +47,37 @@ namespace osu.Framework.Audio.Sample
 
         private void onPlay(SampleChannel channel)
         {
-            EnqueueAction(() =>
-            {
-                if (Items.Count == PlaybackConcurrency.Value)
-                    Items[0].Stop();
-            });
-
             AddItem(channel);
+            updateSampleConcurrency();
             OnPlay?.Invoke(this);
         }
+
+        private void updateSampleConcurrency() => EnqueueAction(() =>
+        {
+            int countPlaying = 0;
+
+            // We're concerned only of channels that are playing and have not been requested to stop.
+            foreach (var item in Items)
+            {
+                if (item.Playing && !item.Stopping)
+                    countPlaying++;
+            }
+
+            if (countPlaying <= PlaybackConcurrency)
+                return;
+
+            foreach (var item in Items)
+            {
+                if (item.Playing && !item.Stopping)
+                {
+                    item.Stop();
+                    countPlaying--;
+                }
+
+                if (countPlaying == PlaybackConcurrency)
+                    break;
+            }
+        });
 
         public override bool IsAlive => base.IsAlive && (!PendingActions.IsEmpty || Items.Count > 0);
 

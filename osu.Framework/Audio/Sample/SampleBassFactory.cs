@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using ManagedBass;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Mixing.Bass;
-using osu.Framework.Bindables;
 using osu.Framework.Platform;
 
 namespace osu.Framework.Audio.Sample
@@ -24,10 +23,7 @@ namespace osu.Framework.Audio.Sample
 
         public double Length { get; private set; }
 
-        /// <summary>
-        /// Todo: Expose this to support per-sample playback concurrency once ManagedBass has been updated (https://github.com/ManagedBass/ManagedBass/pull/85).
-        /// </summary>
-        internal readonly Bindable<int> PlaybackConcurrency = new Bindable<int>(Sample.DEFAULT_CONCURRENCY);
+        public int DefaultPlaybackConcurrency = Sample.DEFAULT_CONCURRENCY;
 
         private readonly BassAudioMixer mixer;
 
@@ -40,21 +36,6 @@ namespace osu.Framework.Audio.Sample
             this.mixer = mixer;
 
             EnqueueAction(loadSample);
-
-            PlaybackConcurrency.BindValueChanged(updatePlaybackConcurrency);
-        }
-
-        private void updatePlaybackConcurrency(ValueChangedEvent<int> concurrency)
-        {
-            EnqueueAction(() =>
-            {
-                if (!IsLoaded)
-                    return;
-
-                var sampleInfo = Bass.SampleGetInfo(SampleId);
-                sampleInfo.Max = concurrency.NewValue;
-                Bass.SampleSetInfo(SampleId, sampleInfo);
-            });
         }
 
         internal override void UpdateDevice(int deviceIndex)
@@ -73,10 +54,13 @@ namespace osu.Framework.Audio.Sample
                 return;
 
             int dataLength = data.Length;
-
             const BassFlags flags = BassFlags.Default | BassFlags.SampleOverrideLongestPlaying;
+
             using (var handle = new ObjectHandle<byte[]>(data, GCHandleType.Pinned))
-                SampleId = Bass.SampleLoad(handle.Address, 0, dataLength, PlaybackConcurrency.Value, flags);
+            {
+                // Playback concurrency is handled by Sample itself.
+                SampleId = Bass.SampleLoad(handle.Address, 0, dataLength, 1, flags);
+            }
 
             if (Bass.LastError == Errors.Init)
                 return;
@@ -91,7 +75,11 @@ namespace osu.Framework.Audio.Sample
             memoryLease = NativeMemoryTracker.AddMemory(this, dataLength);
         }
 
-        public Sample CreateSample() => new SampleBass(this, mixer) { OnPlay = onPlay };
+        public Sample CreateSample() => new SampleBass(this, mixer)
+        {
+            PlaybackConcurrency = DefaultPlaybackConcurrency,
+            OnPlay = onPlay
+        };
 
         private void onPlay(Sample sample)
         {
