@@ -8,6 +8,9 @@ namespace osu.Framework.Audio.Sample
         /// <summary>
         /// The default number of <see cref="SampleChannel"/>s allowed to be played back simultaneously from individual <see cref="Sample"/>s.
         /// </summary>
+        /// <remarks>
+        /// Per-sample concurrency can be further adjusted through <see cref="ISample.PlaybackConcurrency"/>.
+        /// </remarks>
         int DefaultPlaybackConcurrency { get; set; }
     }
 }

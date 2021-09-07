@@ -14,11 +14,8 @@ namespace osu.Framework.Audio.Sample
         double Length { get; }
 
         /// <summary>
-        /// The number of times this sample (as identified by name) can be played back concurrently.
+        /// The number of <see cref="SampleChannel"/>s allowed to be played back simultaneously from this <see cref="ISample"/>.
         /// </summary>
-        /// <remarks>
-        /// This affects all <see cref="ISample"/> instances identified by the same sample name.
-        /// </remarks>
         int PlaybackConcurrency { get; set; }
 
         /// <summary>
