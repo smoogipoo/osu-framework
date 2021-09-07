@@ -88,5 +88,34 @@ namespace osu.Framework.Tests.Audio
 
             Assert.IsFalse(channel.Playing);
         }
+
+        [Test]
+        public void TestPlaybackDoesNotExceedConcurrency()
+        {
+            bass.RunOnAudioThread(() => sample.PlaybackConcurrency.Value = 2);
+
+            var channel1 = sample.GetChannel();
+            var channel2 = sample.GetChannel();
+            var channel3 = sample.GetChannel();
+
+            channel1.Looping = true;
+            channel2.Looping = true;
+            channel3.Looping = true;
+
+            channel1.Play();
+            channel2.Play();
+            bass.Update();
+
+            Assert.That(channel1.Playing);
+            Assert.That(channel2.Playing);
+            Assert.That(!channel3.Playing);
+
+            channel3.Play();
+            bass.Update();
+
+            Assert.That(!channel1.Playing);
+            Assert.That(channel2.Playing);
+            Assert.That(channel3.Playing);
+        }
     }
 }
