@@ -106,16 +106,16 @@ namespace osu.Framework.Tests.Audio
             channel2.Play();
             bass.Update();
 
-            Assert.That(channel1.Playing);
-            Assert.That(channel2.Playing);
-            Assert.That(!channel3.Playing);
+            Assert.That(channel1.Playing, Is.True);
+            Assert.That(channel2.Playing, Is.True);
+            Assert.That(channel3.Playing, Is.False);
 
             channel3.Play();
             bass.Update();
 
-            Assert.That(!channel1.Playing);
-            Assert.That(channel2.Playing);
-            Assert.That(channel3.Playing);
+            Assert.That(channel1.Playing, Is.False);
+            Assert.That(channel2.Playing, Is.True);
+            Assert.That(channel3.Playing, Is.True);
         }
     }
 }
