@@ -2,7 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using osu.Framework.Graphics.Primitives;
 using osuTK;
@@ -46,50 +48,50 @@ namespace osu.Framework.Utils
         /// <returns>A list of vectors representing the piecewise-linear approximation.</returns>
         public static List<Vector2> ApproximateBSpline(ReadOnlySpan<Vector2> controlPoints, int p = 0)
         {
-            List<Vector2> output = new List<Vector2>();
             int n = controlPoints.Length - 1;
-
             if (n < 0)
-                return output;
+                return new List<Vector2>();
 
-            Stack<Vector2[]> toFlatten = new Stack<Vector2[]>();
-            Stack<Vector2[]> freeBuffers = new Stack<Vector2[]>();
+            using ArrayPoolStack<Vector2> output = new ArrayPoolStack<Vector2>();
+            using ArrayPoolStack<BezierBuffer> toFlatten = new ArrayPoolStack<BezierBuffer>();
+            using ArrayPoolStack<BezierBuffer> freeBuffers = new ArrayPoolStack<BezierBuffer>();
 
-            var points = controlPoints.ToArray();
+            BezierBuffer initialPoints = new BezierBuffer(controlPoints);
 
             if (p > 0 && p < n)
             {
                 // Subdivide B-spline into bezier control points at knots.
                 for (int i = 0; i < n - p; i++)
                 {
-                    var subBezier = new Vector2[p + 1];
-                    subBezier[0] = points[i];
+                    var buffer = new BezierBuffer(p + 1);
+
+                    buffer[0] = initialPoints[i];
 
                     // Destructively insert the knot p-1 times via Boehm's algorithm.
                     for (int j = 0; j < p - 1; j++)
                     {
-                        subBezier[j + 1] = points[i + 1];
+                        buffer[j + 1] = initialPoints[i + 1];
 
                         for (int k = 1; k < p - j; k++)
                         {
                             int l = Math.Min(k, n - p - i);
-                            points[i + k] = (l * points[i + k] + points[i + k + 1]) / (l + 1);
+                            initialPoints[i + k] = (l * initialPoints[i + k] + initialPoints[i + k + 1]) / (l + 1);
                         }
                     }
 
-                    subBezier[p] = points[i + 1];
-                    toFlatten.Push(subBezier);
+                    buffer[p] = initialPoints[i + 1];
+                    toFlatten.Push(buffer);
                 }
 
-                toFlatten.Push(points[(n - p)..]);
+                toFlatten.Push(new BezierBuffer(initialPoints.Span[(n - p)..]));
                 // Reverse the stack so elements can be accessed in order.
-                toFlatten = new Stack<Vector2[]>(toFlatten);
+                toFlatten.Reverse();
             }
             else
             {
                 // B-spline subdivision unnecessary, degenerate to single bezier.
                 p = n;
-                toFlatten.Push(points);
+                toFlatten.Push(initialPoints);
             }
             // "toFlatten" contains all the curves which are not yet approximated well enough.
             // We use a stack to emulate recursion without the risk of running into a stack overflow.
@@ -97,14 +99,14 @@ namespace osu.Framework.Utils
             // <a href="https://en.wikipedia.org/wiki/Depth-first_search">Depth-first search</a>
             // over the tree resulting from the subdivisions we make.)
 
-            var subdivisionBuffer1 = new Vector2[p + 1];
-            var subdivisionBuffer2 = new Vector2[p * 2 + 1];
+            using BezierBuffer subdivisionBuffer1 = new BezierBuffer(p + 1);
+            using BezierBuffer subdivisionBuffer2 = new BezierBuffer(p * 2 + 1);
 
-            Vector2[] leftChild = subdivisionBuffer2;
+            BezierBuffer leftChild = subdivisionBuffer2;
 
             while (toFlatten.Count > 0)
             {
-                Vector2[] parent = toFlatten.Pop();
+                BezierBuffer parent = toFlatten.Pop();
 
                 if (bezierIsFlatEnough(parent))
                 {
@@ -120,7 +122,7 @@ namespace osu.Framework.Utils
 
                 // If we do not yet have a sufficiently "flat" (in other words, detailed) approximation we keep
                 // subdividing the curve we are currently operating on.
-                Vector2[] rightChild = freeBuffers.Count > 0 ? freeBuffers.Pop() : new Vector2[p + 1];
+                BezierBuffer rightChild = freeBuffers.Count > 0 ? freeBuffers.Pop() : new BezierBuffer(p + 1);
                 bezierSubdivide(parent, leftChild, rightChild, subdivisionBuffer1, p + 1);
 
                 // We re-use the buffer of the parent for one of the children, so that we save one allocation per iteration.
@@ -131,8 +133,11 @@ namespace osu.Framework.Utils
                 toFlatten.Push(parent);
             }
 
-            output.Add(controlPoints[n]);
-            return output;
+            while (freeBuffers.Count > 0)
+                freeBuffers.Pop().Dispose();
+
+            output.Push(controlPoints[n]);
+            return output.ToList();
         }
 
         /// <summary>
@@ -370,7 +375,7 @@ namespace osu.Framework.Utils
         /// </summary>
         /// <param name="controlPoints">The control points to check for flatness.</param>
         /// <returns>Whether the control points are flat enough.</returns>
-        private static bool bezierIsFlatEnough(Vector2[] controlPoints)
+        private static bool bezierIsFlatEnough(BezierBuffer controlPoints)
         {
             for (int i = 1; i < controlPoints.Length - 1; i++)
             {
@@ -391,9 +396,9 @@ namespace osu.Framework.Utils
         /// <param name="r">Output: The control points corresponding to the right half of the curve.</param>
         /// <param name="subdivisionBuffer">The first buffer containing the current subdivision state.</param>
         /// <param name="count">The number of control points in the original list.</param>
-        private static void bezierSubdivide(Vector2[] controlPoints, Vector2[] l, Vector2[] r, Vector2[] subdivisionBuffer, int count)
+        private static void bezierSubdivide(BezierBuffer controlPoints, BezierBuffer l, BezierBuffer r, BezierBuffer subdivisionBuffer, int count)
         {
-            Vector2[] midpoints = subdivisionBuffer;
+            BezierBuffer midpoints = subdivisionBuffer;
 
             for (int i = 0; i < count; ++i)
                 midpoints[i] = controlPoints[i];
@@ -417,23 +422,23 @@ namespace osu.Framework.Utils
         /// <param name="count">The number of control points in the original list.</param>
         /// <param name="subdivisionBuffer1">The first buffer containing the current subdivision state.</param>
         /// <param name="subdivisionBuffer2">The second buffer containing the current subdivision state.</param>
-        private static void bezierApproximate(Vector2[] controlPoints, List<Vector2> output, Vector2[] subdivisionBuffer1, Vector2[] subdivisionBuffer2, int count)
+        private static void bezierApproximate(BezierBuffer controlPoints, ArrayPoolStack<Vector2> output, BezierBuffer subdivisionBuffer1, BezierBuffer subdivisionBuffer2, int count)
         {
-            Vector2[] l = subdivisionBuffer2;
-            Vector2[] r = subdivisionBuffer1;
+            BezierBuffer l = subdivisionBuffer2;
+            BezierBuffer r = subdivisionBuffer1;
 
             bezierSubdivide(controlPoints, l, r, subdivisionBuffer1, count);
 
             for (int i = 0; i < count - 1; ++i)
                 l[count + i] = r[i + 1];
 
-            output.Add(controlPoints[0]);
+            output.Push(controlPoints[0]);
 
             for (int i = 1; i < count - 1; ++i)
             {
                 int index = 2 * i;
                 Vector2 p = 0.25f * (l[index - 1] + 2 * l[index] + l[index + 1]);
-                output.Add(p);
+                output.Push(p);
             }
         }
 
@@ -456,6 +461,88 @@ namespace osu.Framework.Utils
             result.Y = 0.5f * (2f * vec2.Y + (-vec1.Y + vec3.Y) * t + (2f * vec1.Y - 5f * vec2.Y + 4f * vec3.Y - vec4.Y) * t2 + (-vec1.Y + 3f * vec2.Y - 3f * vec3.Y + vec4.Y) * t3);
 
             return result;
+        }
+
+        private class ArrayPoolStack<T> : IDisposable
+        {
+            public int Count { get; private set; }
+            private T[] array;
+
+            public void Push(T item)
+            {
+                array ??= ArrayPool<T>.Shared.Rent(16);
+
+                if (Count == array.Length)
+                {
+                    var newArray = ArrayPool<T>.Shared.Rent(array.Length * 2);
+                    array.CopyTo(newArray, 0);
+
+                    ArrayPool<T>.Shared.Return(array);
+                    array = newArray;
+                }
+
+                array[Count++] = item;
+            }
+
+            public T Pop() => array[--Count];
+
+            public void Reverse() => array.AsSpan(0, Count).Reverse();
+
+            public List<T> ToList()
+            {
+                var list = new List<T>(Count);
+                for (int i = 0; i < list.Count; i++)
+                    list[i] = array[i];
+                return list;
+            }
+
+            public void Dispose()
+            {
+                Debug.Assert(Count == 0);
+
+                if (array != null)
+                    ArrayPool<T>.Shared.Return(array);
+                array = null;
+            }
+        }
+
+        private class BezierBuffer : IDisposable
+        {
+            public readonly int Length;
+
+            private Vector2[] array;
+            private bool isInPool;
+
+            public BezierBuffer(int length)
+            {
+                Length = length;
+                array = ArrayPool<Vector2>.Shared.Rent(length);
+                isInPool = true;
+            }
+
+            public BezierBuffer(in ReadOnlySpan<Vector2> arrayToCopy)
+                : this(arrayToCopy.Length)
+            {
+                arrayToCopy.CopyTo(array);
+            }
+
+            public Vector2 this[int index]
+            {
+                get => array[index];
+                set => array[index] = value;
+            }
+
+            public Span<Vector2> Span => array.AsSpan(0, Length);
+
+            public void Dispose()
+            {
+                if (!isInPool)
+                    return;
+
+                ArrayPool<Vector2>.Shared.Return(array);
+                array = null;
+                isInPool = false;
+            }
         }
     }
 }
