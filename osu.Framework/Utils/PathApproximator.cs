@@ -463,7 +463,7 @@ namespace osu.Framework.Utils
             return result;
         }
 
-        private class ArrayPoolStack<T> : IDisposable
+        private sealed class ArrayPoolStack<T> : IDisposable
         {
             public int Count { get; private set; }
             private T[] array;
@@ -506,7 +506,7 @@ namespace osu.Framework.Utils
             }
         }
 
-        private class BezierBuffer : IDisposable
+        private sealed class BezierBuffer : IDisposable
         {
             public readonly int Length;
 
