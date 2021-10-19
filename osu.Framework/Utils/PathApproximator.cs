@@ -86,6 +86,8 @@ namespace osu.Framework.Utils
                 toFlatten.Push(new BezierBuffer(initialPoints.Span[(n - p)..]));
                 // Reverse the stack so elements can be accessed in order.
                 toFlatten.Reverse();
+
+                initialPoints.Dispose();
             }
             else
             {
