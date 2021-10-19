@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using osu.Framework.Graphics.Primitives;
 using osuTK;
 
@@ -513,8 +514,7 @@ namespace osu.Framework.Utils
 
             public void Dispose()
             {
-                if (array != null)
-                    ArrayPool<T>.Shared.Return(array);
+                ArrayPool<T>.Shared.Return(array);
                 array = null;
             }
         }
@@ -522,17 +522,16 @@ namespace osu.Framework.Utils
         private sealed class BezierBuffer : IDisposable
         {
             public readonly int Length;
-
             private Vector2[] array;
-            private bool isInPool;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public BezierBuffer(int length)
             {
                 Length = length;
                 array = ArrayPool<Vector2>.Shared.Rent(length);
-                isInPool = true;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public BezierBuffer(in ReadOnlySpan<Vector2> arrayToCopy)
                 : this(arrayToCopy.Length)
             {
@@ -541,7 +540,9 @@ namespace osu.Framework.Utils
 
             public Vector2 this[int index]
             {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get => array[index];
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 set => array[index] = value;
             }
 
@@ -549,12 +550,8 @@ namespace osu.Framework.Utils
 
             public void Dispose()
             {
-                if (!isInPool)
-                    return;
-
                 ArrayPool<Vector2>.Shared.Return(array);
                 array = null;
-                isInPool = false;
             }
         }
     }
