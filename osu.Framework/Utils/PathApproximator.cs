@@ -52,9 +52,9 @@ namespace osu.Framework.Utils
             if (n < 0)
                 return new List<Vector2>();
 
-            using ArrayPoolStack<Vector2> output = new ArrayPoolStack<Vector2>();
-            using ArrayPoolStack<BezierBuffer> toFlatten = new ArrayPoolStack<BezierBuffer>();
-            using ArrayPoolStack<BezierBuffer> freeBuffers = new ArrayPoolStack<BezierBuffer>();
+            ArrayPoolStack<Vector2> output = new ArrayPoolStack<Vector2>(controlPoints.Length);
+            using ArrayPoolStack<BezierBuffer> toFlatten = new ArrayPoolStack<BezierBuffer>(4);
+            using ArrayPoolStack<BezierBuffer> freeBuffers = new ArrayPoolStack<BezierBuffer>(4);
 
             BezierBuffer initialPoints = new BezierBuffer(controlPoints);
 
@@ -114,7 +114,7 @@ namespace osu.Framework.Utils
                     // an extension to De Casteljau's algorithm to obtain a piecewise-linear approximation
                     // of the bezier curve represented by our control points, consisting of the same amount
                     // of points as there are control points.
-                    bezierApproximate(parent, output, subdivisionBuffer1, subdivisionBuffer2, p + 1);
+                    bezierApproximate(parent, ref output, subdivisionBuffer1, subdivisionBuffer2, p + 1);
 
                     freeBuffers.Push(parent);
                     continue;
@@ -137,7 +137,9 @@ namespace osu.Framework.Utils
                 freeBuffers.Pop().Dispose();
 
             output.Push(controlPoints[n]);
-            return output.ToList();
+
+            using (output)
+                return output.ToList();
         }
 
         /// <summary>
@@ -422,7 +424,7 @@ namespace osu.Framework.Utils
         /// <param name="count">The number of control points in the original list.</param>
         /// <param name="subdivisionBuffer1">The first buffer containing the current subdivision state.</param>
         /// <param name="subdivisionBuffer2">The second buffer containing the current subdivision state.</param>
-        private static void bezierApproximate(BezierBuffer controlPoints, ArrayPoolStack<Vector2> output, BezierBuffer subdivisionBuffer1, BezierBuffer subdivisionBuffer2, int count)
+        private static void bezierApproximate(BezierBuffer controlPoints, ref ArrayPoolStack<Vector2> output, BezierBuffer subdivisionBuffer1, BezierBuffer subdivisionBuffer2, int count)
         {
             BezierBuffer l = subdivisionBuffer2;
             BezierBuffer r = subdivisionBuffer1;
@@ -463,36 +465,48 @@ namespace osu.Framework.Utils
             return result;
         }
 
-        private sealed class ArrayPoolStack<T> : IDisposable
+        private ref struct ArrayPoolStack<T>
         {
             public int Count { get; private set; }
+
             private T[] array;
+            private Span<T> span;
+
+            public ArrayPoolStack(int capacity)
+            {
+                array = ArrayPool<T>.Shared.Rent(capacity);
+                span = array;
+                Count = 0;
+            }
 
             public void Push(T item)
             {
-                array ??= ArrayPool<T>.Shared.Rent(16);
+                if (Count == span.Length)
+                    grow();
 
-                if (Count == array.Length)
-                {
-                    var newArray = ArrayPool<T>.Shared.Rent(array.Length * 2);
-                    array.CopyTo(newArray, 0);
-
-                    ArrayPool<T>.Shared.Return(array);
-                    array = newArray;
-                }
-
-                array[Count++] = item;
+                span[Count++] = item;
             }
 
-            public T Pop() => array[--Count];
+            private void grow()
+            {
+                var newArray = ArrayPool<T>.Shared.Rent(span.Length * 2);
 
-            public void Reverse() => array.AsSpan(0, Count).Reverse();
+                span.CopyTo(newArray);
+                ArrayPool<T>.Shared.Return(array);
+
+                array = newArray;
+                span = array;
+            }
+
+            public T Pop() => span[--Count];
+
+            public void Reverse() => span[..Count].Reverse();
 
             public List<T> ToList()
             {
                 var list = new List<T>(Count);
-                for (int i = 0; i < list.Count; i++)
-                    list[i] = array[i];
+                for (int i = 0; i < Count; i++)
+                    list.Add(span[i]);
                 return list;
             }
 
