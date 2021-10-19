@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using osu.Framework.Graphics.Primitives;
 using osuTK;
@@ -514,8 +513,6 @@ namespace osu.Framework.Utils
 
             public void Dispose()
             {
-                Debug.Assert(Count == 0);
-
                 if (array != null)
                     ArrayPool<T>.Shared.Return(array);
                 array = null;
