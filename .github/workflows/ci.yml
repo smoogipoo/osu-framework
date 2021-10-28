@@ -135,3 +135,27 @@ jobs:
 
       - name: NVika
         run: dotnet nvika parsereport "${{github.workspace}}/inspectcodereport.xml" --treatwarningsaserrors
+
+  infer-sharp:
+    name: Infer#
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install .NET 5.0.x
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: "5.0.x"
+
+      - name: Compile
+        run: dotnet build -c Release -warnaserror build/Desktop.proj
+
+      - name: Run Infer#
+        uses: microsoft/infersharpaction@v1.1
+        id: runinfersharp
+        with:
+          binary-path: "$(pwd)/osu.Framework/bin/Release/net5.0/"
+
+      - name: Infer# analysis results
+        run: echo "${{ steps.runinfersharp.outputs.results }}"
