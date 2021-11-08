@@ -1,6 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +31,7 @@ namespace osu.Framework.Graphics.Containers
             layoutContent();
         }
 
-        private GridContainerContent content;
+        private GridContainerContent content = GridContainerContent.EMPTY;
 
         /// <summary>
         /// The content of this <see cref="GridContainer"/>, arranged in a 2D grid array, where each array
@@ -43,18 +45,18 @@ namespace osu.Framework.Graphics.Containers
             get => content;
             set
             {
-                if (content?.Equals(value) == true)
+                if (value == null)
+                    throw new ArgumentNullException(nameof(value));
+
+                if (content.Equals(value))
                     return;
 
-                if (content != null)
-                    content.ArrayElementChanged -= onContentChange;
+                content.ArrayElementChanged -= onContentChange;
 
                 content = value;
-
                 onContentChange();
 
-                if (content != null)
-                    content.ArrayElementChanged += onContentChange;
+                content.ArrayElementChanged += onContentChange;
             }
         }
 
@@ -143,8 +145,8 @@ namespace osu.Framework.Graphics.Containers
             if (cellContent.IsValid)
                 return;
 
-            int requiredRows = Content?.Count ?? 0;
-            int requiredColumns = requiredRows == 0 ? 0 : Content?.Max(c => c?.Count ?? 0) ?? 0;
+            int requiredRows = Content.Count;
+            int requiredColumns = requiredRows == 0 ? 0 : Content.Max(c => c?.Count ?? 0);
 
             // Clear cell containers without disposing, as the content might be reused
             foreach (var cell in cells)
@@ -299,7 +301,7 @@ namespace osu.Framework.Graphics.Containers
             return sizes;
         }
 
-        private static bool shouldConsiderCell(Drawable cell) => cell != null && cell.IsAlive && cell.IsPresent;
+        private static bool shouldConsiderCell(Drawable cell) => cell.IsAlive && cell.IsPresent;
         private static float getCellWidth(Drawable cell) => shouldConsiderCell(cell) ? cell.BoundingBox.Width : 0;
         private static float getCellHeight(Drawable cell) => shouldConsiderCell(cell) ? cell.BoundingBox.Height : 0;
 
