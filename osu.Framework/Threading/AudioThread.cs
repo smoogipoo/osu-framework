@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using ManagedBass;
 using osu.Framework.Audio;
 using osu.Framework.Development;
@@ -115,7 +116,72 @@ namespace osu.Framework.Threading
             // If the device was already initialised, the device can be used without much fuss.
             if (Bass.LastError == Errors.Already)
             {
-                Bass.CurrentDevice = deviceId;
+                StringBuilder errorBuilder = null;
+
+                try
+                {
+                    Bass.CurrentDevice = deviceId;
+                }
+                catch
+                {
+                    errorBuilder = new StringBuilder();
+                    errorBuilder.AppendLine($"Failed to select already-initialised audio device {deviceId} ({Bass.LastError})!!");
+                    errorBuilder.AppendLine(Bass.CurrentDevice == deviceId ? "This is the currently-selected device." : "This is not the currently-selected device.");
+
+                    try
+                    {
+                        errorBuilder.AppendLine("Trying to get device info...");
+
+                        if (Bass.GetDeviceInfo(deviceId, out var devInfo))
+                        {
+                            errorBuilder.AppendLine("Got device info:");
+                            errorBuilder.AppendLine($"Name: {devInfo.Name}, Driver: {devInfo.Driver}, Type: {devInfo.Type}, Enabled: {devInfo.IsEnabled}, Initialised:"
+                                                    + $" {devInfo.IsInitialized}, Loopback: {devInfo.IsLoopback}");
+                        }
+                        else
+                            errorBuilder.AppendLine($"Failed to retrieve device info ({Bass.LastError})!!");
+                    }
+                    catch (BassException exc)
+                    {
+                        errorBuilder.AppendLine($"Hard-failed to retrieve device info (bad device ID?) ({exc.ErrorCode})!!!");
+                    }
+
+                    if (Bass.CurrentDevice == deviceId)
+                    {
+                        errorBuilder.AppendLine("Attempting to free the device since it is currently-selected...");
+
+                        try
+                        {
+                            if (!Bass.Free())
+                                errorBuilder.AppendLine($"Failed to free device ({Bass.LastError})!!");
+                        }
+                        catch (BassException exc)
+                        {
+                            errorBuilder.AppendLine($"Hard-failed to free device ({exc.ErrorCode})!!!");
+                        }
+                    }
+
+                    errorBuilder.AppendLine("Devices:");
+
+                    try
+                    {
+                        int devCount = Bass.DeviceCount;
+
+                        for (int i = 0; i < devCount; i++)
+                        {
+                            Bass.GetDeviceInfo(i, out var devInfo);
+                            errorBuilder.AppendLine($"{i} | Name: {devInfo.Name}, Driver: {devInfo.Driver}, Type: {devInfo.Type}, Enabled: {devInfo.IsEnabled}, Initialised:"
+                                                    + $" {devInfo.IsInitialized}, Loopback: {devInfo.IsLoopback}");
+                        }
+                    }
+                    catch (BassException exc)
+                    {
+                        errorBuilder.AppendLine($"Failed to retrieve bass count ({exc.ErrorCode})!!!");
+                    }
+                }
+
+                if (errorBuilder != null)
+                    throw new InvalidOperationException(errorBuilder.ToString());
 
                 if (!canFreeDevice(deviceId))
                     didInit = true;
