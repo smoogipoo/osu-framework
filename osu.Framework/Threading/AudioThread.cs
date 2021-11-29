@@ -126,7 +126,7 @@ namespace osu.Framework.Threading
                 {
                     errorBuilder = new StringBuilder();
                     errorBuilder.AppendLine($"Failed to select already-initialised audio device {deviceId} ({Bass.LastError})!!");
-                    errorBuilder.AppendLine(Bass.CurrentDevice == deviceId ? "This is the currently-selected device." : "This is not the currently-selected device.");
+                    errorBuilder.AppendLine(Bass.CurrentDevice == deviceId ? "This is the currently-selected device." : $"This is not the currently-selected device ({Bass.CurrentDevice}.");
 
                     try
                     {
@@ -177,6 +177,16 @@ namespace osu.Framework.Threading
                     catch (BassException exc)
                     {
                         errorBuilder.AppendLine($"Failed to retrieve bass count ({exc.ErrorCode})!!!");
+                    }
+
+                    try
+                    {
+                        errorBuilder.AppendLine("Retrying to init device...");
+                        errorBuilder.AppendLine(Bass.Init(deviceId) ? "Succeeded." : $"Failed to init device ({Bass.LastError})!!");
+                    }
+                    catch (BassException exc)
+                    {
+                        errorBuilder.AppendLine($"Failed to init device ({exc.ErrorCode})!!!");
                     }
                 }
 
