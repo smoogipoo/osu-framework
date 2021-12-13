@@ -1053,6 +1053,27 @@ namespace osu.Framework.Graphics
             }
         }
 
+        private Vector2 perspective = Vector2.Zero;
+
+        /// <summary>
+        /// Relative shearing factor. The X dimension is relative w.r.t. <see cref="Height"/>
+        /// and the Y dimension relative w.r.t. <see cref="Width"/>.
+        /// </summary>
+        public Vector2 Perspective
+        {
+            get => perspective;
+            set
+            {
+                if (perspective == value) return;
+
+                if (!Validation.IsFinite(value)) throw new ArgumentException($@"{nameof(Perspective)} must be finite, but is {value}.");
+
+                perspective = value;
+
+                Invalidate(Invalidation.MiscGeometry);
+            }
+        }
+
         private float rotation;
 
         /// <summary>
@@ -1595,7 +1616,7 @@ namespace osu.Framework.Graphics
             if (Parent != null)
                 pos += Parent.ChildOffset;
 
-            di.ApplyTransform(pos, drawScale, Rotation, Shear, OriginPosition);
+            di.ApplyTransform(pos, drawScale, Rotation, Shear, OriginPosition, perspective);
 
             return di;
         }

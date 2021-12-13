@@ -28,12 +28,18 @@ namespace osu.Framework.Graphics
         /// <param name="rotation">The amount by which to rotate.</param>
         /// <param name="shear">The shear amounts for both directions.</param>
         /// <param name="origin">The center of rotation and scale.</param>
-        public void ApplyTransform(Vector2 translation, Vector2 scale, float rotation, Vector2 shear, Vector2 origin)
+        /// <param name="perspective"></param>
+        public void ApplyTransform(Vector2 translation, Vector2 scale, float rotation, Vector2 shear, Vector2 origin, Vector2 perspective)
         {
             if (translation != Vector2.Zero)
             {
                 MatrixExtensions.TranslateFromLeft(ref Matrix, translation);
                 MatrixExtensions.TranslateFromRight(ref MatrixInverse, -translation);
+            }
+
+            if (perspective != Vector2.Zero)
+            {
+                MatrixExtensions.PerspectiveFromLeft(ref Matrix, perspective);
             }
 
             if (rotation != 0)
@@ -65,8 +71,8 @@ namespace osu.Framework.Graphics
             //========================================================================================
             //== Uncomment the following 2 lines to use a ground-truth matrix inverse for debugging ==
             //========================================================================================
-            //target.MatrixInverse = target.Matrix;
-            //MatrixExtensions.FastInvert(ref target.MatrixInverse);
+            MatrixInverse = Matrix;
+            MatrixExtensions.FastInvert(ref MatrixInverse);
         }
 
         public readonly bool Equals(DrawInfo other) => Matrix.Equals(other.Matrix);

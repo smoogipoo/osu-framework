@@ -8,6 +8,20 @@ namespace osu.Framework.Extensions.MatrixExtensions
 {
     public static class MatrixExtensions
     {
+        public static void PerspectiveFromLeft(ref Matrix3 m, Vector2 v)
+        {
+            v = Vector2.Clamp(v, new Vector2(-0.005f), new Vector2(0.005f));
+            m = new Matrix3(1, 0, v.X, 0, 1, v.Y, 0, 0, 1) * m;
+
+            // float a = Vector3.Dot(new Vector3(v.X, v.Y, 1), m.Row0);
+            // float b = Vector3.Dot(new Vector3(v.X, v.Y, 1), m.Row1);
+            // float c = Vector3.Dot(new Vector3(v.X, v.Y, 1), m.Row2);
+            //
+            // m.M13 = a;
+            // m.M23 = b;
+            // m.M33 = c;
+        }
+
         public static void TranslateFromLeft(ref Matrix3 m, Vector2 v)
         {
             m.Row2 += m.Row0 * v.X + m.Row1 * v.Y;
