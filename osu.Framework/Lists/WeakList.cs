@@ -6,6 +6,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using osu.Framework.Utils;
 
 namespace osu.Framework.Lists
 {
@@ -20,18 +22,36 @@ namespace osu.Framework.Lists
         private int listStart; // The inclusive starting index in the list.
         private int listEnd; // The exclusive ending index in the list.
 
+        // This is an optimisation in order to achieve thread-safety and minimal space requirements for WeakList objects.
+        // 0 -> The Gen2 GC callback has not been registered. Do nothing.
+        // 1 -> The Gen2 GC callback has been registered but has not been fired. Do nothing.
+        // 2 -> The Gen2 GC callback has been fired. Perform a trim and reset to state 1.
+        private int gen2GcTrimStatus;
+
         public void Add(T obj) => add(new InvalidatableWeakReference(obj));
 
         public void Add(WeakReference<T> weakReference) => add(new InvalidatableWeakReference(weakReference));
 
         private void add(in InvalidatableWeakReference item)
         {
+            if (Interlocked.CompareExchange(ref gen2GcTrimStatus, 1, 2) == 2)
+                trim();
+
             if (listEnd < list.Count)
                 list[listEnd] = item;
             else
                 list.Add(item);
 
             listEnd++;
+
+            if (list.Count > 1000 && Interlocked.CompareExchange(ref gen2GcTrimStatus, 1, 0) == 0)
+            {
+                Gen2GcCallback.Register(l =>
+                {
+                    Interlocked.Exchange(ref ((WeakList<T>)l).gen2GcTrimStatus, 2);
+                    return true;
+                }, this);
+            }
         }
 
         public bool Remove(T item)
@@ -134,6 +154,16 @@ namespace osu.Framework.Lists
 
         public ValidItemsEnumerator GetEnumerator()
         {
+            trim();
+            return new ValidItemsEnumerator(this);
+        }
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        private void trim()
+        {
             // Trim from the sides - items that have been removed.
             list.RemoveRange(listEnd, list.Count - listEnd);
             list.RemoveRange(0, listStart);
@@ -144,13 +174,7 @@ namespace osu.Framework.Lists
             // After the trim, the valid range represents the full list.
             listStart = 0;
             listEnd = list.Count;
-
-            return new ValidItemsEnumerator(this);
         }
-
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         private readonly struct InvalidatableWeakReference
         {
