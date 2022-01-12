@@ -417,7 +417,7 @@ namespace osu.Framework.Graphics.OpenGL
         /// <returns>true if the provided texture was not already bound (causing a binding change).</returns>
         public static bool BindTexture(int textureId, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            var index = GetTextureUnitId(unit);
+            int index = GetTextureUnitId(unit);
 
             if (wrapModeS != CurrentWrapModeS)
             {
@@ -833,10 +833,6 @@ namespace osu.Framework.Graphics.OpenGL
             {
                 FlushCurrentBatch();
                 GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer);
-
-                // Speculative fix for macOS crashes (see: http://crbug.com/1181068, http://crbug.com/783979, https://github.com/google/angle/commit/ce89d99fdeda61d9bc88fc7abd2aa3b4666d770e).
-                if (RuntimeInfo.OS == RuntimeInfo.Platform.macOS)
-                    GL.Flush();
 
                 GlobalPropertyManager.Set(GlobalProperty.BackbufferDraw, UsingBackbuffer);
             }

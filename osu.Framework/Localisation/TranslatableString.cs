@@ -53,13 +53,20 @@ namespace osu.Framework.Localisation
             if (parameters.Store == null)
                 return ToString();
 
-            var localisedFormat = parameters.Store.Get(Key);
-            if (localisedFormat == null)
-                return ToString();
+            string localisedFormat = parameters.Store.Get(Key) ?? Fallback;
 
             try
             {
-                return string.Format(parameters.Store.EffectiveCulture, localisedFormat, Args);
+                return string.Format(parameters.Store.EffectiveCulture, localisedFormat, Args.Select(argument =>
+                {
+                    if (argument is LocalisableString localisableString)
+                        argument = localisableString.Data;
+
+                    if (argument is ILocalisableStringData localisableData)
+                        return localisableData.GetLocalised(parameters);
+
+                    return argument;
+                }).ToArray());
             }
             catch (FormatException e)
             {
@@ -91,7 +98,7 @@ namespace osu.Framework.Localisation
             var hashCode = new HashCode();
             hashCode.Add(Key);
             hashCode.Add(Fallback);
-            foreach (var arg in Args)
+            foreach (object? arg in Args)
                 hashCode.Add(arg);
             return hashCode.ToHashCode();
         }

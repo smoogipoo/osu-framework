@@ -1,7 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using Android.Content;
 using Android.Views;
 using Android.Views.InputMethods;
@@ -9,68 +8,62 @@ using osu.Framework.Input;
 
 namespace osu.Framework.Android.Input
 {
-    public class AndroidTextInput : ITextInputSource
+    public class AndroidTextInput : TextInputSource
     {
         private readonly AndroidGameView view;
         private readonly AndroidGameActivity activity;
         private readonly InputMethodManager inputMethodManager;
-        private string pending = string.Empty;
-        private readonly object pendingLock = new object();
 
         public AndroidTextInput(AndroidGameView view)
         {
             this.view = view;
             activity = (AndroidGameActivity)view.Context;
 
-            inputMethodManager = view.Context.GetSystemService(Context.InputMethodService) as InputMethodManager;
-        }
-
-        public void Deactivate(object sender)
-        {
-            activity.RunOnUiThread(() =>
-            {
-                inputMethodManager.HideSoftInputFromWindow(view.WindowToken, HideSoftInputFlags.None);
-                view.ClearFocus();
-                view.KeyDown -= keyDown;
-                view.CommitText -= commitText;
-            });
-        }
-
-        public string GetPendingText()
-        {
-            lock (pendingLock)
-            {
-                var oldPending = pending;
-                pending = string.Empty;
-                return oldPending;
-            }
+            if (view.Context != null)
+                inputMethodManager = view.Context.GetSystemService(Context.InputMethodService) as InputMethodManager;
         }
 
         private void commitText(string text)
         {
-            OnNewImeComposition?.Invoke(text);
-            OnNewImeResult?.Invoke(text);
+            TriggerImeResult(text);
         }
 
         private void keyDown(Keycode arg, KeyEvent e)
         {
             if (e.UnicodeChar != 0)
-                pending += (char)e.UnicodeChar;
+                AddPendingText(((char)e.UnicodeChar).ToString());
         }
 
-        public bool ImeActive => false;
+        protected override void ActivateTextInput()
+        {
+            view.KeyDown += keyDown;
+            view.CommitText += commitText;
 
-        public event Action<string> OnNewImeComposition;
-        public event Action<string> OnNewImeResult;
+            activity.RunOnUiThread(() =>
+            {
+                view.RequestFocus();
+                inputMethodManager?.ShowSoftInput(view, 0);
+            });
+        }
 
-        public void Activate(object sender)
+        protected override void EnsureTextInputActivated()
         {
             activity.RunOnUiThread(() =>
             {
                 view.RequestFocus();
-                inputMethodManager.ToggleSoftInputFromWindow(view.WindowToken, ShowSoftInputFlags.Forced, HideSoftInputFlags.None);
-                view.KeyDown += keyDown;
-                view.CommitText += commitText;
+                inputMethodManager?.ShowSoftInput(view, 0);
+            });
+        }
+
+        protected override void DeactivateTextInput()
+        {
+            view.KeyDown -= keyDown;
+            view.CommitText -= commitText;
+
+            activity.RunOnUiThread(() =>
+            {
+                inputMethodManager?.HideSoftInputFromWindow(view.WindowToken, HideSoftInputFlags.None);
+                view.ClearFocus();
             });
         }
     }

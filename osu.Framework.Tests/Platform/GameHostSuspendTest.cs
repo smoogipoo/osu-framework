@@ -9,6 +9,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Configuration;
 using osu.Framework.Development;
 using osu.Framework.Platform;
+using osu.Framework.Testing;
 using osu.Framework.Threading;
 
 namespace osu.Framework.Tests.Platform
@@ -29,7 +30,7 @@ namespace osu.Framework.Tests.Platform
 
             IBindable<GameThreadState> updateThreadState = null;
 
-            var task = Task.Run(() =>
+            var task = Task.Factory.StartNew(() =>
             {
                 using (host = new ExecutionModeGameHost(@"host", threadMode))
                 {
@@ -37,7 +38,7 @@ namespace osu.Framework.Tests.Platform
                     gameCreated.Set();
                     host.Run(game);
                 }
-            });
+            }, TaskCreationOptions.LongRunning);
 
             Assert.IsTrue(gameCreated.Wait(timeout));
             Assert.IsTrue(game.BecameAlive.Wait(timeout));
@@ -81,7 +82,7 @@ namespace osu.Framework.Tests.Platform
             Assert.AreEqual(GameThreadState.Exited, updateThreadState.Value);
         }
 
-        private class ExecutionModeGameHost : HeadlessGameHost
+        private class ExecutionModeGameHost : TestRunHeadlessGameHost
         {
             private readonly ExecutionMode threadMode;
 

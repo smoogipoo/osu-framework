@@ -108,7 +108,10 @@ namespace osu.Framework.Android
         {
             base.OnLoad(e);
 
-            RenderGame();
+            // osuTK calls `OnLoad()` every time the application surface is created, which will also happen upon a resume,
+            // at which point the host is already present and running, so there is no reason to create another one.
+            if (Host == null)
+                RenderGame();
         }
 
         [STAThread]
@@ -117,7 +120,7 @@ namespace osu.Framework.Android
             Host = new AndroidGameHost(this);
             Host.ExceptionThrown += handleException;
             Host.Run(game);
-            HostStarted.Invoke(Host);
+            HostStarted?.Invoke(Host);
         }
 
         private bool handleException(Exception ex)
@@ -134,8 +137,8 @@ namespace osu.Framework.Android
 
         public override IInputConnection OnCreateInputConnection(EditorInfo outAttrs)
         {
-            outAttrs.ImeOptions = ImeFlags.NoExtractUi;
-            outAttrs.InputType = InputTypes.Null;
+            outAttrs.ImeOptions = ImeFlags.NoExtractUi | ImeFlags.NoFullscreen;
+            outAttrs.InputType = InputTypes.TextVariationVisiblePassword | InputTypes.TextFlagNoSuggestions;
             return new AndroidInputConnection(this, true);
         }
     }

@@ -281,9 +281,9 @@ namespace osu.Framework.Bindables
         /// </summary>
         public void SetProportional(float amt, float snap = 0)
         {
-            var min = MinValue.ToDouble(NumberFormatInfo.InvariantInfo);
-            var max = MaxValue.ToDouble(NumberFormatInfo.InvariantInfo);
-            var value = min + (max - min) * amt;
+            double min = MinValue.ToDouble(NumberFormatInfo.InvariantInfo);
+            double max = MaxValue.ToDouble(NumberFormatInfo.InvariantInfo);
+            double value = min + (max - min) * amt;
             if (snap > 0)
                 value = Math.Round(value / snap) * snap;
             Set(value);
@@ -317,19 +317,21 @@ namespace osu.Framework.Bindables
             }
         }
 
+        protected override Bindable<T> CreateInstance() => new BindableNumber<T>();
+
         protected sealed override T ClampValue(T value, T minValue, T maxValue) => max(minValue, min(maxValue, value));
 
         protected sealed override bool IsValidRange(T min, T max) => min.CompareTo(max) <= 0;
 
         private static T max(T value1, T value2)
         {
-            var comparison = value1.CompareTo(value2);
+            int comparison = value1.CompareTo(value2);
             return comparison > 0 ? value1 : value2;
         }
 
         private static T min(T value1, T value2)
         {
-            var comparison = value1.CompareTo(value2);
+            int comparison = value1.CompareTo(value2);
             return comparison > 0 ? value2 : value1;
         }
     }
