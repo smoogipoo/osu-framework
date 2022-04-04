@@ -54,14 +54,6 @@ namespace osu.Framework.Extensions
         }
 
         /// <summary>
-        /// Try to get a value from the <paramref name="dictionary"/>. Returns a default(TValue) if the key does not exist.
-        /// </summary>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="lookup">The lookup key.</param>
-        [Obsolete("Use System.Collections.Generic.CollectionExtensions.GetValueOrDefault instead.")] // Can be removed 20220115
-        public static TValue GetOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey lookup) => dictionary.GetValueOrDefault(lookup);
-
-        /// <summary>
         /// Converts a rectangular array to a jagged array.
         /// <para>
         /// The jagged array will contain empty arrays if there are no columns in the rectangular array.
@@ -164,7 +156,7 @@ namespace osu.Framework.Extensions
             }
             catch (ReflectionTypeLoadException e)
             {
-                // the following warning disables are caused by netstandard2.1 and net5.0 differences
+                // the following warning disables are caused by netstandard2.1 and net6.0 differences
                 // the former declares Types as Type[], while the latter declares as Type?[]:
                 // https://docs.microsoft.com/en-us/dotnet/api/system.reflection.reflectiontypeloadexception.types?view=net-5.0#property-value
                 // which trips some inspectcode errors which are only "valid" for the first of the two.

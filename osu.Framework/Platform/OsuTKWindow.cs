@@ -19,6 +19,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Extensions;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Threading;
+using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
 
 namespace osu.Framework.Platform
 {
@@ -75,12 +76,9 @@ namespace osu.Framework.Platform
 
         public Bindable<WindowMode> WindowMode { get; } = new Bindable<WindowMode>();
 
-        private readonly Bindable<bool> isActive = new Bindable<bool>();
+        public abstract bool Focused { get; }
 
-        /// <summary>
-        /// Whether this <see cref="OsuTKWindow"/> is active (in the foreground).
-        /// </summary>
-        public IBindable<bool> IsActive => isActive;
+        public abstract IBindable<bool> IsActive { get; }
 
         public virtual IEnumerable<Display> Displays => new[] { DisplayDevice.GetDisplay(DisplayIndex.Primary).ToDisplay() };
 
@@ -128,14 +126,9 @@ namespace osu.Framework.Platform
             MouseEnter += (sender, args) => cursorInWindow.Value = true;
             MouseLeave += (sender, args) => cursorInWindow.Value = false;
 
-            FocusedChanged += (o, e) => isActive.Value = Focused;
-
             supportedWindowModes.AddRange(DefaultSupportedWindowModes);
 
             UpdateFrame += (o, e) => UpdateFrameScheduler.Update();
-            UpdateFrameScheduler.Add(() => isActive.Value = Focused);
-
-            WindowStateChanged += (o, e) => isActive.Value = WindowState != WindowState.Minimised;
 
             MakeCurrent();
 
@@ -208,7 +201,7 @@ namespace osu.Framework.Platform
         /// <summary>
         /// Controls the state of the OS cursor.
         /// </summary>
-        public CursorState CursorState
+        public virtual CursorState CursorState
         {
             get => cursorState;
             set
@@ -227,6 +220,8 @@ namespace osu.Framework.Platform
                 }
             }
         }
+
+        public RectangleF? CursorConfineRect { get; set; }
 
         /// <summary>
         /// We do not support directly using <see cref="Cursor"/>.
@@ -354,7 +349,7 @@ namespace osu.Framework.Platform
             set => OsuTKGameWindow.Title = $"{value} (legacy osuTK)";
         }
 
-        public virtual bool Focused => OsuTKGameWindow.Focused;
+        bool INativeWindow.Focused => OsuTKGameWindow.Focused;
 
         public bool Visible
         {

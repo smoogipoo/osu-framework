@@ -40,9 +40,9 @@ namespace osu.Framework.Android
 
         protected override IWindow CreateWindow() => new AndroidGameWindow(gameView);
 
-        protected override bool LimitedMemoryEnvironment => true;
-
         public override bool CanExit => false;
+
+        public override bool CanSuspendToBackground => true;
 
         public override bool OnScreenKeyboardOverlapsGameWindow => true;
 
@@ -51,6 +51,7 @@ namespace osu.Framework.Android
         protected override IEnumerable<InputHandler> CreateAvailableInputHandlers() =>
             new InputHandler[]
             {
+                new AndroidMouseHandler(gameView),
                 new AndroidKeyboardHandler(gameView),
                 new AndroidTouchHandler(gameView),
                 new MidiHandler()
@@ -66,22 +67,18 @@ namespace osu.Framework.Android
             Application.Context.GetExternalFilesDir(string.Empty)!.ToString(),
         };
 
-        public override void OpenFileExternally(string filename)
-            => throw new NotImplementedException();
+        public override bool OpenFileExternally(string filename) => false;
 
-        public override void PresentFileExternally(string filename)
-            => throw new NotImplementedException();
+        public override bool PresentFileExternally(string filename) => false;
 
         public override void OpenUrlExternally(string url)
         {
-            var activity = (Activity)gameView.Context;
-
-            if (activity?.PackageManager == null) return;
+            if (gameView.Activity.PackageManager == null) return;
 
             using (var intent = new Intent(Intent.ActionView, Uri.Parse(url)))
             {
-                if (intent.ResolveActivity(activity.PackageManager) != null)
-                    activity.StartActivity(intent);
+                if (intent.ResolveActivity(gameView.Activity.PackageManager) != null)
+                    gameView.Activity.StartActivity(intent);
             }
         }
 
@@ -90,5 +87,10 @@ namespace osu.Framework.Android
 
         public override VideoDecoder CreateVideoDecoder(Stream stream)
             => new AndroidVideoDecoder(stream);
+
+        public override bool SuspendToBackground()
+        {
+            return gameView.Activity.MoveTaskToBack(true);
+        }
     }
 }
