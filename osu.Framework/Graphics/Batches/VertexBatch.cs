@@ -137,6 +137,28 @@ namespace osu.Framework.Graphics.Batches
                 VertexBuffers.Add(CreateVertexBuffer());
         }
 
+        public delegate void DrawGroupDelegate<in TDrawNode>(ref VertexBatchUsage<T> group, TDrawNode node) where TDrawNode : DrawNode;
+
+        public void DrawGroup<TDrawNode>(ref VertexBatchUsage<T> usage, TDrawNode node, DrawGroupDelegate<TDrawNode> drawDelegate)
+            where TDrawNode : DrawNode
+        {
+            using (BeginUsage(ref usage, node))
+            {
+#if !VBO_CONSISTENCY_CHECKS
+                if (!usage.DrawRequired)
+                {
+                    for (int i = 0; i < usage.LastCount; i++)
+                        Advance();
+
+                    usage.CurrentCount = usage.LastCount;
+                    return;
+                }
+#endif
+
+                drawDelegate(ref usage, node);
+            }
+        }
+
         public ref VertexBatchUsage<T> BeginUsage(ref VertexBatchUsage<T> usage, DrawNode node)
         {
             GLWrapper.SetActiveBatch(this);
@@ -159,7 +181,7 @@ namespace osu.Framework.Graphics.Batches
             if (usage.Batch == this && frameIndex > 0 && usage.FrameIndex == frameIndex)
             {
                 // Only allowed as long as the batch's current vertex index is at the end of the usage (no other usage happened in-between).
-                if (rollingVertexIndex != usage.StartIndex + usage.Count)
+                if (rollingVertexIndex != usage.StartIndex + usage.CurrentCount)
                     throw new InvalidOperationException("Todo:");
 
                 return ref usage;
@@ -174,7 +196,8 @@ namespace osu.Framework.Graphics.Batches
                     node.DrawDepth);
             }
 
-            usage.Count = 0;
+            usage.LastCount = usage.CurrentCount;
+            usage.CurrentCount = 0;
             usage.FrameIndex = frameIndex;
             usage.DrawRequired = drawRequired;
 
@@ -192,7 +215,8 @@ namespace osu.Framework.Graphics.Batches
 
         internal ulong FrameIndex;
         internal bool DrawRequired;
-        internal int Count;
+        internal int CurrentCount;
+        internal int LastCount;
 
         public VertexBatchUsage(VertexBatch<T> batch, long invalidationID, int startIndex, float drawDepth)
         {
@@ -203,7 +227,8 @@ namespace osu.Framework.Graphics.Batches
 
             FrameIndex = 0;
             DrawRequired = false;
-            Count = 0;
+            CurrentCount = 0;
+            LastCount = 0;
         }
 
         public void Add(T vertex)
@@ -220,7 +245,7 @@ namespace osu.Framework.Graphics.Batches
                 Batch.Advance();
             }
 
-            Count++;
+            CurrentCount++;
         }
 
         public void Dispose()

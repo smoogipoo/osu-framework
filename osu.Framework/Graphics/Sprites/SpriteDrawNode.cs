@@ -60,12 +60,14 @@ namespace osu.Framework.Graphics.Sprites
             if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                 return;
 
-            using (batch.BeginUsage(ref BatchUsage, this))
+            Texture.TextureGL.Bind();
+
+            batch.DrawGroup(ref BatchUsage, this, static (ref VertexBatchUsage<TexturedVertex2D> group, SpriteDrawNode node) =>
             {
-                DrawQuad(Texture, ScreenSpaceDrawQuad, DrawColourInfo.Colour, ref BatchUsage, null,
-                    new Vector2(InflationAmount.X / DrawRectangle.Width, InflationAmount.Y / DrawRectangle.Height),
-                    null, TextureCoords);
-            }
+                node.DrawQuad(node.Texture, node.ScreenSpaceDrawQuad, node.DrawColourInfo.Colour, ref group, null,
+                    new Vector2(node.InflationAmount.X / node.DrawRectangle.Width, node.InflationAmount.Y / node.DrawRectangle.Height),
+                    null, node.TextureCoords);
+            });
         }
 
         protected virtual void BlitOpaqueInterior(QuadBatch<TexturedVertex2D> batch)
@@ -73,13 +75,15 @@ namespace osu.Framework.Graphics.Sprites
             if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                 return;
 
-            using (batch.BeginUsage(ref OpaqueInteriorBatchUsage, this))
+            Texture.TextureGL.Bind();
+
+            batch.DrawGroup(ref OpaqueInteriorBatchUsage, this, static (ref VertexBatchUsage<TexturedVertex2D> group, SpriteDrawNode node) =>
             {
                 if (GLWrapper.IsMaskingActive)
-                    DrawClipped(ref ConservativeScreenSpaceDrawQuad, Texture, DrawColourInfo.Colour, ref OpaqueInteriorBatchUsage);
+                    node.DrawClipped(ref node.ConservativeScreenSpaceDrawQuad, node.Texture, node.DrawColourInfo.Colour, ref group);
                 else
-                    DrawQuad(Texture, ConservativeScreenSpaceDrawQuad, DrawColourInfo.Colour, ref OpaqueInteriorBatchUsage, textureCoords: TextureCoords);
-            }
+                    node.DrawQuad(node.Texture, node.ConservativeScreenSpaceDrawQuad, node.DrawColourInfo.Colour, ref group, textureCoords: node.TextureCoords);
+            });
         }
 
         public override void Draw(in DrawState drawState)
