@@ -18,6 +18,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Extensions;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Threading;
+using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
 
 namespace osu.Framework.Platform
 {
@@ -74,12 +75,9 @@ namespace osu.Framework.Platform
 
         public Bindable<WindowMode> WindowMode { get; } = new Bindable<WindowMode>();
 
-        private readonly Bindable<bool> isActive = new Bindable<bool>();
+        public abstract bool Focused { get; }
 
-        /// <summary>
-        /// Whether this <see cref="OsuTKWindow"/> is active (in the foreground).
-        /// </summary>
-        public IBindable<bool> IsActive => isActive;
+        public abstract IBindable<bool> IsActive { get; }
 
         public virtual IEnumerable<Display> Displays => new[] { DisplayDevice.GetDisplay(DisplayIndex.Primary).ToDisplay() };
 
@@ -98,7 +96,7 @@ namespace osu.Framework.Platform
             get
             {
                 var display = CurrentDisplayDevice;
-                return new Bindable<DisplayMode>(new DisplayMode(null, new Size(display.Width, display.Height), display.BitsPerPixel, (int)Math.Round(display.RefreshRate), 0, 0));
+                return new Bindable<DisplayMode>(new DisplayMode(null, new Size(display.Width, display.Height), display.BitsPerPixel, (int)Math.Round(display.RefreshRate), 0));
             }
         }
 
@@ -127,14 +125,9 @@ namespace osu.Framework.Platform
             MouseEnter += (sender, args) => cursorInWindow.Value = true;
             MouseLeave += (sender, args) => cursorInWindow.Value = false;
 
-            FocusedChanged += (o, e) => isActive.Value = Focused;
-
             supportedWindowModes.AddRange(DefaultSupportedWindowModes);
 
             UpdateFrame += (o, e) => UpdateFrameScheduler.Update();
-            UpdateFrameScheduler.Add(() => isActive.Value = Focused);
-
-            WindowStateChanged += (o, e) => isActive.Value = WindowState != WindowState.Minimised;
 
             MakeCurrent();
 
@@ -173,7 +166,7 @@ namespace osu.Framework.Platform
 
         /// <summary>
         /// Creates a <see cref="OsuTKWindow"/> with given dimensions.
-        /// <para>Note that this will use the default <see cref="osuTK.GameWindow"/> implementation, which is not compatible with every platform.</para>
+        /// <para>Note that this will use the default <see cref="GameWindow"/> implementation, which is not compatible with every platform.</para>
         /// </summary>
         protected OsuTKWindow(int width, int height)
             : this(new GameWindow(width, height, new GraphicsMode(GraphicsMode.Default.ColorFormat, GraphicsMode.Default.Depth, GraphicsMode.Default.Stencil, GraphicsMode.Default.Samples, GraphicsMode.Default.AccumulatorFormat, 3)))
@@ -190,7 +183,7 @@ namespace osu.Framework.Platform
         /// <summary>
         /// Controls the state of the OS cursor.
         /// </summary>
-        public CursorState CursorState
+        public virtual CursorState CursorState
         {
             get => cursorState;
             set
@@ -209,6 +202,8 @@ namespace osu.Framework.Platform
                 }
             }
         }
+
+        public RectangleF? CursorConfineRect { get; set; }
 
         /// <summary>
         /// We do not support directly using <see cref="Cursor"/>.
@@ -336,7 +331,7 @@ namespace osu.Framework.Platform
             set => OsuTKGameWindow.Title = $"{value} (legacy osuTK)";
         }
 
-        public virtual bool Focused => OsuTKGameWindow.Focused;
+        bool INativeWindow.Focused => OsuTKGameWindow.Focused;
 
         public bool Visible
         {
@@ -420,6 +415,13 @@ namespace osu.Framework.Platform
         }
 
         public void Close() => OsuTKGameWindow.Close();
+
+        public void RequestClose()
+        {
+            if (ExitRequested?.Invoke() != true)
+                Close();
+        }
+
         public void ProcessEvents() => OsuTKGameWindow.ProcessEvents();
         public Point PointToClient(Point point) => OsuTKGameWindow.PointToClient(point);
         public Point PointToScreen(Point point) => OsuTKGameWindow.PointToScreen(point);

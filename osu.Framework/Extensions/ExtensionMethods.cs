@@ -54,14 +54,6 @@ namespace osu.Framework.Extensions
         }
 
         /// <summary>
-        /// Try to get a value from the <paramref name="dictionary"/>. Returns a default(TValue) if the key does not exist.
-        /// </summary>
-        /// <param name="dictionary">The dictionary.</param>
-        /// <param name="lookup">The lookup key.</param>
-        [Obsolete("Use System.Collections.Generic.CollectionExtensions.GetValueOrDefault instead.")] // Can be removed 20220115
-        public static TValue GetOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey lookup) => dictionary.GetValueOrDefault(lookup);
-
-        /// <summary>
         /// Converts a rectangular array to a jagged array.
         /// <para>
         /// The jagged array will contain empty arrays if there are no columns in the rectangular array.
@@ -164,7 +156,7 @@ namespace osu.Framework.Extensions
             }
             catch (ReflectionTypeLoadException e)
             {
-                // the following warning disables are caused by netstandard2.1 and net5.0 differences
+                // the following warning disables are caused by netstandard2.1 and net6.0 differences
                 // the former declares Types as Type[], while the latter declares as Type?[]:
                 // https://docs.microsoft.com/en-us/dotnet/api/system.reflection.reflectiontypeloadexception.types?view=net-5.0#property-value
                 // which trips some inspectcode errors which are only "valid" for the first of the two.
@@ -198,7 +190,7 @@ namespace osu.Framework.Extensions
             if (value is Enum)
                 type = value.GetType().GetField(value.ToString());
             else
-                type = value.GetType();
+                type = value as Type ?? value.GetType();
 
             var attribute = type.GetCustomAttribute<LocalisableDescriptionAttribute>();
             if (attribute == null)
@@ -231,10 +223,10 @@ namespace osu.Framework.Extensions
         /// </list>
         /// </summary>
         public static string GetDescription(this object value)
-            => value.GetType()
-                    .GetField(value.ToString())?
-                    .GetCustomAttribute<DescriptionAttribute>()?.Description
-               ?? value.ToString();
+        {
+            Type type = value as Type ?? value.GetType();
+            return type.GetField(value.ToString())?.GetCustomAttribute<DescriptionAttribute>()?.Description ?? value.ToString();
+        }
 
         private static string toLowercaseHex(this byte[] bytes)
         {
@@ -328,6 +320,18 @@ namespace osu.Framework.Extensions
             => path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         /// <summary>
+        /// Whether this character is an ASCII digit (0-9).
+        /// </summary>
+        /// <remarks>
+        /// Useful for checking if a character plays well with <c>int.TryParse()</c>.
+        /// <see cref="char.IsNumber(char)"/> returns <c>true</c> for non-ASCII digits and other Unicode numbers;
+        /// we don't want that, so we explicitly check the character value.
+        /// </remarks>
+        /// <param name="character">The character to check.</param>
+        /// <returns>True if the character is an ASCII digit.</returns>
+        public static bool IsAsciiDigit(this char character) => character >= '0' && character <= '9';
+
+        /// <summary>
         /// Converts an osuTK <see cref="DisplayDevice"/> to a <see cref="Display"/> structure.
         /// </summary>
         /// <param name="device">The <see cref="DisplayDevice"/> to convert.</param>
@@ -342,6 +346,6 @@ namespace osu.Framework.Extensions
         /// <param name="resolution">The <see cref="DisplayResolution"/> to convert.</param>
         /// <returns>A <see cref="DisplayMode"/> structure populated with the corresponding properties.</returns>
         internal static DisplayMode ToDisplayMode(this DisplayResolution resolution) =>
-            new DisplayMode(null, new Size(resolution.Width, resolution.Height), resolution.BitsPerPixel, (int)Math.Round(resolution.RefreshRate), 0, 0);
+            new DisplayMode(null, new Size(resolution.Width, resolution.Height), resolution.BitsPerPixel, (int)Math.Round(resolution.RefreshRate), 0);
     }
 }

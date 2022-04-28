@@ -128,7 +128,7 @@ namespace osu.Framework.Graphics.Containers
         /// <summary>
         /// The maximum distance that the scrollbar can move in the scroll direction.
         /// </summary>
-        public float ScrollbarMovementExtent => Math.Max(DrawSize[ScrollDim] - Scrollbar.DrawSize[ScrollDim], 0);
+        public float ScrollbarMovementExtent => Math.Max(DisplayableContent - Scrollbar.DrawSize[ScrollDim], 0);
 
         /// <summary>
         /// Clamp a value to the available scroll range.
@@ -243,6 +243,11 @@ namespace osu.Framework.Graphics.Containers
             if (IsDragging || e.Button != MouseButton.Left || Content.AliveInternalChildren.Count == 0)
                 return false;
 
+            bool dragWasMostlyHorizontal = Math.Abs(e.Delta.X) > Math.Abs(e.Delta.Y);
+
+            if (dragWasMostlyHorizontal != (ScrollDirection == Direction.Horizontal))
+                return false;
+
             lastDragTime = Time.Current;
             averageDragDelta = averageDragTime = 0;
 
@@ -274,12 +279,12 @@ namespace osu.Framework.Graphics.Containers
 
         protected override bool OnMouseDown(MouseDownEvent e)
         {
-            if (IsDragging || e.Button != MouseButton.Left) return false;
+            if (IsDragging || e.Button != MouseButton.Left)
+                return false;
 
             // Continue from where we currently are scrolled to.
             Target = Current;
-
-            return true;
+            return false;
         }
 
         // We keep track of this because input events may happen at different intervals than update frames
@@ -361,6 +366,13 @@ namespace osu.Framework.Graphics.Containers
         protected override bool OnScroll(ScrollEvent e)
         {
             if (Content.AliveInternalChildren.Count == 0)
+                return false;
+
+            bool scrollWasMostlyHorizontal = Math.Abs(e.ScrollDelta.X) > Math.Abs(e.ScrollDelta.Y);
+
+            // For horizontal scrolling containers, vertical scroll is also used to perform horizontal traversal.
+            // Due to this, we only block horizontal scroll in vertical containers, but not vice-versa.
+            if (scrollWasMostlyHorizontal && ScrollDirection == Direction.Vertical)
                 return false;
 
             bool isPrecise = e.IsPrecise;
@@ -502,7 +514,7 @@ namespace osu.Framework.Graphics.Containers
 
                 // Secondly, we would like to quickly approach the target while we are out of bounds.
                 // This is simulating a "strong" clamping force towards the target.
-                if (Current < Target && Target < 0 || Current > Target && Target > ScrollableExtent)
+                if ((Current < Target && Target < 0) || (Current > Target && Target > ScrollableExtent))
                     localDistanceDecay = distance_decay_clamping * 2;
 
                 // Lastly, we gradually nudge the target towards valid bounds.

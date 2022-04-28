@@ -6,13 +6,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Logging;
 using osu.Framework.Text;
 using SharpFNT;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace osu.Framework.IO.Stores
@@ -33,7 +36,7 @@ namespace osu.Framework.IO.Stores
         protected readonly ResourceStore<byte[]> Store;
 
         [CanBeNull]
-        protected BitmapFont Font => completionSource.Task.Result;
+        protected BitmapFont Font => completionSource.Task.GetResultSafely();
 
         private readonly TaskCompletionSource<BitmapFont> completionSource = new TaskCompletionSource<BitmapFont>();
 
@@ -102,12 +105,14 @@ namespace osu.Framework.IO.Stores
             Debug.Assert(Baseline != null);
 
             var bmCharacter = Font.GetCharacter(character);
+
             return new CharacterGlyph(character, bmCharacter.XOffset, bmCharacter.YOffset, bmCharacter.XAdvance, Baseline.Value, this);
         }
 
         public int GetKerning(char left, char right) => Font?.GetKerningAmount(left, right) ?? 0;
 
-        Task<CharacterGlyph> IResourceStore<CharacterGlyph>.GetAsync(string name) => Task.Run(() => ((IGlyphStore)this).Get(name[0]));
+        Task<CharacterGlyph> IResourceStore<CharacterGlyph>.GetAsync(string name, CancellationToken cancellationToken) =>
+            Task.Run(() => ((IGlyphStore)this).Get(name[0]), cancellationToken);
 
         CharacterGlyph IResourceStore<CharacterGlyph>.Get(string name) => Get(name[0]);
 
@@ -121,12 +126,16 @@ namespace osu.Framework.IO.Stores
             return Font.Characters.TryGetValue(name.Last(), out Character c) ? LoadCharacter(c) : null;
         }
 
-        public virtual async Task<TextureUpload> GetAsync(string name)
+        public virtual async Task<TextureUpload> GetAsync(string name, CancellationToken cancellationToken = default)
         {
             if (name.Length > 1 && !name.StartsWith($@"{FontName}/", StringComparison.Ordinal))
                 return null;
 
-            return !(await completionSource.Task.ConfigureAwait(false)).Characters.TryGetValue(name.Last(), out Character c) ? null : LoadCharacter(c);
+            var bmFont = await completionSource.Task.ConfigureAwait(false);
+
+            return bmFont.Characters.TryGetValue(name.Last(), out Character c)
+                ? LoadCharacter(c)
+                : null;
         }
 
         protected int LoadedGlyphCount;
@@ -145,11 +154,11 @@ namespace osu.Framework.IO.Stores
 
             for (int y = 0; y < character.Height; y++)
             {
-                var pixelRowSpan = image.GetPixelRowSpan(y);
+                var pixelRowMemory = image.DangerousGetPixelRowMemory(y);
                 int readOffset = (character.Y + y) * page.Width + character.X;
 
                 for (int x = 0; x < character.Width; x++)
-                    pixelRowSpan[x] = x < readableWidth && y < readableHeight ? source[readOffset + x] : new Rgba32(255, 255, 255, 0);
+                    pixelRowMemory.Span[x] = x < readableWidth && y < readableHeight ? source[readOffset + x] : new Rgba32(255, 255, 255, 0);
             }
 
             return new TextureUpload(image);

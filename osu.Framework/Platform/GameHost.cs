@@ -40,7 +40,6 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Video;
 using osu.Framework.IO.Serialization;
 using osu.Framework.IO.Stores;
-using SixLabors.ImageSharp.Memory;
 using Image = SixLabors.ImageSharp.Image;
 using PixelFormat = osuTK.Graphics.ES30.PixelFormat;
 using Size = System.Drawing.Size;
@@ -55,7 +54,7 @@ namespace osu.Framework.Platform
 
         protected FrameworkConfigManager Config { get; private set; }
 
-        protected InputConfigManager InputConfig { get; private set; }
+        private InputConfigManager inputConfig { get; set; }
 
         /// <summary>
         /// Whether the <see cref="IWindow"/> is active (in the foreground).
@@ -85,6 +84,9 @@ namespace osu.Framework.Platform
         /// </summary>
         public event Action Deactivated;
 
+        /// <summary>
+        /// Called when the host is requesting to exit. Return <c>true</c> to block the exit process.
+        /// </summary>
         public event Func<bool> Exiting;
 
         public event Action Exited;
@@ -94,7 +96,7 @@ namespace osu.Framework.Platform
         /// </summary>
         public event Func<Exception, bool> ExceptionThrown;
 
-        public event Action<IpcMessage> MessageReceived;
+        public event Func<IpcMessage, IpcMessage> MessageReceived;
 
         /// <summary>
         /// Whether the on screen keyboard covers a portion of the game window when presented to the user.
@@ -104,28 +106,37 @@ namespace osu.Framework.Platform
         /// <summary>
         /// Whether this host can exit (mobile platforms, for instance, do not support exiting the app).
         /// </summary>
+        /// <remarks>Also see <see cref="CanSuspendToBackground"/>.</remarks>
         public virtual bool CanExit => true;
 
         /// <summary>
-        /// Whether memory constraints should be considered before performance concerns.
+        /// Whether this host can suspend and minimize to background.
         /// </summary>
-        protected virtual bool LimitedMemoryEnvironment => false;
+        /// <remarks>
+        /// This and <see cref="SuspendToBackground"/> are an alternative way to exit on hosts that have <see cref="CanExit"/> <c>false</c>.
+        /// </remarks>
+        public virtual bool CanSuspendToBackground => false;
 
-        protected void OnMessageReceived(IpcMessage message) => MessageReceived?.Invoke(message);
+        protected IpcMessage OnMessageReceived(IpcMessage message) => MessageReceived?.Invoke(message);
 
         public virtual Task SendMessageAsync(IpcMessage message) => throw new NotSupportedException("This platform does not implement IPC.");
 
         /// <summary>
         /// Requests that a file be opened externally with an associated application, if available.
         /// </summary>
+        /// <remarks>
+        /// Some platforms do not support interacting with files externally (ie. mobile or sandboxed platforms), check the return value as to whether it succeeded.
+        /// </remarks>
         /// <param name="filename">The absolute path to the file which should be opened.</param>
-        public abstract void OpenFileExternally(string filename);
+        /// <returns>Whether the file was successfully opened.</returns>
+        public abstract bool OpenFileExternally(string filename);
 
         /// <summary>
         /// Requests to present a file externally in the platform's native file browser.
         /// </summary>
         /// <remarks>
         /// This will open the parent folder and, (if available) highlight the file.
+        /// Some platforms do not support interacting with files externally (ie. mobile or sandboxed platforms), check the return value as to whether it succeeded.
         /// </remarks>
         /// <example>
         ///     <para>"C:\Windows\explorer.exe" -> opens 'C:\Windows' and highlights 'explorer.exe' in the window.</para>
@@ -133,7 +144,8 @@ namespace osu.Framework.Platform
         ///     <para>"C:\Windows\System32\" -> opens 'C:\Windows\System32' and highlights nothing.</para>
         /// </example>
         /// <param name="filename">The absolute path to the file/folder to be shown in its parent folder.</param>
-        public abstract void PresentFileExternally(string filename);
+        /// <returns>Whether the file was successfully presented.</returns>
+        public abstract bool PresentFileExternally(string filename);
 
         /// <summary>
         /// Requests that a URL be opened externally in a web browser, if available.
@@ -271,14 +283,22 @@ namespace osu.Framework.Platform
 
         public string FullPath => fullPathBacking.Value;
 
-        protected string Name { get; }
+        /// <summary>
+        /// The name of the game to be hosted.
+        /// </summary>
+        public string Name { get; }
+
+        [NotNull]
+        public HostOptions Options { get; private set; }
 
         public DependencyContainer Dependencies { get; } = new DependencyContainer();
 
         private bool suspended;
 
-        protected GameHost(string gameName = @"")
+        protected GameHost([NotNull] string gameName, [CanBeNull] HostOptions options = null)
         {
+            Options = options ?? new HostOptions();
+
             Name = gameName;
 
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings
@@ -332,6 +352,11 @@ namespace osu.Framework.Platform
             AppDomain.CurrentDomain.UnhandledException -= unhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException -= unobservedExceptionHandler;
 
+            // In the case of an unhandled exception, it's feasible that the disposal flow for `GameHost` doesn't run.
+            // This can result in the exception not being logged (or being partially logged) due to the logger running asynchronously.
+            // We force flushing the logger here to ensure logging completes.
+            Logger.Flush();
+
             var captured = ExceptionDispatchInfo.Capture(exception);
             var thrownEvent = new ManualResetEventSlim(false);
 
@@ -358,7 +383,7 @@ namespace osu.Framework.Platform
                 // 1. When the exceptioning thread is GameThread.Input.
                 // 2. When the game is running in single-threaded mode. Single threaded stacks will be displayed correctly at the point of rethrow.
                 // 3. When the CLR is terminating. We can't guarantee the input thread is still running, and may delay application termination.
-                if (isTerminating || sender is GameThread && (sender == InputThread || executionMode.Value == ExecutionMode.SingleThread))
+                if (isTerminating || (sender is GameThread && (sender == InputThread || executionMode.Value == ExecutionMode.SingleThread)))
                     return;
 
                 // The process can deadlock in an extreme case such as the input thread dying before the delegate executes, so wait up to a maximum of 10 seconds at all times.
@@ -388,7 +413,7 @@ namespace osu.Framework.Platform
                     Thread.Sleep(1);
             }
 
-            if (response ?? false)
+            if (response.Value)
                 return true;
 
             Exit();
@@ -570,10 +595,24 @@ namespace osu.Framework.Platform
         /// <summary>
         /// Schedules the game to exit in the next frame.
         /// </summary>
+        /// <remarks>Consider using <see cref="SuspendToBackground"/> on mobile platforms that can't exit normally.</remarks>
         public void Exit()
         {
             if (CanExit)
                 PerformExit(false);
+        }
+
+        /// <summary>
+        /// Suspends and minimizes the game to background.
+        /// </summary>
+        /// <remarks>
+        /// This is provided as an alternative to <see cref="Exit"/> on hosts that can't exit (see <see cref="CanExit"/>).
+        /// Should only be called if <see cref="CanSuspendToBackground"/> is <c>true</c>.
+        /// </remarks>
+        /// <returns><c>true</c> if the game was successfully suspended and minimized.</returns>
+        public virtual bool SuspendToBackground()
+        {
+            return false;
         }
 
         /// <summary>
@@ -622,12 +661,6 @@ namespace osu.Framework.Platform
             }
 
             GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
-
-            if (LimitedMemoryEnvironment)
-            {
-                // recommended middle-ground https://github.com/SixLabors/docs/blob/master/articles/ImageSharp/MemoryManagement.md#working-in-memory-constrained-environments
-                SixLabors.ImageSharp.Configuration.Default.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
-            }
 
             if (ExecutionState != ExecutionState.Idle)
                 throw new InvalidOperationException("A game that has already been run cannot be restarted.");
@@ -691,6 +724,7 @@ namespace osu.Framework.Platform
                 }
 
                 Dependencies.CacheAs(readableKeyCombinationProvider = CreateReadableKeyCombinationProvider());
+                Dependencies.CacheAs(CreateTextInput());
 
                 ExecutionState = ExecutionState.Running;
                 threadRunner.Start();
@@ -985,8 +1019,7 @@ namespace osu.Framework.Platform
                 threadRunner.SetCulture(culture);
             }, true);
 
-            // intentionally done after everything above to ensure the new configuration location has priority over obsoleted values.
-            Dependencies.Cache(InputConfig = new InputConfigManager(Storage, AvailableInputHandlers));
+            inputConfig = new InputConfigManager(Storage, AvailableInputHandlers);
         }
 
         private void updateFrameSyncMode()
@@ -1050,7 +1083,7 @@ namespace osu.Framework.Platform
 
         public ImmutableArray<InputHandler> AvailableInputHandlers { get; private set; }
 
-        public abstract ITextInputSource GetTextInput();
+        protected virtual TextInputSource CreateTextInput() => new TextInputSource();
 
         #region IDisposable Support
 
@@ -1085,12 +1118,13 @@ namespace osu.Framework.Platform
 
             stoppedEvent.Dispose();
 
-            InputConfig?.Dispose();
+            inputConfig?.Dispose();
             Config?.Dispose();
             DebugConfig?.Dispose();
 
             Window?.Dispose();
 
+            LoadingComponentsLogger.LogAndFlush();
             Logger.Flush();
         }
 

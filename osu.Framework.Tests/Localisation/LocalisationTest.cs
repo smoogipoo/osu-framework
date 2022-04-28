@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using osu.Framework.Configuration;
@@ -137,6 +138,36 @@ namespace osu.Framework.Tests.Localisation
             var formattedText = manager.GetLocalisedBindableString(new TranslatableString(FakeStorage.LOCALISABLE_FORMAT_STRING_EN, FakeStorage.LOCALISABLE_FORMAT_STRING_EN, arg_0));
 
             Assert.AreEqual(expectedResult, formattedText.Value);
+        }
+
+        [Test]
+        public void TestFormattedAndLocalisedUsingInterpolate()
+        {
+            var formattable = LocalisableString.Format("{0:0.00%}", 0.1234);
+            var translatable1 = new TranslatableString(FakeStorage.LOCALISABLE_STRING_EN, FakeStorage.LOCALISABLE_STRING_EN);
+            var translatable2 = new TranslatableString(FakeStorage.LOCALISABLE_FORMAT_STRING_EN, FakeStorage.LOCALISABLE_FORMAT_STRING_EN, formattable);
+
+            manager.AddLanguage("ja", new FakeStorage("ja"));
+            config.SetValue(FrameworkSetting.Locale, "ja");
+
+            var formattedText = manager.GetLocalisedBindableString(LocalisableString.Interpolate($"{translatable1} -> {translatable2}"));
+
+            Assert.AreEqual("localised JA -> 12.34% localised JA", formattedText.Value);
+        }
+
+        [Test]
+        public void TestFormattedAndLocalisedUsingFormat()
+        {
+            var formattable = LocalisableString.Format("{0:0.00%}", 0.1234);
+            var translatable1 = new TranslatableString(FakeStorage.LOCALISABLE_STRING_EN, FakeStorage.LOCALISABLE_STRING_EN);
+            var translatable2 = new TranslatableString(FakeStorage.LOCALISABLE_FORMAT_STRING_EN, FakeStorage.LOCALISABLE_FORMAT_STRING_EN, formattable);
+
+            manager.AddLanguage("ja", new FakeStorage("ja"));
+            config.SetValue(FrameworkSetting.Locale, "ja");
+
+            var formattedText = manager.GetLocalisedBindableString(LocalisableString.Format("{0} -> {1}", translatable1, translatable2));
+
+            Assert.AreEqual("localised JA -> 12.34% localised JA", formattedText.Value);
         }
 
         [Test]
@@ -283,7 +314,8 @@ namespace osu.Framework.Tests.Localisation
 
             manager.AddLanguage("fr", new FakeStorage("fr"));
 
-            var text = manager.GetLocalisedBindableString(new TranslatableString(key, key, new LocalisableFormattableString(0.1234, "0.00%")));
+            var arg = LocalisableString.Format("{0:0.00%}", 0.1234);
+            var text = manager.GetLocalisedBindableString(new TranslatableString(key, key, arg));
 
             Assert.AreEqual("number 12.34% EN", text.Value);
 
@@ -332,8 +364,8 @@ namespace osu.Framework.Tests.Localisation
             manager.AddLanguage("fr", new FakeStorage("fr"));
 
             var text = manager.GetLocalisedBindableString(new TranslatableString(key, key,
-                new LocalisableFormattableString(12.34, "0.00"),
-                new TranslatableString(nested_key, nested_key, new LocalisableFormattableString(0.9876, "0.00%")),
+                LocalisableString.Interpolate($"{12.34:0.00}"),
+                new TranslatableString(nested_key, nested_key, LocalisableString.Interpolate($"{0.9876:0.00%}")),
                 new TranslatableString(nested_key, nested_key, new RomanisableString("unicode", "romanised"))));
 
             Assert.AreEqual("number 12.34 with number 98.76% EN and number unicode EN EN", text.Value);
@@ -352,15 +384,15 @@ namespace osu.Framework.Tests.Localisation
         }
 
         [Test]
-        public void TestTranslatableComplexStringUsesFallbackFormatWithTranslatedParts()
+        public void TestFormatComplexStringUsesFallbackFormatWithTranslatedParts()
         {
             const string nested_key = FakeStorage.LOCALISABLE_NUMBER_FORMAT_STRING_EN;
 
             manager.AddLanguage("fr", new FakeStorage("fr"));
 
-            var text = manager.GetLocalisedBindableString(new TranslatableString("_", "{0} / {1} / {2}",
-                new LocalisableFormattableString(12.34, "0.00"),
-                new TranslatableString(nested_key, nested_key, new LocalisableFormattableString(0.9876, "0.00%")),
+            var text = manager.GetLocalisedBindableString(LocalisableString.Format("{0} / {1} / {2}",
+                LocalisableString.Interpolate($"{12.34:0.00}"),
+                new TranslatableString(nested_key, nested_key, LocalisableString.Interpolate($"{0.9876:0.00%}")),
                 new TranslatableString(nested_key, nested_key, new RomanisableString("unicode", "romanised"))));
 
             Assert.AreEqual("12.34 / number 98.76% EN / number unicode EN", text.Value);
@@ -417,7 +449,8 @@ namespace osu.Framework.Tests.Localisation
                 EffectiveCulture = new CultureInfo(locale);
             }
 
-            public async Task<string> GetAsync(string name) => await Task.Run(() => Get(name)).ConfigureAwait(false);
+            public async Task<string> GetAsync(string name, CancellationToken cancellationToken = default) =>
+                await Task.Run(() => Get(name), cancellationToken).ConfigureAwait(false);
 
             public string Get(string name)
             {
