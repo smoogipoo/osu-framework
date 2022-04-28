@@ -124,8 +124,13 @@ jobs:
   make-pr:
     name: Create pull request
     runs-on: ubuntu-latest
+    needs:
+      - combine-osx
+      - build-win
+      - build-win-arm64
+      - build-linux
     steps:
-      - name: Checout
+      - name: Checkout
         uses: actions/checkout@v2
 
       - uses: actions/download-artifact@v3
@@ -149,11 +154,11 @@ jobs:
           name: win-x86
           path: osu.Framework.NativeLibs/runtimes/win-x86/native
 
-      uses: peter-evans/create-pull-request@v2
-      with:
-        commit-message: Update FFmpeg binaries
-        title: Update FFmpeg binaries
-        body: This PR has been auto-generated to update the FFmpeg binaries.
-        branch: update-ffmpeg-binaries
-      env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+      - uses: peter-evans/create-pull-request@v2
+        with:
+          commit-message: Update FFmpeg binaries
+          title: Update FFmpeg binaries
+          body: This PR has been auto-generated to update the FFmpeg binaries.
+          branch: update-ffmpeg-binaries
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
