@@ -76,9 +76,14 @@ namespace osu.Framework.Bindables
         event Action<ValueChangedEvent<T>> ValueChanged;
 
         /// <summary>
+        /// An event which is raised when <see cref="Default"/> has changed.
+        /// </summary>
+        event Action<ValueChangedEvent<T>> DefaultChanged;
+
+        /// <summary>
         /// The current value of this bindable.
         /// </summary>
-        T Value { get; }
+        T Value { get; set; }
 
         /// <summary>
         /// The default value of this bindable. Used when querying <see cref="IHasDefaultValue.IsDefault">IsDefault</see>.

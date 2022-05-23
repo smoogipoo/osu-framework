@@ -152,16 +152,22 @@ namespace osu.Framework.Bindables
 
         protected LockedWeakList<Bindable<T>> Bindings { get; private set; }
 
-        void IBindable.BindTo(IBindable them)
+        public void BindTo(IBindable them)
         {
+            if (them is BindableSlim<T> slim)
+                them = slim.GetOrCreateUnderGetUnderlyingBindable();
+
             if (!(them is Bindable<T> tThem))
                 throw new InvalidCastException($"Can't bind to a bindable of type {them.GetType()} from a bindable of type {GetType()}.");
 
             BindTo(tThem);
         }
 
-        void IBindable<T>.BindTo(IBindable<T> them)
+        public void BindTo(IBindable<T> them)
         {
+            if (them is BindableSlim<T> slim)
+                them = slim.GetOrCreateUnderGetUnderlyingBindable();
+
             if (!(them is Bindable<T> tThem))
                 throw new InvalidCastException($"Can't bind to a bindable of type {them.GetType()} from a bindable of type {GetType()}.");
 
@@ -176,6 +182,8 @@ namespace osu.Framework.Bindables
         {
             set => ((IBindable<T>)this).BindTo(value);
         }
+
+        public void BindTo(ref BindableSlim<T> them) => BindTo(them.GetOrCreateUnderGetUnderlyingBindable());
 
         /// <summary>
         /// Binds this bindable to another such that bi-directional updates are propagated.
@@ -368,6 +376,9 @@ namespace osu.Framework.Bindables
 
         public virtual void UnbindFrom(IUnbindable them)
         {
+            if (them is BindableSlim<T> slim)
+                them = slim.GetOrCreateUnderGetUnderlyingBindable();
+
             if (!(them is Bindable<T> tThem))
                 throw new InvalidCastException($"Can't unbind a bindable of type {them.GetType()} from a bindable of type {GetType()}.");
 
