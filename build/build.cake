@@ -194,6 +194,7 @@ Task("PackNativeLibs")
     });
 
 Task("PackTemplate")
+    .IsDependentOn("DetermineAppveyorDeployProperties")
     .Does(ctx => {
         ctx.ReplaceRegexInFiles(
             $"{rootDirectory.FullPath}/osu.Framework.Templates/**/*.iOS.csproj",
