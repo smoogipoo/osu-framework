@@ -15,6 +15,9 @@ environment:
       job_depends_on: framework-base
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
+nuget:
+  project_feed: true
+
 for:
   -
     matrix:
