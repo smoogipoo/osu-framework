@@ -192,7 +192,10 @@ Task("PackNativeLibs")
     });
 
 Task("PackTemplate")
-    .Does(() => {
+    .Does(ctx => {
+        ctx.ReplaceRegexInFiles("osu.Framework.Templates/**/*.iOS.csproj", "^.*osu.Framework.csproj.*$", $"<PackageReference Include=\"ppy.osu.Framework\" Version=\"{version}\" />");
+        ctx.ReplaceRegexInFiles("osu.Framework.Templates/**/*.iOS.csproj", "^.*osu.Framework.iOS.csproj.*$", $"<PackageReference Include=\"ppy.osu.Framework.iOS\" Version=\"{version}\" />");
+
         DotNetCorePack(templateProject.FullPath, new DotNetCorePackSettings{
             OutputDirectory = artifactsDirectory,
             Configuration = configuration,
@@ -232,6 +235,11 @@ Task("DeployFrameworkDesktop")
     .IsDependentOn("Clean")
     .IsDependentOn("DetermineAppveyorDeployProperties")
     .IsDependentOn("PackFramework")
+    .IsDependentOn("Publish");
+
+Task("DeployFrameworkTemplates")
+    .IsDependentOn("Clean")
+    .IsDependentOn("DetermineAppveyorDeployProperties")
     .IsDependentOn("PackTemplate")
     .IsDependentOn("Publish");
 
