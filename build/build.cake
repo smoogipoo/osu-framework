@@ -232,6 +232,11 @@ Task("DeployFrameworkDesktop")
     .IsDependentOn("Clean")
     .IsDependentOn("DetermineAppveyorDeployProperties")
     .IsDependentOn("PackFramework")
+    .IsDependentOn("Publish");
+
+Task("DeployFrameworkTemplates")
+    .IsDependentOn("Clean")
+    .IsDependentOn("DetermineAppveyorDeployProperties")
     .IsDependentOn("PackTemplate")
     .IsDependentOn("Publish");
 
