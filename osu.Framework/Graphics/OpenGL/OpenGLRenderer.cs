@@ -101,8 +101,8 @@ namespace osu.Framework.Graphics.OpenGL
 
             this.host = host;
 
-            if (host.Window is OsuTKWindow win)
-                IsEmbedded = win.IsEmbedded;
+            string version = GL.GetString(StringName.Version);
+            IsEmbedded = version.Contains("OpenGL ES"); // As defined by https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetString.xml
 
             MaxTextureSize = GL.GetInteger(GetPName.MaxTextureSize);
             MaxRenderBufferSize = GL.GetInteger(GetPName.MaxRenderbufferSize);
@@ -126,7 +126,7 @@ namespace osu.Framework.Graphics.OpenGL
 
             statExpensiveOperationsQueued.Value = expensiveOperationQueue.Count;
 
-            while (expensiveOperationQueue.TryDequeue(out ScheduledDelegate operation))
+            while (expensiveOperationQueue.TryDequeue(out ScheduledDelegate? operation))
             {
                 if (operation.State == ScheduledDelegate.RunState.Waiting)
                 {
@@ -193,7 +193,7 @@ namespace osu.Framework.Graphics.OpenGL
             int uploadedPixels = 0;
 
             // continue attempting to upload textures until enough uploads have been performed.
-            while (textureUploadQueue.TryDequeue(out TextureGL texture))
+            while (textureUploadQueue.TryDequeue(out TextureGL? texture))
             {
                 statTextureUploadsDequeued.Value++;
 
