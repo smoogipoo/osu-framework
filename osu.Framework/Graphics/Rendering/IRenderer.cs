@@ -7,7 +7,6 @@ using osu.Framework.Graphics.OpenGL.Buffers;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shaders;
-using osu.Framework.Platform;
 using osuTK;
 using osuTK.Graphics.ES30;
 
@@ -110,8 +109,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Performs a once-off initialisation of this <see cref="IRenderer"/>.
         /// </summary>
-        /// <param name="host">The <see cref="GameHost"/> using this <see cref="IRenderer"/>.</param>
-        internal void Initialise(GameHost host);
+        internal void Initialise();
 
         /// <summary>
         /// Resets any states to prepare for drawing a new frame.

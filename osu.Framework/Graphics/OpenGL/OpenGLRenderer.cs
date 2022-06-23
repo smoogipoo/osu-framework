@@ -12,7 +12,6 @@ using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
-using osu.Framework.Platform;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
@@ -92,15 +91,8 @@ namespace osu.Framework.Graphics.OpenGL
         private bool? lastBlendingEnabledState;
         private bool currentScissorState;
 
-        private GameHost? host;
-
-        void IRenderer.Initialise(GameHost host)
+        void IRenderer.Initialise()
         {
-            if (this.host != null)
-                return;
-
-            this.host = host;
-
             string version = GL.GetString(StringName.Version);
             IsEmbedded = version.Contains("OpenGL ES"); // As defined by https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetString.xml
 
