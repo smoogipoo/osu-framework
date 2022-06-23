@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osuTK;
 using osuTK.Graphics;
@@ -46,9 +47,9 @@ namespace osu.Framework.Graphics.Sprites
                 }
             }
 
-            public override void Draw(Action<TexturedVertex2D> vertexAction)
+            public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
             {
-                base.Draw(vertexAction);
+                base.Draw(renderer, vertexAction);
 
                 Shader.Bind();
 

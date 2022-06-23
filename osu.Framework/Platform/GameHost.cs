@@ -460,6 +460,8 @@ namespace osu.Framework.Platform
             if (Root == null)
                 return;
 
+            var renderer = new OpenGLRenderer();
+
             while (ExecutionState == ExecutionState.Running)
             {
                 using (var buffer = DrawRoots.Get(UsageType.Read))
@@ -489,7 +491,7 @@ namespace osu.Framework.Platform
                         GLWrapper.PushDepthInfo(DepthInfo.Default);
 
                         // Front pass
-                        buffer.Object.DrawOpaqueInteriorSubTree(depthValue, null);
+                        buffer.Object.DrawOpaqueInteriorSubTree(renderer, depthValue, null);
 
                         GLWrapper.PopDepthInfo();
                         GL.ColorMask(true, true, true, true);
@@ -504,7 +506,7 @@ namespace osu.Framework.Platform
                     }
 
                     // Back pass
-                    buffer.Object.Draw(null);
+                    buffer.Object.Draw(renderer, null);
 
                     GLWrapper.PopDepthInfo();
 

@@ -10,6 +10,7 @@ using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Sprites
 {
@@ -79,9 +80,9 @@ namespace osu.Framework.Graphics.Sprites
                 DrawQuad(Texture, ConservativeScreenSpaceDrawQuad, DrawColourInfo.Colour, vertexAction: vertexAction, textureCoords: TextureCoords);
         }
 
-        public override void Draw(Action<TexturedVertex2D> vertexAction)
+        public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
-            base.Draw(vertexAction);
+            base.Draw(renderer, vertexAction);
 
             if (Texture?.Available != true)
                 return;
@@ -95,9 +96,9 @@ namespace osu.Framework.Graphics.Sprites
 
         protected override bool RequiresRoundedShader => base.RequiresRoundedShader || InflationAmount != Vector2.Zero;
 
-        protected override void DrawOpaqueInterior(Action<TexturedVertex2D> vertexAction)
+        protected override void DrawOpaqueInterior(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
-            base.DrawOpaqueInterior(vertexAction);
+            base.DrawOpaqueInterior(renderer, vertexAction);
 
             if (Texture?.Available != true)
                 return;

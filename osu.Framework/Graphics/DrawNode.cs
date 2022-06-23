@@ -13,6 +13,7 @@ using osu.Framework.Graphics.OpenGL.Buffers;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Utils;
 using osuTK;
@@ -83,8 +84,9 @@ namespace osu.Framework.Graphics
         /// <remarks>
         /// Subclasses must invoke <code>base.Draw()</code> prior to drawing vertices.
         /// </remarks>
+        /// <param name="renderer"></param>
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
-        public virtual void Draw(Action<TexturedVertex2D> vertexAction)
+        public virtual void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
             GLWrapper.SetBlend(DrawColourInfo.Blending);
 
@@ -102,9 +104,10 @@ namespace osu.Framework.Graphics
         /// During this pass, the opaque interior is drawn BELOW ourselves. For this to occur, <see cref="drawDepth"/> is temporarily incremented and then decremented after drawing is complete.
         /// Other <see cref="DrawNode"/>s behind ourselves receive the incremented depth value before doing the same themselves, allowing early-z to take place during this pass.
         /// </remarks>
+        /// <param name="renderer"></param>
         /// <param name="depthValue">The previous depth value.</param>
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
-        internal virtual void DrawOpaqueInteriorSubTree(DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
+        internal virtual void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
         {
             if (!depthValue.CanIncrement || !CanDrawOpaqueInterior)
             {
@@ -120,7 +123,7 @@ namespace osu.Framework.Graphics
             float previousDepthValue = depthValue;
             drawDepth = depthValue.Increment();
 
-            DrawOpaqueInterior(vertexAction);
+            DrawOpaqueInterior(renderer, vertexAction);
 
             // Decrement the depth.
             drawDepth = previousDepthValue;
@@ -134,8 +137,9 @@ namespace osu.Framework.Graphics
         /// <remarks>
         /// Subclasses must invoke <code>base.DrawOpaqueInterior()</code> prior to drawing vertices.
         /// </remarks>
+        /// <param name="renderer"></param>
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
-        protected virtual void DrawOpaqueInterior(Action<TexturedVertex2D> vertexAction)
+        protected virtual void DrawOpaqueInterior(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
             GLWrapper.SetDrawDepth(drawDepth);
         }

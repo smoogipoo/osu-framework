@@ -20,6 +20,7 @@ using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Tests.Visual.Containers
 {
@@ -136,10 +137,10 @@ namespace osu.Framework.Tests.Visual.Containers
             {
             }
 
-            internal override void DrawOpaqueInteriorSubTree(DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
+            internal override void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
             {
                 startQuery();
-                base.DrawOpaqueInteriorSubTree(depthValue, vertexAction);
+                base.DrawOpaqueInteriorSubTree(renderer, depthValue, vertexAction);
                 DrawOpaqueInteriorSubTreeSamples = endQuery();
             }
 
@@ -150,10 +151,10 @@ namespace osu.Framework.Tests.Visual.Containers
                 base.ApplyState();
             }
 
-            public override void Draw(Action<TexturedVertex2D> vertexAction)
+            public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
             {
                 startQuery();
-                base.Draw(vertexAction);
+                base.Draw(renderer, vertexAction);
                 DrawSamples = endQuery();
             }
 
