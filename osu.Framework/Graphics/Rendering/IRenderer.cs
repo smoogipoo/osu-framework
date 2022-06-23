@@ -104,6 +104,9 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         float BackbufferDrawDepth { get; }
 
+        /// <summary>
+        /// Whether the currently bound framebuffer is the backbuffer.
+        /// </summary>
         bool UsingBackbuffer { get; }
 
         /// <summary>
