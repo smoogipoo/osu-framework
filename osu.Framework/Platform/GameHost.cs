@@ -29,6 +29,7 @@ using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.OpenGL;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Input;
 using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Handlers;
@@ -52,6 +53,8 @@ namespace osu.Framework.Platform
     public abstract class GameHost : IIpcHost, IDisposable
     {
         public IWindow Window { get; private set; }
+
+        internal IRenderer Renderer { get; private set; }
 
         /// <summary>
         /// Whether "unlimited" frame limiter should be allowed to exceed sane limits.
@@ -317,6 +320,8 @@ namespace osu.Framework.Platform
             {
                 Converters = new List<JsonConverter> { new Vector2Converter() }
             };
+
+            Renderer = new OpenGLRenderer();
         }
 
         /// <summary>
@@ -460,8 +465,6 @@ namespace osu.Framework.Platform
             if (Root == null)
                 return;
 
-            var renderer = new OpenGLRenderer();
-
             while (ExecutionState == ExecutionState.Running)
             {
                 using (var buffer = DrawRoots.Get(UsageType.Read))
@@ -480,42 +483,42 @@ namespace osu.Framework.Platform
                     }
 
                     using (drawMonitor.BeginCollecting(PerformanceCollectionType.GLReset))
-                        GLWrapper.Reset(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
+                        Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
 
                     if (!bypassFrontToBackPass.Value)
                     {
                         depthValue.Reset();
 
                         GL.ColorMask(false, false, false, false);
-                        GLWrapper.SetBlend(BlendingParameters.None);
-                        GLWrapper.PushDepthInfo(DepthInfo.Default);
+                        Renderer.SetBlend(BlendingParameters.None);
+                        Renderer.PushDepthInfo(DepthInfo.Default);
 
                         // Front pass
-                        buffer.Object.DrawOpaqueInteriorSubTree(renderer, depthValue, null);
+                        buffer.Object.DrawOpaqueInteriorSubTree(Renderer, depthValue, null);
 
-                        GLWrapper.PopDepthInfo();
+                        Renderer.PopDepthInfo();
                         GL.ColorMask(true, true, true, true);
 
                         // The back pass doesn't write depth, but needs to depth test properly
-                        GLWrapper.PushDepthInfo(new DepthInfo(true, false));
+                        Renderer.PushDepthInfo(new DepthInfo(true, false));
                     }
                     else
                     {
                         // Disable depth testing
-                        GLWrapper.PushDepthInfo(new DepthInfo());
+                        Renderer.PushDepthInfo(new DepthInfo());
                     }
 
                     // Back pass
-                    buffer.Object.Draw(renderer, null);
+                    buffer.Object.Draw(Renderer, null);
 
-                    GLWrapper.PopDepthInfo();
+                    Renderer.PopDepthInfo();
 
                     lastDrawFrameId = buffer.FrameId;
                     break;
                 }
             }
 
-            GLWrapper.FlushCurrentBatch();
+            Renderer.FinishFrame();
 
             using (drawMonitor.BeginCollecting(PerformanceCollectionType.SwapBuffer))
             {

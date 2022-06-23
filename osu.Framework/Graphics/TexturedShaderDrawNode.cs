@@ -3,7 +3,9 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.OpenGL;
+using System;
+using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 
 namespace osu.Framework.Graphics
@@ -30,6 +32,20 @@ namespace osu.Framework.Graphics
             RoundedTextureShader = Source.RoundedTextureShader;
         }
 
-        protected virtual bool RequiresRoundedShader => GLWrapper.IsMaskingActive;
+        public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+        {
+            base.Draw(renderer, vertexAction);
+
+            RequiresRoundedShader = renderer.IsMaskingActive;
+        }
+
+        protected override void DrawOpaqueInterior(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+        {
+            base.DrawOpaqueInterior(renderer, vertexAction);
+
+            RequiresRoundedShader = renderer.IsMaskingActive;
+        }
+
+        protected virtual bool RequiresRoundedShader { get; private set; }
     }
 }

@@ -7,7 +7,6 @@ using System;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
@@ -147,17 +146,17 @@ namespace osu.Framework.Graphics.Sprites
                 Shader.Bind();
 
                 if (sourceEffectPlacement == EffectPlacement.InFront)
-                    drawMainBuffer(vertexAction);
+                    drawMainBuffer(renderer, vertexAction);
 
-                drawEffectBuffer(vertexAction);
+                drawEffectBuffer(renderer, vertexAction);
 
                 if (sourceEffectPlacement == EffectPlacement.Behind)
-                    drawMainBuffer(vertexAction);
+                    drawMainBuffer(renderer, vertexAction);
 
                 Shader.Unbind();
             }
 
-            private void drawMainBuffer(Action<TexturedVertex2D> vertexAction)
+            private void drawMainBuffer(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
             {
                 // If the original was drawn, draw it.
                 // Otherwise, if an effect will also not be drawn then we still need to display something - the original.
@@ -165,16 +164,16 @@ namespace osu.Framework.Graphics.Sprites
                 if (!sourceDrawsOriginal && shouldDrawEffectBuffer)
                     return;
 
-                GLWrapper.SetBlend(DrawColourInfo.Blending);
+                renderer.SetBlend(DrawColourInfo.Blending);
                 DrawFrameBuffer(shared.MainBuffer, screenSpaceDrawQuad, DrawColourInfo.Colour, vertexAction);
             }
 
-            private void drawEffectBuffer(Action<TexturedVertex2D> vertexAction)
+            private void drawEffectBuffer(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
             {
                 if (!shouldDrawEffectBuffer)
                     return;
 
-                GLWrapper.SetBlend(sourceEffectBlending);
+                renderer.SetBlend(sourceEffectBlending);
                 ColourInfo finalEffectColour = DrawColourInfo.Colour;
                 finalEffectColour.ApplyChild(sourceEffectColour);
 

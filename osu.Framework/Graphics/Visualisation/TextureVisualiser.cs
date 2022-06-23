@@ -228,7 +228,7 @@ namespace osu.Framework.Graphics.Visualisation
                     Source.lastBindCount = texture.BindCount;
                 }
 
-                protected override void Blit(Action<TexturedVertex2D> vertexAction)
+                protected override void Blit(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
                 {
                     if (!textureReference.TryGetTarget(out var texture))
                         return;

@@ -8,7 +8,6 @@ using System;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Textures;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Rendering;
 
@@ -59,7 +58,7 @@ namespace osu.Framework.Graphics.Sprites
                 ConservativeScreenSpaceDrawQuad = Source.ConservativeScreenSpaceDrawQuad;
         }
 
-        protected virtual void Blit(Action<TexturedVertex2D> vertexAction)
+        protected virtual void Blit(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
             if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                 return;
@@ -69,12 +68,12 @@ namespace osu.Framework.Graphics.Sprites
                 null, TextureCoords);
         }
 
-        protected virtual void BlitOpaqueInterior(Action<TexturedVertex2D> vertexAction)
+        protected virtual void BlitOpaqueInterior(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
             if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                 return;
 
-            if (GLWrapper.IsMaskingActive)
+            if (renderer.IsMaskingActive)
                 DrawClipped(ref ConservativeScreenSpaceDrawQuad, Texture, DrawColourInfo.Colour, vertexAction: vertexAction);
             else
                 DrawQuad(Texture, ConservativeScreenSpaceDrawQuad, DrawColourInfo.Colour, vertexAction: vertexAction, textureCoords: TextureCoords);
@@ -89,7 +88,7 @@ namespace osu.Framework.Graphics.Sprites
 
             Shader.Bind();
 
-            Blit(vertexAction);
+            Blit(renderer, vertexAction);
 
             Shader.Unbind();
         }
@@ -105,7 +104,7 @@ namespace osu.Framework.Graphics.Sprites
 
             TextureShader.Bind();
 
-            BlitOpaqueInterior(vertexAction);
+            BlitOpaqueInterior(renderer, vertexAction);
 
             TextureShader.Unbind();
         }

@@ -88,11 +88,11 @@ namespace osu.Framework.Graphics
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
         public virtual void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
-            GLWrapper.SetBlend(DrawColourInfo.Blending);
+            renderer.SetBlend(DrawColourInfo.Blending);
 
             // This is the back-to-front (BTF) pass. The back-buffer depth test function used is GL_LESS.
             // The depth test will fail for samples that overlap the opaque interior of this <see cref="DrawNode"/> and any <see cref="DrawNode"/>s above this one.
-            GLWrapper.SetDrawDepth(drawDepth);
+            renderer.SetDrawDepth(drawDepth);
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace osu.Framework.Graphics
         /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
         protected virtual void DrawOpaqueInterior(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
-            GLWrapper.SetDrawDepth(drawDepth);
+            renderer.SetDrawDepth(drawDepth);
         }
 
         /// <summary>

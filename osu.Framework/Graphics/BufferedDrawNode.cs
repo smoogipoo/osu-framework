@@ -92,22 +92,22 @@ namespace osu.Framework.Graphics
 
                 SharedData.ResetCurrentEffectBuffer();
 
-                using (establishFrameBufferViewport())
+                using (establishFrameBufferViewport(renderer))
                 {
                     // Fill the frame buffer with drawn children
                     using (BindFrameBuffer(SharedData.MainBuffer))
                     {
                         // We need to draw children as if they were zero-based to the top-left of the texture.
                         // We can do this by adding a translation component to our (orthogonal) projection matrix.
-                        GLWrapper.PushOrtho(screenSpaceDrawRectangle);
-                        GLWrapper.Clear(new ClearInfo(backgroundColour));
+                        renderer.PushOrtho(screenSpaceDrawRectangle);
+                        renderer.Clear(new ClearInfo(backgroundColour));
 
                         Child.Draw(renderer, vertexAction);
 
-                        GLWrapper.PopOrtho();
+                        renderer.PopOrtho();
                     }
 
-                    PopulateContents();
+                    PopulateContents(renderer);
                 }
 
                 SharedData.DrawVersion = GetDrawVersion();
@@ -116,7 +116,7 @@ namespace osu.Framework.Graphics
             Shader.Bind();
 
             base.Draw(renderer, vertexAction);
-            DrawContents();
+            DrawContents(renderer);
 
             Shader.Unbind();
         }
@@ -125,14 +125,14 @@ namespace osu.Framework.Graphics
         /// Populates the contents of the effect buffers of <see cref="SharedData"/>.
         /// This is invoked after <see cref="Child"/> has been rendered to the main buffer.
         /// </summary>
-        protected virtual void PopulateContents()
+        protected virtual void PopulateContents(IRenderer renderer)
         {
         }
 
         /// <summary>
         /// Draws the applicable effect buffers of <see cref="SharedData"/> to the back buffer.
         /// </summary>
-        protected virtual void DrawContents()
+        protected virtual void DrawContents(IRenderer renderer)
         {
             DrawFrameBuffer(SharedData.MainBuffer, DrawRectangle, DrawColourInfo.Colour);
         }
@@ -152,14 +152,14 @@ namespace osu.Framework.Graphics
             return new ValueInvokeOnDisposal<FrameBuffer>(frameBuffer, b => b.Unbind());
         }
 
-        private IDisposable establishFrameBufferViewport()
+        private IDisposable establishFrameBufferViewport(IRenderer renderer)
         {
             // Disable masking for generating the frame buffer since masking will be re-applied
             // when actually drawing later on anyways. This allows more information to be captured
             // in the frame buffer and helps with cached buffers being re-used.
             RectangleI screenSpaceMaskingRect = new RectangleI((int)Math.Floor(screenSpaceDrawRectangle.X), (int)Math.Floor(screenSpaceDrawRectangle.Y), (int)frameBufferSize.X + 1, (int)frameBufferSize.Y + 1);
 
-            GLWrapper.PushMaskingInfo(new MaskingInfo
+            renderer.PushMaskingInfo(new MaskingInfo
             {
                 ScreenSpaceAABB = screenSpaceMaskingRect,
                 MaskingRect = screenSpaceDrawRectangle,
@@ -169,19 +169,19 @@ namespace osu.Framework.Graphics
             }, true);
 
             // Match viewport to FrameBuffer such that we don't draw unnecessary pixels.
-            GLWrapper.PushViewport(new RectangleI(0, 0, (int)frameBufferSize.X, (int)frameBufferSize.Y));
-            GLWrapper.PushScissor(new RectangleI(0, 0, (int)frameBufferSize.X, (int)frameBufferSize.Y));
-            GLWrapper.PushScissorOffset(screenSpaceMaskingRect.Location);
+            renderer.PushViewport(new RectangleI(0, 0, (int)frameBufferSize.X, (int)frameBufferSize.Y));
+            renderer.PushScissor(new RectangleI(0, 0, (int)frameBufferSize.X, (int)frameBufferSize.Y));
+            renderer.PushScissorOffset(screenSpaceMaskingRect.Location);
 
-            return new ValueInvokeOnDisposal<BufferedDrawNode>(this, d => d.returnViewport());
+            return new ValueInvokeOnDisposal<(BufferedDrawNode, IRenderer)>((this, renderer), t => t.Item1.returnViewport(t.Item2));
         }
 
-        private void returnViewport()
+        private void returnViewport(IRenderer renderer)
         {
-            GLWrapper.PopScissorOffset();
-            GLWrapper.PopViewport();
-            GLWrapper.PopScissor();
-            GLWrapper.PopMaskingInfo();
+            renderer.PopScissorOffset();
+            renderer.PopViewport();
+            renderer.PopScissor();
+            renderer.PopMaskingInfo();
         }
 
         private void clipDrawRectangle()
