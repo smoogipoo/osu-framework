@@ -86,6 +86,8 @@ namespace osu.Framework.Graphics
 
         public sealed override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
         {
+            SharedData.Initialise(renderer);
+
             if (RequiresRedraw)
             {
                 FrameStatistics.Increment(StatisticsCounterType.FBORedraw);
@@ -142,14 +144,14 @@ namespace osu.Framework.Graphics
         /// </summary>
         /// <param name="frameBuffer">The <see cref="FrameBuffer"/> to bind.</param>
         /// <returns>A token that must be disposed upon finishing use of <paramref name="frameBuffer"/>.</returns>
-        protected IDisposable BindFrameBuffer(FrameBuffer frameBuffer)
+        protected IDisposable BindFrameBuffer(IFrameBuffer frameBuffer)
         {
             // This setter will also take care of allocating a texture of appropriate size within the frame buffer.
             frameBuffer.Size = frameBufferSize;
 
             frameBuffer.Bind();
 
-            return new ValueInvokeOnDisposal<FrameBuffer>(frameBuffer, b => b.Unbind());
+            return new ValueInvokeOnDisposal<IFrameBuffer>(frameBuffer, b => b.Unbind());
         }
 
         private IDisposable establishFrameBufferViewport(IRenderer renderer)

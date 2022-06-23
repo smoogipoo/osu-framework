@@ -733,6 +733,9 @@ namespace osu.Framework.Graphics.OpenGL
                 disposalAction.Invoke(target);
         }
 
+        public IFrameBuffer CreateFrameBuffer(RenderbufferInternalFormat[]? renderBufferFormats = null, All filteringMode = All.Linear)
+            => new FrameBuffer(this, renderBufferFormats, filteringMode);
+
         void IRenderer.RegisterVertexBufferUse(IVertexBuffer buffer) => vertexBuffersInUse.Add(buffer);
 
         void IRenderer.SetActiveBatch(IVertexBatch batch)
@@ -748,6 +751,20 @@ namespace osu.Framework.Graphics.OpenGL
         }
 
         void IRenderer.SetDrawDepth(float drawDepth) => BackbufferDrawDepth = drawDepth;
+
+        /// <summary>
+        /// Deletes a frame buffer.
+        /// </summary>
+        /// <param name="frameBuffer">The frame buffer to delete.</param>
+        public void DeleteFrameBuffer(int frameBuffer)
+        {
+            if (frameBuffer == -1) return;
+
+            while (frameBufferStack.Peek() == frameBuffer)
+                UnbindFrameBuffer(frameBuffer);
+
+            ScheduleDisposal(GL.DeleteFramebuffer, frameBuffer);
+        }
 
         private void flushCurrentBatch()
         {

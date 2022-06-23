@@ -4,6 +4,7 @@
 #nullable disable
 
 using System;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Platform;
 using osuTK;
 using osuTK.Graphics.ES30;
@@ -12,14 +13,16 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 {
     internal class RenderBuffer : IDisposable
     {
+        private readonly IRenderer renderer;
         private readonly RenderbufferInternalFormat format;
         private readonly int renderBuffer;
         private readonly int sizePerPixel;
 
         private FramebufferAttachment attachment;
 
-        public RenderBuffer(RenderbufferInternalFormat format)
+        public RenderBuffer(IRenderer renderer, RenderbufferInternalFormat format)
         {
+            this.renderer = renderer;
             this.format = format;
 
             renderBuffer = GL.GenRenderbuffer();
@@ -41,18 +44,18 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void Bind(Vector2 size)
         {
-            size = Vector2.Clamp(size, Vector2.One, new Vector2(GLWrapper.MaxRenderBufferSize));
+            size = Vector2.Clamp(size, Vector2.One, new Vector2(renderer.MaxRenderBufferSize));
 
             // See: https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_multisampled_render_to_texture.txt
             //    + https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/WorkingwithEAGLContexts/WorkingwithEAGLContexts.html
             // OpenGL ES allows the driver to discard renderbuffer contents after they are presented to the screen, so the storage must always be re-initialised for embedded devices.
             // Such discard does not exist on non-embedded platforms, so they are only re-initialised when required.
-            if (GLWrapper.IsEmbedded || internalSize.X < size.X || internalSize.Y < size.Y)
+            if (renderer.IsEmbedded || internalSize.X < size.X || internalSize.Y < size.Y)
             {
                 GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderBuffer);
                 GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, format, (int)Math.Ceiling(size.X), (int)Math.Ceiling(size.Y));
 
-                if (!GLWrapper.IsEmbedded)
+                if (!renderer.IsEmbedded)
                 {
                     memoryLease?.Dispose();
                     memoryLease = NativeMemoryTracker.AddMemory(this, (long)(size.X * size.Y * sizePerPixel));
@@ -64,7 +67,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void Unbind()
         {
-            if (GLWrapper.IsEmbedded)
+            if (renderer.IsEmbedded)
             {
                 // Renderbuffers are not automatically discarded on all embedded devices, so invalidation is forced for extra performance and to unify logic between devices.
                 GL.InvalidateFramebuffer(FramebufferTarget.Framebuffer, 1, ref attachment);
@@ -75,12 +78,12 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         ~RenderBuffer()
         {
-            GLWrapper.ScheduleDisposal(b => b.Dispose(false), this);
+            renderer.ScheduleDisposal(b => b.Dispose(false), this);
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            renderer.ScheduleDisposal(b => b.Dispose(true), this);
             GC.SuppressFinalize(this);
         }
 

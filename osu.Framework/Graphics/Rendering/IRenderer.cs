@@ -270,6 +270,14 @@ namespace osu.Framework.Graphics.Rendering
         void ScheduleDisposal<T>(Action<T> disposalAction, T target);
 
         /// <summary>
+        /// Creates a new <see cref="IFrameBuffer"/>.
+        /// </summary>
+        /// <param name="renderBufferFormats">Any render buffer formats.</param>
+        /// <param name="filteringMode">The texture filtering mode.</param>
+        /// <returns>The <see cref="IFrameBuffer"/>.</returns>
+        IFrameBuffer CreateFrameBuffer(RenderbufferInternalFormat[]? renderBufferFormats = null, All filteringMode = All.Linear);
+
+        /// <summary>
         /// Notifies that a <see cref="IVertexBuffer"/> has begun being used.
         /// </summary>
         /// <param name="buffer">The <see cref="IVertexBuffer"/> in use.</param>

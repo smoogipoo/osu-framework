@@ -4,7 +4,6 @@
 #nullable disable
 
 using System.Collections.Generic;
-using osu.Framework.Graphics.OpenGL.Buffers;
 using osuTK;
 using osuTK.Graphics;
 using osu.Framework.Graphics.Primitives;
@@ -96,8 +95,8 @@ namespace osu.Framework.Graphics.Containers
 
             private void drawBlurredFrameBuffer(IRenderer renderer, int kernelRadius, float sigma, float blurRotation)
             {
-                FrameBuffer current = SharedData.CurrentEffectBuffer;
-                FrameBuffer target = SharedData.GetNextEffectBuffer();
+                IFrameBuffer current = SharedData.CurrentEffectBuffer;
+                IFrameBuffer target = SharedData.GetNextEffectBuffer();
 
                 renderer.SetBlend(BlendingParameters.None);
 
