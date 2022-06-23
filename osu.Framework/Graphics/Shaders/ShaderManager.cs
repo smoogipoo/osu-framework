@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using osu.Framework.Graphics.OpenGL;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.IO.Stores;
 using osuTK.Graphics.ES30;
 
@@ -17,13 +17,15 @@ namespace osu.Framework.Graphics.Shaders
         private readonly ConcurrentDictionary<string, ShaderPart> partCache = new ConcurrentDictionary<string, ShaderPart>();
         private readonly ConcurrentDictionary<(string, string), Shader> shaderCache = new ConcurrentDictionary<(string, string), Shader>();
 
+        private readonly IRenderer renderer;
         private readonly IResourceStore<byte[]> store;
 
         /// <summary>
         /// Constructs a new <see cref="ShaderManager"/>.
         /// </summary>
-        public ShaderManager(IResourceStore<byte[]> store)
+        public ShaderManager(IRenderer renderer, IResourceStore<byte[]> store)
         {
+            this.renderer = renderer;
             this.store = store;
         }
 
@@ -56,7 +58,7 @@ namespace osu.Framework.Graphics.Shaders
             return shaderCache[tuple] = CreateShader($"{vertex}/{fragment}", parts);
         }
 
-        internal virtual Shader CreateShader(string name, List<ShaderPart> parts) => new Shader(name, parts);
+        internal virtual Shader CreateShader(string name, List<ShaderPart> parts) => new Shader(renderer, name, parts);
 
         private ShaderPart createShaderPart(string name, ShaderType type, bool bypassCache = false)
         {
@@ -67,7 +69,7 @@ namespace osu.Framework.Graphics.Shaders
 
             byte[]? rawData = LoadRaw(name);
 
-            part = new ShaderPart(name, rawData, type, this);
+            part = new ShaderPart(renderer, name, rawData, type, this);
 
             //cache even on failure so we don't try and fail every time.
             partCache[name] = part;
@@ -118,14 +120,11 @@ namespace osu.Framework.Graphics.Shaders
 
                 store.Dispose();
 
-                GLWrapper.ScheduleDisposal(s =>
-                {
-                    foreach (var shader in s.shaderCache.Values)
-                        shader.Dispose();
+                foreach (var shader in shaderCache.Values)
+                    shader.Dispose();
 
-                    foreach (var part in s.partCache.Values)
-                        part.Dispose();
-                }, this);
+                foreach (var part in partCache.Values)
+                    part.Dispose();
             }
         }
 

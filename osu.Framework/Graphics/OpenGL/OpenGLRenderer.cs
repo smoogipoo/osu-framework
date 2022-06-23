@@ -720,6 +720,12 @@ namespace osu.Framework.Graphics.OpenGL
             currentShader = shader;
         }
 
+        public void ScheduleExpensiveOperation(ScheduledDelegate operation)
+        {
+            if (isInitialised)
+                expensiveOperationQueue.Enqueue(operation);
+        }
+
         public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
         {
             if (isInitialised)
@@ -736,6 +742,51 @@ namespace osu.Framework.Graphics.OpenGL
 
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex
             => new QuadBatch<TVertex>(this, size, maxBuffers);
+
+        void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
+        {
+            if (uniform.Owner == currentShader)
+                flushCurrentBatch();
+
+            switch (uniform)
+            {
+                case IUniformWithValue<bool> b:
+                    GL.Uniform1(uniform.Location, b.GetValue() ? 1 : 0);
+                    break;
+
+                case IUniformWithValue<int> i:
+                    GL.Uniform1(uniform.Location, i.GetValue());
+                    break;
+
+                case IUniformWithValue<float> f:
+                    GL.Uniform1(uniform.Location, f.GetValue());
+                    break;
+
+                case IUniformWithValue<Vector2> v2:
+                    GL.Uniform2(uniform.Location, ref v2.GetValueByRef());
+                    break;
+
+                case IUniformWithValue<Vector3> v3:
+                    GL.Uniform3(uniform.Location, ref v3.GetValueByRef());
+                    break;
+
+                case IUniformWithValue<Vector4> v4:
+                    GL.Uniform4(uniform.Location, ref v4.GetValueByRef());
+                    break;
+
+                case IUniformWithValue<Matrix2> m2:
+                    GL.UniformMatrix2(uniform.Location, false, ref m2.GetValueByRef());
+                    break;
+
+                case IUniformWithValue<Matrix3> m3:
+                    GL.UniformMatrix3(uniform.Location, false, ref m3.GetValueByRef());
+                    break;
+
+                case IUniformWithValue<Matrix4> m4:
+                    GL.UniformMatrix4(uniform.Location, false, ref m4.GetValueByRef());
+                    break;
+            }
+        }
 
         void IRenderer.RegisterVertexBufferUse(IVertexBuffer buffer) => vertexBuffersInUse.Add(buffer);
 

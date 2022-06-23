@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using osu.Framework.Graphics.OpenGL;
+using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Shaders
@@ -35,13 +35,15 @@ namespace osu.Framework.Graphics.Shaders
         private readonly Regex includeRegex = new Regex("^\\s*#\\s*include\\s+[\"<](.*)[\">]");
         private readonly Regex shaderInputRegex = new Regex(SHADER_ATTRIBUTE_PATTERN);
 
+        private readonly IRenderer renderer;
         private readonly ShaderManager manager;
 
-        internal ShaderPart(string name, byte[] data, ShaderType type, ShaderManager manager)
+        internal ShaderPart(IRenderer renderer, string name, byte[] data, ShaderType type, ShaderManager manager)
         {
             Name = name;
             Type = type;
 
+            this.renderer = renderer;
             this.manager = manager;
 
             shaderCodes.Add(loadFile(data, true));
@@ -158,12 +160,12 @@ namespace osu.Framework.Graphics.Shaders
 
         ~ShaderPart()
         {
-            GLWrapper.ScheduleDisposal(s => s.Dispose(false), this);
+            renderer.ScheduleDisposal(s => s.Dispose(false), this);
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            renderer.ScheduleDisposal(s => s.Dispose(true), this);
             GC.SuppressFinalize(this);
         }
 

@@ -8,6 +8,7 @@ using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics.ES30;
 
@@ -269,6 +270,12 @@ namespace osu.Framework.Graphics.Rendering
         void UseProgram(Shader? shader);
 
         /// <summary>
+        /// Schedules an expensive operation to a queue from which a maximum of one operation is performed per frame.
+        /// </summary>
+        /// <param name="operation">The operation to schedule.</param>
+        void ScheduleExpensiveOperation(ScheduledDelegate operation);
+
+        /// <summary>
         /// Schedules a disposal action to be run on the next frame.
         /// </summary>
         /// <param name="disposalAction">The disposal action.</param>
@@ -297,6 +304,12 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="size">Number of quads.</param>
         /// <param name="maxBuffers">Maximum number of vertex buffers.</param>
         IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex;
+
+        /// <summary>
+        /// Sets the value of a uniform.
+        /// </summary>
+        /// <param name="uniform">The uniform to set.</param>
+        internal void SetUniform<T>(IUniformWithValue<T> uniform) where T : struct, IEquatable<T>;
 
         /// <summary>
         /// Notifies that a <see cref="IVertexBuffer"/> has begun being used.

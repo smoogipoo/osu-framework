@@ -5,7 +5,7 @@
 
 using System;
 using System.Collections.Generic;
-using osu.Framework.Graphics.OpenGL;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics.ES30;
@@ -15,6 +15,7 @@ namespace osu.Framework.Graphics.Shaders
 {
     public class Shader : IShader, IDisposable
     {
+        internal readonly IRenderer Renderer;
         private readonly string name;
         private readonly List<ShaderPart> parts;
 
@@ -33,12 +34,13 @@ namespace osu.Framework.Graphics.Shaders
 
         private int programID = -1;
 
-        internal Shader(string name, List<ShaderPart> parts)
+        internal Shader(IRenderer renderer, string name, List<ShaderPart> parts)
         {
+            this.Renderer = renderer;
             this.name = name;
             this.parts = parts;
 
-            GLWrapper.ScheduleExpensiveOperation(shaderCompileDelegate = new ScheduledDelegate(compile));
+            renderer.ScheduleExpensiveOperation(shaderCompileDelegate = new ScheduledDelegate(compile));
         }
 
         private void compile()
@@ -84,7 +86,7 @@ namespace osu.Framework.Graphics.Shaders
 
             EnsureShaderCompiled();
 
-            GLWrapper.UseProgram(this);
+            Renderer.UseProgram(this);
 
             foreach (var uniform in uniformsValues)
                 uniform?.Update();
@@ -97,7 +99,7 @@ namespace osu.Framework.Graphics.Shaders
             if (!IsBound)
                 return;
 
-            GLWrapper.UseProgram(null);
+            Renderer.UseProgram(null);
 
             IsBound = false;
         }
@@ -223,12 +225,12 @@ namespace osu.Framework.Graphics.Shaders
 
         ~Shader()
         {
-            GLWrapper.ScheduleDisposal(s => s.Dispose(false), this);
+            Renderer.ScheduleDisposal(s => s.Dispose(false), this);
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            Renderer.ScheduleDisposal(s => s.Dispose(true), this);
             GC.SuppressFinalize(this);
         }
 

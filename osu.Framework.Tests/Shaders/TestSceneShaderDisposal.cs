@@ -58,7 +58,7 @@ namespace osu.Framework.Tests.Shaders
         private class TestShaderManager : ShaderManager
         {
             public TestShaderManager(IResourceStore<byte[]> store)
-                : base(store)
+                : base(null, store)
             {
             }
 
@@ -67,7 +67,7 @@ namespace osu.Framework.Tests.Shaders
             private class TestShader : Shader
             {
                 internal TestShader(string name, List<ShaderPart> parts)
-                    : base(name, parts)
+                    : base(null, name, parts)
                 {
                 }
 

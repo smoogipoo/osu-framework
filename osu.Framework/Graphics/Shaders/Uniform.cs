@@ -3,7 +3,6 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.OpenGL;
 using System;
 
 namespace osu.Framework.Graphics.Shaders
@@ -58,7 +57,7 @@ namespace osu.Framework.Graphics.Shaders
         {
             if (!HasChanged) return;
 
-            GLWrapper.SetUniform(this);
+            Owner.Renderer.SetUniform(this);
             HasChanged = false;
         }
 
