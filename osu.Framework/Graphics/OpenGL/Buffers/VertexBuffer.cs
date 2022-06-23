@@ -9,6 +9,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 using osu.Framework.Statistics;
 using osu.Framework.Development;
+using osu.Framework.Graphics.Rendering;
 using SixLabors.ImageSharp.Memory;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
@@ -18,6 +19,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     {
         protected static readonly int STRIDE = VertexUtils<DepthWrappingVertex<T>>.STRIDE;
 
+        private readonly IRenderer renderer;
         private readonly BufferUsageHint usage;
 
         private Memory<DepthWrappingVertex<T>> vertexMemory;
@@ -25,8 +27,9 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         private int vboId = -1;
 
-        protected VertexBuffer(int amountVertices, BufferUsageHint usage)
+        protected VertexBuffer(IRenderer renderer, int amountVertices, BufferUsageHint usage)
         {
+            this.renderer = renderer;
             this.usage = usage;
 
             Size = amountVertices;
@@ -42,10 +45,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         {
             ref var currentVertex = ref getMemory().Span[vertexIndex];
 
-            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != GLWrapper.BackbufferDrawDepth;
+            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != renderer.BackbufferDrawDepth;
 
             currentVertex.Vertex = vertex;
-            currentVertex.BackbufferDrawDepth = GLWrapper.BackbufferDrawDepth;
+            currentVertex.BackbufferDrawDepth = renderer.BackbufferDrawDepth;
 
             return isNewVertex;
         }
@@ -64,7 +67,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             GL.GenBuffers(1, out vboId);
 
-            if (GLWrapper.BindBuffer(BufferTarget.ArrayBuffer, vboId))
+            if (renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
                 VertexUtils<DepthWrappingVertex<T>>.Bind();
 
             int size = Size * STRIDE;
@@ -74,12 +77,12 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         ~VertexBuffer()
         {
-            GLWrapper.ScheduleDisposal(v => v.Dispose(false), this);
+            renderer.ScheduleDisposal(v => v.Dispose(false), this);
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            renderer.ScheduleDisposal(v => v.Dispose(true), this);
             GC.SuppressFinalize(this);
         }
 
@@ -103,7 +106,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             if (vboId == -1)
                 Initialise();
 
-            if (GLWrapper.BindBuffer(BufferTarget.ArrayBuffer, vboId))
+            if (renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
                 VertexUtils<DepthWrappingVertex<T>>.Bind();
         }
 
@@ -158,10 +161,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 memoryOwner = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate<DepthWrappingVertex<T>>(Size, AllocationOptions.Clean);
                 vertexMemory = memoryOwner.Memory;
 
-                GLWrapper.RegisterVertexBufferUse(this);
+                renderer.RegisterVertexBufferUse(this);
             }
 
-            LastUseResetId = GLWrapper.ResetId;
+            LastUseResetId = renderer.ResetId;
 
             return ref vertexMemory;
         }

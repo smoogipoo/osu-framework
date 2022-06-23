@@ -5,6 +5,7 @@
 
 using System;
 using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
@@ -26,11 +27,13 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     public class LinearVertexBuffer<T> : VertexBuffer<T>
         where T : struct, IEquatable<T>, IVertex
     {
+        private readonly IRenderer renderer;
         private readonly int amountVertices;
 
-        internal LinearVertexBuffer(int amountVertices, PrimitiveType type, BufferUsageHint usage)
-            : base(amountVertices, usage)
+        internal LinearVertexBuffer(IRenderer renderer, int amountVertices, PrimitiveType type, BufferUsageHint usage)
+            : base(renderer, amountVertices, usage)
         {
+            this.renderer = renderer;
             this.amountVertices = amountVertices;
             Type = type;
         }
@@ -46,7 +49,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 for (ushort i = 0; i < amountVertices; i++)
                     indices[i] = i;
 
-                GLWrapper.BindBuffer(BufferTarget.ElementArrayBuffer, LinearIndexData.EBO_ID);
+                renderer.BindBuffer(BufferTarget.ElementArrayBuffer, LinearIndexData.EBO_ID);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(amountVertices * sizeof(ushort)), indices, BufferUsageHint.StaticDraw);
 
                 LinearIndexData.MaxAmountIndices = amountVertices;
@@ -58,7 +61,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             base.Bind(forRendering);
 
             if (forRendering)
-                GLWrapper.BindBuffer(BufferTarget.ElementArrayBuffer, LinearIndexData.EBO_ID);
+                renderer.BindBuffer(BufferTarget.ElementArrayBuffer, LinearIndexData.EBO_ID);
         }
 
         protected override PrimitiveType Type { get; }

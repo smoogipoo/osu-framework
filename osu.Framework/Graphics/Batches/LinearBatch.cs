@@ -7,6 +7,7 @@ using System;
 using osu.Framework.Graphics.OpenGL.Buffers;
 using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Batches
 {
@@ -15,12 +16,12 @@ namespace osu.Framework.Graphics.Batches
     {
         private readonly PrimitiveType type;
 
-        public LinearBatch(int size, int maxBuffers, PrimitiveType type)
-            : base(size, maxBuffers)
+        public LinearBatch(IRenderer renderer, int size, int maxBuffers, PrimitiveType type)
+            : base(renderer, size, maxBuffers)
         {
             this.type = type;
         }
 
-        protected override VertexBuffer<T> CreateVertexBuffer() => new LinearVertexBuffer<T>(Size, type, BufferUsageHint.DynamicDraw);
+        protected override VertexBuffer<T> CreateVertexBuffer(IRenderer renderer) => new LinearVertexBuffer<T>(renderer, Size, type, BufferUsageHint.DynamicDraw);
     }
 }

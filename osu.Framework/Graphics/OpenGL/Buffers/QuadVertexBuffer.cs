@@ -7,6 +7,7 @@ using System;
 using System.Diagnostics;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
@@ -25,6 +26,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     public class QuadVertexBuffer<T> : VertexBuffer<T>
         where T : struct, IEquatable<T>, IVertex
     {
+        private readonly IRenderer renderer;
         private readonly int amountIndices;
 
         private const int indices_per_quad = TextureGLSingle.VERTICES_PER_QUAD + 2;
@@ -34,9 +36,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         /// </summary>
         public const int MAX_QUADS = ushort.MaxValue / indices_per_quad;
 
-        internal QuadVertexBuffer(int amountQuads, BufferUsageHint usage)
-            : base(amountQuads * TextureGLSingle.VERTICES_PER_QUAD, usage)
+        internal QuadVertexBuffer(IRenderer renderer, int amountQuads, BufferUsageHint usage)
+            : base(renderer, amountQuads * TextureGLSingle.VERTICES_PER_QUAD, usage)
         {
+            this.renderer = renderer;
             amountIndices = amountQuads * indices_per_quad;
             Debug.Assert(amountIndices <= ushort.MaxValue);
         }
@@ -59,7 +62,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                     indices[j + 5] = (ushort)(i + 1);
                 }
 
-                GLWrapper.BindBuffer(BufferTarget.ElementArrayBuffer, QuadIndexData.EBO_ID);
+                renderer.BindBuffer(BufferTarget.ElementArrayBuffer, QuadIndexData.EBO_ID);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(amountIndices * sizeof(ushort)), indices, BufferUsageHint.StaticDraw);
 
                 QuadIndexData.MaxAmountIndices = amountIndices;
@@ -71,7 +74,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             base.Bind(forRendering);
 
             if (forRendering)
-                GLWrapper.BindBuffer(BufferTarget.ElementArrayBuffer, QuadIndexData.EBO_ID);
+                renderer.BindBuffer(BufferTarget.ElementArrayBuffer, QuadIndexData.EBO_ID);
         }
 
         protected override int ToElements(int vertices) => 3 * vertices / 2;
