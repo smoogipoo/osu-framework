@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Buffers;
@@ -260,6 +261,13 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         /// <param name="shader">The shader to bind.</param>
         void UseProgram(Shader? shader);
+
+        /// <summary>
+        /// Schedules a disposal action to be run on the next frame.
+        /// </summary>
+        /// <param name="disposalAction">The disposal action.</param>
+        /// <param name="target">The target to be disposed.</param>
+        void ScheduleDisposal<T>(Action<T> disposalAction, T target);
 
         /// <summary>
         /// Notifies that a <see cref="IVertexBuffer"/> has begun being used.

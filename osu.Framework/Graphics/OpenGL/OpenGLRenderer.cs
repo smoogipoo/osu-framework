@@ -90,6 +90,7 @@ namespace osu.Framework.Graphics.OpenGL
         private Shader? currentShader;
         private bool? lastBlendingEnabledState;
         private bool currentScissorState;
+        private bool isInitialised;
 
         void IRenderer.Initialise()
         {
@@ -103,6 +104,7 @@ namespace osu.Framework.Graphics.OpenGL
             GL.Enable(EnableCap.Blend);
 
             resetScheduler.AddDelayed(checkPendingDisposals, 0, true);
+            isInitialised = true;
         }
 
         private void checkPendingDisposals()
@@ -721,6 +723,14 @@ namespace osu.Framework.Graphics.OpenGL
 
             GL.UseProgram(shader);
             currentShader = shader;
+        }
+
+        public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
+        {
+            if (isInitialised)
+                disposalQueue.ScheduleDisposal(disposalAction, target);
+            else
+                disposalAction.Invoke(target);
         }
 
         void IRenderer.RegisterVertexBufferUse(IVertexBuffer buffer) => vertexBuffersInUse.Add(buffer);
