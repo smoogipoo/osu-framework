@@ -9,7 +9,6 @@ using osu.Framework.Graphics.Textures;
 using osuTK;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Sprites;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Shapes
@@ -61,7 +60,7 @@ namespace osu.Framework.Graphics.Shapes
 
                 var triangle = toTriangle(ConservativeScreenSpaceDrawQuad);
 
-                if (GLWrapper.IsMaskingActive)
+                if (renderer.IsMaskingActive)
                     DrawClipped(ref triangle, Texture, DrawColourInfo.Colour, vertexAction: vertexAction);
                 else
                     DrawTriangle(Texture, triangle, DrawColourInfo.Colour, vertexAction: vertexAction);

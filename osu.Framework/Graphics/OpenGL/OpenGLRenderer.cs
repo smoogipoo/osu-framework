@@ -25,12 +25,6 @@ namespace osu.Framework.Graphics.OpenGL
     public class OpenGLRenderer : IRenderer
     {
         /// <summary>
-        /// Maximum number of <see cref="DrawNode"/>s a <see cref="Drawable"/> can draw with.
-        /// This is a carefully-chosen number to enable the update and draw threads to work concurrently without causing unnecessary load.
-        /// </summary>
-        public const int MAX_DRAW_NODES = 3;
-
-        /// <summary>
         /// The interval (in frames) before checking whether VBOs should be freed.
         /// VBOs may remain unused for at most double this length before they are recycled.
         /// </summary>

@@ -25,7 +25,7 @@ namespace osu.Framework.Threading
         {
             if (ThreadSafety.ExecutionMode != ExecutionMode.SingleThread)
             {
-                //this was added due to the dependency on GLWrapper.MaxTextureSize begin initialised.
+                //this was added due to the dependency on IRenderer.MaxTextureSize begin initialised.
                 drawThread?.WaitUntilInitialized();
             }
         }
