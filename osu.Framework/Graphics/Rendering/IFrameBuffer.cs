@@ -2,7 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Textures;
 using osuTK;
 
 namespace osu.Framework.Graphics.Rendering
@@ -12,7 +12,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// The framebuffer's backing texture.
         /// </summary>
-        TextureGL Texture { get; }
+        Texture Texture { get; }
 
         /// <summary>
         /// The framebuffer's texture size.

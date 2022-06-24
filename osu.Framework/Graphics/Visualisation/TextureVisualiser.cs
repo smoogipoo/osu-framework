@@ -9,10 +9,10 @@ using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.OpenGL.Textures;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Localisation;
 using osu.Framework.Utils;
 using osuTK;
@@ -204,7 +204,7 @@ namespace osu.Framework.Graphics.Visualisation
                     textureReference = Source.textureReference;
                 }
 
-                public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+                public override void Draw(IRenderer renderer)
                 {
                     if (!textureReference.TryGetTarget(out var texture))
                         return;
@@ -222,13 +222,13 @@ namespace osu.Framework.Graphics.Visualisation
                             ? Interpolation.ValueAt(Source.AverageUsagesPerFrame, Color4.DarkGray, Color4.Red, 0, 200)
                             : Color4.Transparent);
 
-                    base.Draw(renderer, vertexAction);
+                    base.Draw(renderer);
 
                     // intentionally after draw to avoid counting our own bind.
                     Source.lastBindCount = texture.BindCount;
                 }
 
-                protected override void Blit(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+                protected override void Blit(IRenderer renderer)
                 {
                     if (!textureReference.TryGetTarget(out var texture))
                         return;
@@ -236,12 +236,12 @@ namespace osu.Framework.Graphics.Visualisation
                     const float border_width = 4;
 
                     // border
-                    DrawQuad(Texture, ScreenSpaceDrawQuad, drawColour, null, vertexAction);
+                    renderer.DrawQuad(Texture, ScreenSpaceDrawQuad, drawColour);
 
                     var shrunkenQuad = ScreenSpaceDrawQuad.AABBFloat.Shrink(border_width);
 
                     // background
-                    DrawQuad(Texture, shrunkenQuad, Color4.Black, null, vertexAction);
+                    renderer.DrawQuad(Texture, shrunkenQuad, Color4.Black);
 
                     float aspect = (float)texture.Width / texture.Height;
 
@@ -262,7 +262,7 @@ namespace osu.Framework.Graphics.Visualisation
 
                     // texture
                     texture.Bind();
-                    DrawQuad(texture, shrunkenQuad, Color4.White, null, vertexAction);
+                    renderer.DrawQuad(new Texture(texture), shrunkenQuad, Color4.White);
                 }
 
                 protected internal override bool CanDrawOpaqueInterior => false;

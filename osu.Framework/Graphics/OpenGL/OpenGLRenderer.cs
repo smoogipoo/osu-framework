@@ -13,6 +13,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
@@ -62,6 +63,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         private readonly Scheduler resetScheduler = new Scheduler(() => ThreadSafety.IsDrawThread, new StopwatchClock(true)); // force no thread set until we are actually on the draw thread.
 
+        private readonly Stack<IVertexBatch<TexturedVertex2D>> quadBatches = new Stack<IVertexBatch<TexturedVertex2D>>();
         private readonly List<IVertexBuffer> vertexBuffersInUse = new List<IVertexBuffer>();
         private readonly List<IVertexBatch> batchResetList = new List<IVertexBatch>();
         private readonly Stack<RectangleI> viewportStack = new Stack<RectangleI>();
@@ -86,6 +88,7 @@ namespace osu.Framework.Graphics.OpenGL
         private bool? lastBlendingEnabledState;
         private bool currentScissorState;
         private bool isInitialised;
+        private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
 
         void IRenderer.Initialise()
         {
@@ -98,6 +101,8 @@ namespace osu.Framework.Graphics.OpenGL
             GL.Disable(EnableCap.StencilTest);
             GL.Enable(EnableCap.Blend);
 
+            defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
+
             resetScheduler.AddDelayed(checkPendingDisposals, 0, true);
             isInitialised = true;
         }
@@ -109,6 +114,8 @@ namespace osu.Framework.Graphics.OpenGL
 
         void IRenderer.BeginFrame(Vector2 windowSize)
         {
+            Debug.Assert(defaultQuadBatch != null);
+
             ResetId++;
 
             resetScheduler.Update();
@@ -145,6 +152,9 @@ namespace osu.Framework.Graphics.OpenGL
             depthStack.Clear();
             scissorStateStack.Clear();
             scissorOffsetStack.Clear();
+
+            quadBatches.Clear();
+            quadBatches.Push(defaultQuadBatch);
 
             BindFrameBuffer(BackbufferFramebuffer);
 
@@ -300,10 +310,10 @@ namespace osu.Framework.Graphics.OpenGL
             return true;
         }
 
-        public bool BindTexture(TextureGL? texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            bool didBind = BindTexture(texture?.TextureId ?? 0, unit, wrapModeS, wrapModeT);
-            lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture is TextureGLAtlas;
+            bool didBind = BindTexture(texture.TextureGL.TextureId, unit, wrapModeS, wrapModeT);
+            lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
 
             return didBind;
         }
@@ -803,6 +813,12 @@ namespace osu.Framework.Graphics.OpenGL
         }
 
         void IRenderer.SetDrawDepth(float drawDepth) => BackbufferDrawDepth = drawDepth;
+
+        IVertexBatch<TexturedVertex2D> IRenderer.DefaultQuadBatch => quadBatches.Peek();
+
+        void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => quadBatches.Push(quadBatch);
+
+        void IRenderer.PopQuadBatch() => quadBatches.Pop();
 
         /// <summary>
         /// Deletes a frame buffer.

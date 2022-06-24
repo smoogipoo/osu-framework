@@ -494,7 +494,7 @@ namespace osu.Framework.Platform
                         Renderer.PushDepthInfo(DepthInfo.Default);
 
                         // Front pass
-                        buffer.Object.DrawOpaqueInteriorSubTree(Renderer, depthValue, null);
+                        buffer.Object.DrawOpaqueInteriorSubTree(Renderer, depthValue);
 
                         Renderer.PopDepthInfo();
                         GL.ColorMask(true, true, true, true);
@@ -509,7 +509,7 @@ namespace osu.Framework.Platform
                     }
 
                     // Back pass
-                    buffer.Object.Draw(Renderer, null);
+                    buffer.Object.Draw(Renderer);
 
                     Renderer.PopDepthInfo();
 

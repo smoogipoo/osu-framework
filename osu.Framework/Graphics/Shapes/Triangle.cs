@@ -3,8 +3,6 @@
 
 #nullable disable
 
-using System;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Textures;
 using osuTK;
 using osu.Framework.Graphics.Primitives;
@@ -44,16 +42,16 @@ namespace osu.Framework.Graphics.Shapes
             {
             }
 
-            protected override void Blit(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+            protected override void Blit(IRenderer renderer)
             {
                 if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                     return;
 
-                DrawTriangle(Texture, toTriangle(ScreenSpaceDrawQuad), DrawColourInfo.Colour, null, null,
+                renderer.DrawTriangle(Texture, toTriangle(ScreenSpaceDrawQuad), DrawColourInfo.Colour, null, null,
                     new Vector2(InflationAmount.X / DrawRectangle.Width, InflationAmount.Y / DrawRectangle.Height), TextureCoords);
             }
 
-            protected override void BlitOpaqueInterior(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+            protected override void BlitOpaqueInterior(IRenderer renderer)
             {
                 if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                     return;
@@ -61,9 +59,9 @@ namespace osu.Framework.Graphics.Shapes
                 var triangle = toTriangle(ConservativeScreenSpaceDrawQuad);
 
                 if (renderer.IsMaskingActive)
-                    DrawClipped(ref triangle, Texture, DrawColourInfo.Colour, vertexAction: vertexAction);
+                    renderer.DrawClipped(ref triangle, Texture, DrawColourInfo.Colour);
                 else
-                    DrawTriangle(Texture, triangle, DrawColourInfo.Colour, vertexAction: vertexAction);
+                    renderer.DrawTriangle(Texture, triangle, DrawColourInfo.Colour);
             }
         }
     }

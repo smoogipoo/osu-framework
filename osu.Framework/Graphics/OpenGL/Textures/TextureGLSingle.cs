@@ -9,12 +9,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
 using osu.Framework.Extensions.ImageExtensions;
-using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.Primitives;
 using osuTK.Graphics.ES30;
-using osu.Framework.Statistics;
-using osu.Framework.Graphics.Colour;
-using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Lists;
 using osu.Framework.Platform;
@@ -31,10 +28,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// Contains all currently-active <see cref="TextureGLSingle"/>es.
         /// </summary>
         private static readonly LockedWeakList<TextureGLSingle> all_textures = new LockedWeakList<TextureGLSingle>();
-
-        public const int MAX_MIPMAP_LEVELS = 3;
-
-        private static readonly Action<TexturedVertex2D> default_quad_action = new QuadBatch<TexturedVertex2D>(100, 1000).AddAction;
 
         private readonly Queue<ITextureUpload> uploadQueue = new Queue<ITextureUpload>();
 
@@ -216,146 +209,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             return texRect;
         }
 
-        public const int VERTICES_PER_TRIANGLE = 4;
-
-        internal override void DrawTriangle(Triangle vertexTriangle, ColourInfo drawColour, RectangleF? textureRect = null, Action<TexturedVertex2D> vertexAction = null,
-                                            Vector2? inflationPercentage = null, RectangleF? textureCoords = null)
-        {
-            if (!Available)
-                throw new ObjectDisposedException(ToString(), "Can not draw a triangle with a disposed texture.");
-
-            RectangleF texRect = GetTextureRect(textureRect);
-            Vector2 inflationAmount = inflationPercentage.HasValue ? new Vector2(inflationPercentage.Value.X * texRect.Width, inflationPercentage.Value.Y * texRect.Height) : Vector2.Zero;
-
-            // If clamp to edge is active, allow the texture coordinates to penetrate by half the repeated atlas margin width
-            if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge || GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
-            {
-                Vector2 inflationVector = Vector2.Zero;
-
-                const int mipmap_padding_requirement = (1 << MAX_MIPMAP_LEVELS) / 2;
-
-                if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge)
-                    inflationVector.X = mipmap_padding_requirement / (float)width;
-                if (GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
-                    inflationVector.Y = mipmap_padding_requirement / (float)height;
-                texRect = texRect.Inflate(inflationVector);
-            }
-
-            RectangleF coordRect = GetTextureRect(textureCoords ?? textureRect);
-            RectangleF inflatedCoordRect = coordRect.Inflate(inflationAmount);
-
-            vertexAction ??= default_quad_action;
-
-            // We split the triangle into two, such that we can obtain smooth edges with our
-            // texture coordinate trick. We might want to revert this to drawing a single
-            // triangle in case we ever need proper texturing, or if the additional vertices
-            // end up becoming an overhead (unlikely).
-            SRGBColour topColour = (drawColour.TopLeft + drawColour.TopRight) / 2;
-            SRGBColour bottomColour = (drawColour.BottomLeft + drawColour.BottomRight) / 2;
-
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexTriangle.P0,
-                TexturePosition = new Vector2((inflatedCoordRect.Left + inflatedCoordRect.Right) / 2, inflatedCoordRect.Top),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = inflationAmount,
-                Colour = topColour.Linear,
-            });
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexTriangle.P1,
-                TexturePosition = new Vector2(inflatedCoordRect.Left, inflatedCoordRect.Bottom),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = inflationAmount,
-                Colour = drawColour.BottomLeft.Linear,
-            });
-            vertexAction(new TexturedVertex2D
-            {
-                Position = (vertexTriangle.P1 + vertexTriangle.P2) / 2,
-                TexturePosition = new Vector2((inflatedCoordRect.Left + inflatedCoordRect.Right) / 2, inflatedCoordRect.Bottom),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = inflationAmount,
-                Colour = bottomColour.Linear,
-            });
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexTriangle.P2,
-                TexturePosition = new Vector2(inflatedCoordRect.Right, inflatedCoordRect.Bottom),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = inflationAmount,
-                Colour = drawColour.BottomRight.Linear,
-            });
-
-            FrameStatistics.Add(StatisticsCounterType.Pixels, (long)vertexTriangle.Area);
-        }
-
-        public const int VERTICES_PER_QUAD = 4;
-
-        internal override void DrawQuad(Quad vertexQuad, ColourInfo drawColour, RectangleF? textureRect = null, Action<TexturedVertex2D> vertexAction = null, Vector2? inflationPercentage = null,
-                                        Vector2? blendRangeOverride = null, RectangleF? textureCoords = null)
-        {
-            if (!Available)
-                throw new ObjectDisposedException(ToString(), "Can not draw a quad with a disposed texture.");
-
-            RectangleF texRect = GetTextureRect(textureRect);
-            Vector2 inflationAmount = inflationPercentage.HasValue ? new Vector2(inflationPercentage.Value.X * texRect.Width, inflationPercentage.Value.Y * texRect.Height) : Vector2.Zero;
-
-            // If clamp to edge is active, allow the texture coordinates to penetrate by half the repeated atlas margin width
-            if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge || GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
-            {
-                Vector2 inflationVector = Vector2.Zero;
-
-                const int mipmap_padding_requirement = (1 << MAX_MIPMAP_LEVELS) / 2;
-
-                if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge)
-                    inflationVector.X = mipmap_padding_requirement / (float)width;
-                if (GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
-                    inflationVector.Y = mipmap_padding_requirement / (float)height;
-                texRect = texRect.Inflate(inflationVector);
-            }
-
-            RectangleF coordRect = GetTextureRect(textureCoords ?? textureRect);
-            RectangleF inflatedCoordRect = coordRect.Inflate(inflationAmount);
-            Vector2 blendRange = blendRangeOverride ?? inflationAmount;
-
-            vertexAction ??= default_quad_action;
-
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexQuad.BottomLeft,
-                TexturePosition = new Vector2(inflatedCoordRect.Left, inflatedCoordRect.Bottom),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = blendRange,
-                Colour = drawColour.BottomLeft.Linear,
-            });
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexQuad.BottomRight,
-                TexturePosition = new Vector2(inflatedCoordRect.Right, inflatedCoordRect.Bottom),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = blendRange,
-                Colour = drawColour.BottomRight.Linear,
-            });
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexQuad.TopRight,
-                TexturePosition = new Vector2(inflatedCoordRect.Right, inflatedCoordRect.Top),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = blendRange,
-                Colour = drawColour.TopRight.Linear,
-            });
-            vertexAction(new TexturedVertex2D
-            {
-                Position = vertexQuad.TopLeft,
-                TexturePosition = new Vector2(inflatedCoordRect.Left, inflatedCoordRect.Top),
-                TextureRect = new Vector4(texRect.Left, texRect.Top, texRect.Right, texRect.Bottom),
-                BlendRange = blendRange,
-                Colour = drawColour.TopLeft.Linear,
-            });
-
-            FrameStatistics.Add(StatisticsCounterType.Pixels, (long)vertexQuad.Area);
-        }
-
         internal override void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
         {
             if (!Available)
@@ -468,11 +321,11 @@ namespace osu.Framework.Graphics.OpenGL.Textures
                     GLWrapper.BindTexture(this);
 
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, MAX_MIPMAP_LEVELS);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, IRenderer.MAX_MIPMAP_LEVELS);
 
                     // These shouldn't be required, but on some older Intel drivers the MAX_LOD chosen by the shader isn't clamped to the MAX_LEVEL from above, resulting in disappearing textures.
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinLod, 0);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLod, MAX_MIPMAP_LEVELS);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLod, IRenderer.MAX_MIPMAP_LEVELS);
 
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                         (int)(manualMipmaps ? filteringMode : filteringMode == All.Linear ? All.LinearMipmapLinear : All.Nearest));

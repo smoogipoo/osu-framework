@@ -3,9 +3,7 @@
 
 #nullable disable
 
-using System;
 using osu.Framework.Graphics.OpenGL;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 
@@ -91,11 +89,11 @@ namespace osu.Framework.Graphics
                 {
                 }
 
-                internal override void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
-                    => getCurrentFrameSource()?.DrawOpaqueInteriorSubTree(renderer, depthValue, vertexAction);
+                internal override void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue)
+                    => getCurrentFrameSource()?.DrawOpaqueInteriorSubTree(renderer, depthValue);
 
-                public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
-                    => getCurrentFrameSource()?.Draw(renderer, vertexAction);
+                public override void Draw(IRenderer renderer)
+                    => getCurrentFrameSource()?.Draw(renderer);
 
                 protected internal override bool CanDrawOpaqueInterior => getCurrentFrameSource()?.CanDrawOpaqueInterior ?? false;
 

@@ -323,9 +323,9 @@ namespace osu.Framework.Graphics.Audio
 
             private IVertexBatch<TexturedVertex2D> vertexBatch;
 
-            public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+            public override void Draw(IRenderer renderer)
             {
-                base.Draw(renderer, vertexAction);
+                base.Draw(renderer);
 
                 if (texture?.Available != true || points == null || points.Count == 0)
                     return;
@@ -399,7 +399,7 @@ namespace osu.Framework.Graphics.Audio
                     quadToDraw *= DrawInfo.Matrix;
 
                     if (quadToDraw.Size.X != 0 && quadToDraw.Size.Y != 0)
-                        DrawQuad(texture, quadToDraw, finalColour, null, vertexBatch.AddAction, Vector2.Divide(localInflationAmount, quadToDraw.Size));
+                        renderer.DrawQuad(texture, quadToDraw, finalColour, null, vertexBatch.AddAction, Vector2.Divide(localInflationAmount, quadToDraw.Size));
                 }
 
                 shader.Unbind();

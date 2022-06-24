@@ -5,7 +5,6 @@
 
 using System;
 using System.Diagnostics;
-using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
@@ -29,7 +28,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         private readonly IRenderer renderer;
         private readonly int amountIndices;
 
-        private const int indices_per_quad = TextureGLSingle.VERTICES_PER_QUAD + 2;
+        private const int indices_per_quad = IRenderer.VERTICES_PER_QUAD + 2;
 
         /// <summary>
         /// The maximum number of quads supported by this buffer.
@@ -37,7 +36,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         public const int MAX_QUADS = ushort.MaxValue / indices_per_quad;
 
         internal QuadVertexBuffer(IRenderer renderer, int amountQuads, BufferUsageHint usage)
-            : base(renderer, amountQuads * TextureGLSingle.VERTICES_PER_QUAD, usage)
+            : base(renderer, amountQuads * IRenderer.VERTICES_PER_QUAD, usage)
         {
             this.renderer = renderer;
             amountIndices = amountQuads * indices_per_quad;
@@ -52,7 +51,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             {
                 ushort[] indices = new ushort[amountIndices];
 
-                for (ushort i = 0, j = 0; j < amountIndices; i += TextureGLSingle.VERTICES_PER_QUAD, j += indices_per_quad)
+                for (ushort i = 0, j = 0; j < amountIndices; i += IRenderer.VERTICES_PER_QUAD, j += indices_per_quad)
                 {
                     indices[j] = i;
                     indices[j + 1] = (ushort)(i + 1);

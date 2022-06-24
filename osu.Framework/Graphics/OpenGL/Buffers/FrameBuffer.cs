@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     {
         private int frameBuffer = -1;
 
-        public TextureGL Texture { get; private set; }
+        public Texture Texture { get; private set; }
 
         private readonly List<RenderBuffer> attachedRenderBuffers = new List<RenderBuffer>();
 
@@ -25,13 +25,15 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         private readonly OpenGLRenderer renderer;
         private readonly RenderbufferInternalFormat[] renderBufferFormats;
+        private readonly TextureGL textureGL;
 
         public FrameBuffer(OpenGLRenderer renderer, RenderbufferInternalFormat[] renderBufferFormats = null, All filteringMode = All.Linear)
         {
             this.renderer = renderer;
             this.renderBufferFormats = renderBufferFormats;
 
-            Texture = new FrameBufferTexture(renderer, Size, filteringMode);
+            textureGL = new FrameBufferTexture(renderer, Size, filteringMode);
+            Texture = new Texture(textureGL);
         }
 
         private Vector2 size = Vector2.One;
@@ -55,7 +57,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                     Texture.Height = (int)Math.Ceiling(size.Y);
 
                     Texture.SetData(new TextureUpload());
-                    Texture.Upload();
+                    textureGL.Upload();
                 }
             }
         }
@@ -65,7 +67,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             frameBuffer = GL.GenFramebuffer();
             renderer.BindFrameBuffer(frameBuffer);
 
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget2d.Texture2D, Texture.TextureId, 0);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget2d.Texture2D, textureGL.TextureId, 0);
             renderer.BindTexture(null);
 
             if (renderBufferFormats != null)

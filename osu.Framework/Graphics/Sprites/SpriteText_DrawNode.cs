@@ -6,7 +6,6 @@
 using System;
 using System.Collections.Generic;
 using osu.Framework.Graphics.Colour;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
@@ -47,9 +46,9 @@ namespace osu.Framework.Graphics.Sprites
                 }
             }
 
-            public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+            public override void Draw(IRenderer renderer)
             {
-                base.Draw(renderer, vertexAction);
+                base.Draw(renderer);
 
                 Shader.Bind();
 
@@ -67,16 +66,16 @@ namespace osu.Framework.Graphics.Sprites
                     {
                         var shadowQuad = parts[i].DrawQuad;
 
-                        DrawQuad(parts[i].Texture,
+                        renderer.DrawQuad(parts[i].Texture,
                             new Quad(
                                 shadowQuad.TopLeft + shadowOffset,
                                 shadowQuad.TopRight + shadowOffset,
                                 shadowQuad.BottomLeft + shadowOffset,
                                 shadowQuad.BottomRight + shadowOffset),
-                            finalShadowColour, vertexAction: vertexAction, inflationPercentage: parts[i].InflationPercentage);
+                            finalShadowColour, null, inflationPercentage: parts[i].InflationPercentage);
                     }
 
-                    DrawQuad(parts[i].Texture, parts[i].DrawQuad, DrawColourInfo.Colour, vertexAction: vertexAction, inflationPercentage: parts[i].InflationPercentage);
+                    renderer.DrawQuad(parts[i].Texture, parts[i].DrawQuad, DrawColourInfo.Colour, null, inflationPercentage: parts[i].InflationPercentage);
                 }
 
                 Shader.Unbind();

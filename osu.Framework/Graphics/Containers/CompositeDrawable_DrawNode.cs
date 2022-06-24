@@ -152,7 +152,7 @@ namespace osu.Framework.Graphics.Containers
                 colour.TopRight.MultiplyAlpha(DrawColourInfo.Colour.TopRight.Linear.A);
                 colour.BottomRight.MultiplyAlpha(DrawColourInfo.Colour.BottomRight.Linear.A);
 
-                DrawQuad(
+                renderer.DrawQuad(
                     Texture.WhitePixel,
                     screenSpaceMaskingQuad.Value,
                     colour, null, null, null,
@@ -179,15 +179,15 @@ namespace osu.Framework.Graphics.Containers
                     quadBatch = renderer.CreateQuadBatch<TexturedVertex2D>(100, 1000);
             }
 
-            public override void Draw(IRenderer renderer, Action<TexturedVertex2D> vertexAction)
+            public override void Draw(IRenderer renderer)
             {
                 updateQuadBatch(renderer);
 
                 // Prefer to use own vertex batch instead of the parent-owned one.
                 if (quadBatch != null)
-                    vertexAction = quadBatch.AddAction;
+                    renderer.PushQuadBatch(quadBatch);
 
-                base.Draw(renderer, vertexAction);
+                base.Draw(renderer);
 
                 drawEdgeEffect(renderer);
 
@@ -203,17 +203,20 @@ namespace osu.Framework.Graphics.Containers
                 if (Children != null)
                 {
                     for (int i = 0; i < Children.Count; i++)
-                        Children[i].Draw(renderer, vertexAction);
+                        Children[i].Draw(renderer);
                 }
 
                 if (maskingInfo != null)
                     renderer.PopMaskingInfo();
+
+                if (quadBatch != null)
+                    renderer.PopQuadBatch();
             }
 
-            internal override void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
+            internal override void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue)
             {
-                DrawChildrenOpaqueInteriors(renderer, depthValue, vertexAction);
-                base.DrawOpaqueInteriorSubTree(renderer, depthValue, vertexAction);
+                DrawChildrenOpaqueInteriors(renderer, depthValue);
+                base.DrawOpaqueInteriorSubTree(renderer, depthValue);
             }
 
             /// <summary>
@@ -221,9 +224,8 @@ namespace osu.Framework.Graphics.Containers
             /// </summary>
             /// <param name="renderer"></param>
             /// <param name="depthValue">The previous depth value.</param>
-            /// <param name="vertexAction">The action to be performed on each vertex of the draw node in order to draw it if required. This is primarily used by textured sprites.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            protected virtual void DrawChildrenOpaqueInteriors(IRenderer renderer, DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
+            protected virtual void DrawChildrenOpaqueInteriors(IRenderer renderer, DepthValue depthValue)
             {
                 bool canIncrement = depthValue.CanIncrement;
 
@@ -234,7 +236,7 @@ namespace osu.Framework.Graphics.Containers
 
                     // Prefer to use own vertex batch instead of the parent-owned one.
                     if (quadBatch != null)
-                        vertexAction = quadBatch.AddAction;
+                        renderer.PushQuadBatch(quadBatch);
 
                     if (maskingInfo != null)
                         renderer.PushMaskingInfo(maskingInfo.Value);
@@ -244,7 +246,7 @@ namespace osu.Framework.Graphics.Containers
                 if (Children != null)
                 {
                     for (int i = Children.Count - 1; i >= 0; i--)
-                        Children[i].DrawOpaqueInteriorSubTree(renderer, depthValue, vertexAction);
+                        Children[i].DrawOpaqueInteriorSubTree(renderer, depthValue);
                 }
 
                 // Assume that if we can't increment the depth value, no child can, thus nothing will be drawn.
@@ -252,6 +254,9 @@ namespace osu.Framework.Graphics.Containers
                 {
                     if (maskingInfo != null)
                         renderer.PopMaskingInfo();
+
+                    if (quadBatch != null)
+                        renderer.PopQuadBatch();
                 }
             }
 

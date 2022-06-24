@@ -8,6 +8,7 @@ using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics.ES30;
@@ -24,6 +25,12 @@ namespace osu.Framework.Graphics.Rendering
         /// This is a carefully-chosen number to enable the update and draw threads to work concurrently without causing unnecessary load.
         /// </summary>
         public const int MAX_DRAW_NODES = 3;
+
+        public const int VERTICES_PER_QUAD = 4;
+
+        public const int VERTICES_PER_TRIANGLE = 4;
+
+        public const int MAX_MIPMAP_LEVELS = 3;
 
         /// <summary>
         /// The maximum allowed texture size.
@@ -166,7 +173,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="wrapModeS">The texture's horizontal wrap mode.</param>
         /// <param name="wrapModeT">The texture's vertex wrap mode.</param>
         /// <returns>Whether <paramref name="texture"/> was newly-bound.</returns>
-        bool BindTexture(TextureGL? texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None);
+        bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None);
 
         /// <summary>
         /// Binds a texture.
@@ -333,5 +340,11 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         /// <param name="drawDepth">The draw depth.</param>
         internal void SetDrawDepth(float drawDepth);
+
+        internal IVertexBatch<TexturedVertex2D> DefaultQuadBatch { get; }
+
+        internal void PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch);
+
+        internal void PopQuadBatch();
     }
 }
