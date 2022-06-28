@@ -3,6 +3,10 @@
 
 #nullable disable
 
+#if NET6_0_OR_GREATER
+using System.Text.Json;
+#endif
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,6 +16,7 @@ using Newtonsoft.Json;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.IO.Serialization;
 using osu.Framework.Lists;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace osu.Framework.Bindables
 {
@@ -19,6 +24,9 @@ namespace osu.Framework.Bindables
     /// A generic implementation of a <see cref="IBindable"/>
     /// </summary>
     /// <typeparam name="T">The type of our stored <see cref="Value"/>.</typeparam>
+#if NET6_0_OR_GREATER
+    [System.Text.Json.Serialization.JsonConverter(typeof(SystemTextBindableJsonConverter))]
+#endif
     public class Bindable<T> : IBindable<T>, IBindable, IParseable, ISerializableBindable
     {
         /// <summary>
@@ -412,6 +420,76 @@ namespace osu.Framework.Bindables
         {
             Value = serializer.Deserialize<T>(reader);
         }
+
+#if NET6_0_OR_GREATER
+        void ISerializableBindable.SerializeTo(Utf8JsonWriter writer, JsonSerializerOptions options)
+        {
+            switch (value)
+            {
+                case null:
+                    writer.WriteNullValue();
+                    break;
+
+                case decimal dec:
+                    writer.WriteNumberValue(dec);
+                    break;
+
+                case double d:
+                    writer.WriteNumberValue(d);
+                    break;
+
+                case float f:
+                    writer.WriteNumberValue(f);
+                    break;
+
+                case int i:
+                    writer.WriteNumberValue(i);
+                    break;
+
+                case long l:
+                    writer.WriteNumberValue(l);
+                    break;
+
+                case uint ui:
+                    writer.WriteNumberValue(ui);
+                    break;
+
+                case ulong ul:
+                    writer.WriteNumberValue(ul);
+                    break;
+
+                case bool b:
+                    writer.WriteBooleanValue(b);
+                    break;
+
+                default:
+                    writer.WriteStringValue(value.ToString());
+                    break;
+            }
+        }
+
+        void ISerializableBindable.DeserializeFrom(ref Utf8JsonReader reader, JsonSerializerOptions options)
+        {
+            if (typeof(T) == typeof(decimal))
+                value = (T)(object)reader.GetDecimal();
+            else if (typeof(T) == typeof(double))
+                value = (T)(object)reader.GetDouble();
+            else if (typeof(T) == typeof(float))
+                value = (T)(object)reader.GetSingle();
+            else if (typeof(T) == typeof(int))
+                value = (T)(object)reader.GetInt32();
+            else if (typeof(T) == typeof(long))
+                value = (T)(object)reader.GetInt64();
+            else if (typeof(T) == typeof(uint))
+                value = (T)(object)reader.GetUInt32();
+            else if (typeof(T) == typeof(ulong))
+                value = (T)(object)reader.GetUInt64();
+            else if (typeof(T) == typeof(bool))
+                value = (T)(object)reader.GetBoolean();
+            else
+                Parse(reader.GetString());
+        }
+#endif
 
         private LeasedBindable<T> leasedBindable;
 
