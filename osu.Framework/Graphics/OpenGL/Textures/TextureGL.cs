@@ -5,13 +5,14 @@
 
 using System;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 using osuTK;
 using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Graphics.OpenGL.Textures
 {
-    public abstract class TextureGL : IDisposable
+    public abstract class TextureGL : ITexture, IDisposable
     {
         /// <summary>
         /// The texture wrap mode in horizontal direction.
