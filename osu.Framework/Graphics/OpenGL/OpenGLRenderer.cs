@@ -51,6 +51,11 @@ namespace osu.Framework.Graphics.OpenGL
         public float BackbufferDrawDepth { get; private set; }
         public bool UsingBackbuffer => frameBufferStack.Count > 0 && frameBufferStack.Peek() == BackbufferFramebuffer;
 
+        // in case no other textures are used in the project, create a new atlas as a fallback source for the white pixel area (used to draw boxes etc.)
+        private readonly Lazy<TextureWhitePixel> whitePixel;
+
+        public Texture WhitePixel => whitePixel.Value;
+
         protected virtual int BackbufferFramebuffer => 0;
 
         private readonly GlobalStatistic<int> statExpensiveOperationsQueued = GlobalStatistics.Get<int>(nameof(OpenGLRenderer), "Expensive operation queue length");
@@ -59,7 +64,7 @@ namespace osu.Framework.Graphics.OpenGL
         private readonly GlobalStatistic<int> statTextureUploadsPerformed = GlobalStatistics.Get<int>(nameof(OpenGLRenderer), "Texture uploads performed");
 
         private readonly ConcurrentQueue<ScheduledDelegate> expensiveOperationQueue = new ConcurrentQueue<ScheduledDelegate>();
-        private readonly ConcurrentQueue<TextureGL> textureUploadQueue = new ConcurrentQueue<TextureGL>();
+        private readonly ConcurrentQueue<ITexture> textureUploadQueue = new ConcurrentQueue<ITexture>();
         private readonly GLDisposalQueue disposalQueue = new GLDisposalQueue();
 
         private readonly Scheduler resetScheduler = new Scheduler(() => ThreadSafety.IsDrawThread, new StopwatchClock(true)); // force no thread set until we are actually on the draw thread.
@@ -90,6 +95,12 @@ namespace osu.Framework.Graphics.OpenGL
         private bool currentScissorState;
         private bool isInitialised;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
+
+        public OpenGLRenderer()
+        {
+            whitePixel = new Lazy<TextureWhitePixel>(() =>
+                new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
+        }
 
         void IRenderer.Initialise()
         {
@@ -193,7 +204,7 @@ namespace osu.Framework.Graphics.OpenGL
             int uploadedPixels = 0;
 
             // continue attempting to upload textures until enough uploads have been performed.
-            while (textureUploadQueue.TryDequeue(out TextureGL? texture))
+            while (textureUploadQueue.TryDequeue(out ITexture? texture))
             {
                 statTextureUploadsDequeued.Value++;
 
@@ -311,7 +322,7 @@ namespace osu.Framework.Graphics.OpenGL
             return true;
         }
 
-        public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
             if (texture.TextureGL is TextureSubAtlasWhite && atlasTextureIsBound(unit))
             {
@@ -319,7 +330,7 @@ namespace osu.Framework.Graphics.OpenGL
                 return true;
             }
 
-            bool didBind = texture.TextureGL.Bind(unit);
+            bool didBind = texture.TextureGL.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
             lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
 
             return didBind;
@@ -751,6 +762,18 @@ namespace osu.Framework.Graphics.OpenGL
                 disposalAction.Invoke(target);
         }
 
+        public void EnqueueTextureUpload(ITexture texture)
+        {
+            if (texture.IsQueuedForUpload)
+                return;
+
+            if (isInitialised)
+            {
+                texture.IsQueuedForUpload = true;
+                textureUploadQueue.Enqueue(texture);
+            }
+        }
+
         public IFrameBuffer CreateFrameBuffer(RenderbufferInternalFormat[]? renderBufferFormats = null, All filteringMode = All.Linear)
             => new FrameBuffer(this, renderBufferFormats, filteringMode);
 
@@ -762,7 +785,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         public ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
                                       Rgba32 initialisationColour = default)
-            => new TextureGLSingle(width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
+            => new TextureGLSingle(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {

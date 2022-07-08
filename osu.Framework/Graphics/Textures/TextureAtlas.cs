@@ -28,6 +28,7 @@ namespace osu.Framework.Graphics.Textures
         private readonly List<RectangleI> subTextureBounds = new List<RectangleI>();
         internal TextureGLSingle AtlasTexture;
 
+        private readonly IRenderer renderer;
         private readonly int atlasWidth;
         private readonly int atlasHeight;
 
@@ -51,8 +52,9 @@ namespace osu.Framework.Graphics.Textures
         private readonly All filteringMode;
         private readonly object textureRetrievalLock = new object();
 
-        public TextureAtlas(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
+        public TextureAtlas(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
         {
+            this.renderer = renderer;
             atlasWidth = width;
             atlasHeight = height;
             this.manualMipmaps = manualMipmaps;
@@ -68,7 +70,7 @@ namespace osu.Framework.Graphics.Textures
 
             // We pass PADDING/2 as opposed to PADDING such that the padded region of each individual texture
             // occupies half of the padded space.
-            AtlasTexture = new TextureGLAtlas(atlasWidth, atlasHeight, manualMipmaps, filteringMode, PADDING / 2);
+            AtlasTexture = new TextureGLAtlas(renderer, atlasWidth, atlasHeight, manualMipmaps, filteringMode, PADDING / 2);
 
             RectangleI bounds = new RectangleI(0, 0, WHITE_PIXEL_SIZE, WHITE_PIXEL_SIZE);
             subTextureBounds.Add(bounds);

@@ -6,8 +6,8 @@
 using System;
 using System.Diagnostics;
 using osuTK.Graphics.ES30;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
 
@@ -22,8 +22,8 @@ namespace osu.Framework.Graphics.Video
         /// </summary>
         public bool UploadComplete { get; private set; }
 
-        public VideoTexture(int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
-            : base(width, height, true, All.Linear, wrapModeS, wrapModeT)
+        public VideoTexture(IRenderer renderer, int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+            : base(renderer, width, height, true, All.Linear, wrapModeS, wrapModeT)
         {
         }
 
@@ -61,7 +61,7 @@ namespace osu.Framework.Graphics.Video
             bool anyBound = false;
 
             for (int i = 0; i < textureIds.Length; i++)
-                anyBound |= GLWrapper.BindTexture(textureIds[i], unit + i, wrapModeS, wrapModeT);
+                anyBound |= Renderer.BindTexture(textureIds[i], unit + i, wrapModeS, wrapModeT);
 
             if (anyBound)
                 BindCount++;
@@ -85,7 +85,7 @@ namespace osu.Framework.Graphics.Video
 
                 for (uint i = 0; i < textureIds.Length; i++)
                 {
-                    GLWrapper.BindTexture(textureIds[i]);
+                    Renderer.BindTexture(textureIds[i]);
 
                     int width = videoUpload.GetPlaneWidth(i);
                     int height = videoUpload.GetPlaneHeight(i);
@@ -105,7 +105,7 @@ namespace osu.Framework.Graphics.Video
 
             for (uint i = 0; i < textureIds.Length; i++)
             {
-                GLWrapper.BindTexture(textureIds[i]);
+                Renderer.BindTexture(textureIds[i]);
 
                 GL.PixelStore(PixelStoreParameter.UnpackRowLength, videoUpload.Frame->linesize[i]);
 
@@ -126,7 +126,7 @@ namespace osu.Framework.Graphics.Video
 
             memoryLease?.Dispose();
 
-            GLWrapper.ScheduleDisposal(v =>
+            Renderer.ScheduleDisposal(v =>
             {
                 int[] ids = v.textureIds;
 

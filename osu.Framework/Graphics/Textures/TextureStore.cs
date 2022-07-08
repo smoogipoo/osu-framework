@@ -4,7 +4,6 @@
 #nullable disable
 
 using System;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.IO.Stores;
 using System.Collections.Generic;
@@ -31,6 +30,7 @@ namespace osu.Framework.Graphics.Textures
         private readonly ResourceStore<TextureUpload> uploadStore = new ResourceStore<TextureUpload>();
         private readonly List<ITextureStore> nestedStores = new List<ITextureStore>();
 
+        private readonly IRenderer renderer;
         private readonly All filteringMode;
         private readonly bool manualMipmaps;
 
@@ -49,6 +49,7 @@ namespace osu.Framework.Graphics.Textures
             if (store != null)
                 AddTextureSource(store);
 
+            this.renderer = renderer;
             this.filteringMode = filteringMode;
             this.manualMipmaps = manualMipmaps;
 
@@ -56,8 +57,8 @@ namespace osu.Framework.Graphics.Textures
 
             if (useAtlas)
             {
-                int size = Math.Min(max_atlas_size, GLWrapper.MaxTextureSize);
-                Atlas = new TextureAtlas(size, size, filteringMode: filteringMode, manualMipmaps: manualMipmaps);
+                int size = Math.Min(max_atlas_size, renderer.MaxTextureSize);
+                Atlas = new TextureAtlas(renderer, size, size, filteringMode: filteringMode, manualMipmaps: manualMipmaps);
             }
         }
 
@@ -115,7 +116,7 @@ namespace osu.Framework.Graphics.Textures
                 }
             }
 
-            nativeTexture ??= new TextureGLSingle(upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
+            nativeTexture ??= new TextureGLSingle(renderer, upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
 
             Texture tex = new Texture(nativeTexture) { ScaleAdjust = ScaleAdjust };
             tex.SetData(upload);
@@ -249,7 +250,7 @@ namespace osu.Framework.Graphics.Textures
             }
             catch (TextureTooLargeForGLException)
             {
-                Logger.Log($"Texture \"{name}\" exceeds the maximum size supported by this device ({GLWrapper.MaxTextureSize}px).", level: LogLevel.Error);
+                Logger.Log($"Texture \"{name}\" exceeds the maximum size supported by this device ({renderer.MaxTextureSize}px).", level: LogLevel.Error);
             }
             finally
             {

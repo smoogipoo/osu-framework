@@ -18,8 +18,8 @@ namespace osu.Framework.Graphics.Textures
         {
         }
 
-        public DisposableTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
-            : base(width, height, manualMipmaps, filteringMode)
+        public DisposableTexture(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
+            : base(renderer, width, height, manualMipmaps, filteringMode)
         {
         }
 

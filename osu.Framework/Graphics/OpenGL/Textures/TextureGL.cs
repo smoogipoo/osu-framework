@@ -14,6 +14,8 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 {
     public abstract class TextureGL : ITexture
     {
+        protected readonly IRenderer Renderer;
+
         /// <summary>
         /// The texture wrap mode in horizontal direction.
         /// </summary>
@@ -24,15 +26,16 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// </summary>
         public WrapMode WrapModeT { get; }
 
-        protected TextureGL(WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        protected TextureGL(IRenderer renderer, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
+            Renderer = renderer;
             WrapModeS = wrapModeS;
             WrapModeT = wrapModeT;
         }
 
         #region Disposal
 
-        internal virtual bool IsQueuedForUpload { get; set; }
+        bool ITexture.IsQueuedForUpload { get; set; }
 
         /// <summary>
         /// By default, texture uploads are queued for upload at the beginning of each frame, allowing loading them ahead of time.
@@ -50,7 +53,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         protected virtual void Dispose(bool isDisposing)
         {
-            GLWrapper.ScheduleDisposal(t => t.Available = false, this);
+            Renderer.ScheduleDisposal(t => t.Available = false, this);
         }
 
         public void Dispose()
@@ -70,6 +73,8 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         public abstract bool Loaded { get; }
 
+        public int MaxSize => Renderer.MaxTextureSize;
+
         public Opacity Opacity { get; protected set; } = Opacity.Mixed;
 
         public abstract int TextureId { get; }
@@ -87,24 +92,21 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <summary>
         /// Bind as active texture.
         /// </summary>
-        /// <param name="unit">The texture unit to bind to. Defaults to Texture0.</param>
-        /// <returns>True if bind was successful.</returns>
-        public bool Bind(TextureUnit unit = TextureUnit.Texture0) => Bind(unit, WrapModeS, WrapModeT);
-
-        /// <summary>
-        /// Bind as active texture.
-        /// </summary>
         /// <param name="unit">The texture unit to bind to.</param>
         /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
         /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
         /// <returns>True if bind was successful.</returns>
         internal abstract bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT);
 
+        bool ITexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => Bind(unit, wrapModeS, wrapModeT);
+
         /// <summary>
         /// Uploads pending texture data to the GPU if it exists.
         /// </summary>
         /// <returns>Whether pending data existed and an upload has been performed.</returns>
         internal abstract bool Upload();
+
+        bool ITexture.Upload() => Upload();
 
         /// <summary>
         /// Flush any unprocessed uploads without actually uploading.

@@ -153,7 +153,7 @@ namespace osu.Framework.Graphics.UserInterface
 
             Shader.Bind();
 
-            texture.TextureGL.Bind();
+            renderer.BindTexture(texture);
 
             updateVertexBuffer(renderer);
 

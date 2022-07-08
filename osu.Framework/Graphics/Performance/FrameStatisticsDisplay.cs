@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osuTK;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -152,7 +153,6 @@ namespace osu.Framework.Graphics.Performance
                                     {
                                         counterBarBackground = new Sprite
                                         {
-                                            Texture = new Texture(1, HEIGHT, true),
                                             RelativeSizeAxes = Axes.Both,
                                             Size = new Vector2(1, 1),
                                         },
@@ -241,7 +241,7 @@ namespace osu.Framework.Graphics.Performance
         }
 
         [BackgroundDependencyLoader]
-        private void load()
+        private void load(GameHost host)
         {
             //initialise background
             var columnUpload = new ArrayPoolTextureUpload(1, HEIGHT);
@@ -257,7 +257,12 @@ namespace osu.Framework.Graphics.Performance
 
             addArea(null, null, HEIGHT, amount_count_steps, columnUpload);
 
-            counterBarBackground?.Texture.SetData(columnUpload);
+            if (counterBarBackground != null)
+            {
+                counterBarBackground.Texture = new Texture(host.Renderer, 1, HEIGHT, true);
+                counterBarBackground.Texture.SetData(columnUpload);
+            }
+
             Schedule(() =>
             {
                 foreach (var t in timeBars)
@@ -513,8 +518,12 @@ namespace osu.Framework.Graphics.Performance
             {
                 Size = new Vector2(WIDTH, HEIGHT);
                 Child = Sprite = new Sprite();
+            }
 
-                Sprite.Texture = new Texture(WIDTH, HEIGHT, true) { TextureGL = { BypassTextureUploadQueueing = true } };
+            [BackgroundDependencyLoader]
+            private void load(GameHost host)
+            {
+                Sprite.Texture = new Texture(host.Renderer, WIDTH, HEIGHT, true) { TextureGL = { BypassTextureUploadQueueing = true } };
             }
         }
 

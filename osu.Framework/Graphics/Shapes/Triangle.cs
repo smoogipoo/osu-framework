@@ -3,11 +3,12 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.Textures;
+using osu.Framework.Allocation;
 using osuTK;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Rendering;
+using osu.Framework.Platform;
 
 namespace osu.Framework.Graphics.Shapes
 {
@@ -16,12 +17,10 @@ namespace osu.Framework.Graphics.Shapes
     /// </summary>
     public class Triangle : Sprite
     {
-        /// <summary>
-        /// Creates a new triangle with a white pixel as texture.
-        /// </summary>
-        public Triangle()
+        [BackgroundDependencyLoader]
+        private void load(GameHost host)
         {
-            Texture = Texture.WhitePixel;
+            Texture ??= host.Renderer.WhitePixel;
         }
 
         public override RectangleF BoundingBox => toTriangle(ToParentSpace(LayoutRectangle)).AABBFloat;

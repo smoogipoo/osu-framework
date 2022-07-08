@@ -18,6 +18,7 @@ using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Layout;
 using osu.Framework.Logging;
+using osu.Framework.Platform;
 using osu.Framework.Utils;
 using osuTK;
 using osuTK.Graphics;
@@ -30,17 +31,13 @@ namespace osu.Framework.Graphics.Audio
     public class WaveformGraph : Drawable
     {
         private IShader shader;
-        private readonly Texture texture;
-
-        public WaveformGraph()
-        {
-            texture = Texture.WhitePixel;
-        }
+        private Texture texture;
 
         [BackgroundDependencyLoader]
-        private void load(ShaderManager shaders)
+        private void load(ShaderManager shaders, GameHost host)
         {
             shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE_ROUNDED);
+            texture = host.Renderer.WhitePixel;
         }
 
         private float resolution = 1;
@@ -333,7 +330,7 @@ namespace osu.Framework.Graphics.Audio
                 vertexBatch ??= renderer.CreateQuadBatch<TexturedVertex2D>(1000, 10);
 
                 shader.Bind();
-                texture.TextureGL.Bind();
+                renderer.BindTexture(texture);
 
                 Vector2 localInflationAmount = new Vector2(0, 1) * DrawInfo.MatrixInverse.ExtractScale().Xy;
 

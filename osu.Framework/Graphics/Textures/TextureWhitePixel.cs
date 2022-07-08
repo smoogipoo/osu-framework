@@ -3,7 +3,6 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 
@@ -21,7 +20,7 @@ namespace osu.Framework.Graphics.Textures
             // We need non-zero texture bounds for EdgeSmoothness to work correctly.
             // Let's be very conservative and use a tenth of the size of a pixel in the
             // largest possible texture.
-            float smallestPixelTenth = 0.1f / GLWrapper.MaxTextureSize;
+            float smallestPixelTenth = 0.1f / TextureGL.MaxSize;
             return new RectangleF(0, 0, smallestPixelTenth, smallestPixelTenth);
         }
     }

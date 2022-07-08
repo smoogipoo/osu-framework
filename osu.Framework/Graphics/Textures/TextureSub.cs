@@ -23,6 +23,7 @@ namespace osu.Framework.Graphics.Textures
             WrapModeT = wrapModeT;
         }
 
+        public int MaxSize => parent.MaxSize;
         public Opacity Opacity => Opacity.Mixed;
         public WrapMode WrapModeS { get; }
         public WrapMode WrapModeT { get; }
@@ -45,6 +46,12 @@ namespace osu.Framework.Graphics.Textures
         {
             get => parent.BypassTextureUploadQueueing;
             set => throw new InvalidOperationException(); // Todo: I'm preeeeeetty sure this is correct, need to check.
+        }
+
+        bool ITexture.IsQueuedForUpload
+        {
+            get => parent.IsQueuedForUpload;
+            set => parent.IsQueuedForUpload = value;
         }
 
         public void SetData(ITextureUpload upload) => ((ITexture)this).SetData(upload, WrapModeS, WrapModeS, null);
@@ -77,7 +84,9 @@ namespace osu.Framework.Graphics.Textures
             parent.SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
         }
 
-        public bool Bind(TextureUnit unit = TextureUnit.Texture0) => parent.Bind(unit);
+        bool ITexture.Upload() => parent.Upload();
+
+        bool ITexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => parent.Bind(unit, wrapModeS, wrapModeT);
 
         public RectangleF GetTextureRect(RectangleF? textureRect) => parent.GetTextureRect(boundsInParent(textureRect));
 

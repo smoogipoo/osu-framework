@@ -153,7 +153,11 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             private readonly OpenGLRenderer renderer;
 
             public FrameBufferTexture(OpenGLRenderer renderer, Vector2 size, All filteringMode = All.Linear)
-                : base((int)Math.Ceiling(size.X), (int)Math.Ceiling(size.Y), true, filteringMode)
+                : base(renderer,
+                    Math.Clamp((int)Math.Ceiling(size.X), 1, renderer.MaxTextureSize),
+                    Math.Clamp((int)Math.Ceiling(size.Y), 1, renderer.MaxTextureSize)
+                    , true,
+                    filteringMode)
             {
                 this.renderer = renderer;
                 BypassTextureUploadQueueing = true;
@@ -165,13 +169,13 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             public override int Width
             {
                 get => base.Width;
-                set => base.Width = Math.Clamp(value, 1, renderer.MaxTextureSize);
+                set => base.Width = renderer == null ? value : Math.Clamp(value, 1, renderer.MaxTextureSize);
             }
 
             public override int Height
             {
                 get => base.Height;
-                set => base.Height = Math.Clamp(value, 1, renderer.MaxTextureSize);
+                set => base.Height = renderer == null ? value : Math.Clamp(value, 1, renderer.MaxTextureSize);
             }
         }
     }

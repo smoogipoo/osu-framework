@@ -9,6 +9,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Transforms;
+using osu.Framework.Platform;
 
 namespace osu.Framework.Graphics.UserInterface
 {
@@ -52,13 +53,14 @@ namespace osu.Framework.Graphics.UserInterface
             => this.TransformBindableTo(Current, newValue, duration, easing);
 
         [BackgroundDependencyLoader]
-        private void load(ShaderManager shaders)
+        private void load(GameHost host, ShaderManager shaders)
         {
+            texture = host.Renderer.WhitePixel;
             RoundedTextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE_ROUNDED);
             TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
         }
 
-        private Texture texture = Texture.WhitePixel;
+        private Texture texture;
 
         public Texture Texture
         {

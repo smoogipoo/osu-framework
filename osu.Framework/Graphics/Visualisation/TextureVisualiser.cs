@@ -261,7 +261,7 @@ namespace osu.Framework.Graphics.Visualisation
                     }
 
                     // texture
-                    texture.Bind();
+                    renderer.BindTexture(texture.TextureId);
                     renderer.DrawQuad(new Texture(texture), shrunkenQuad, Color4.White);
                 }
 

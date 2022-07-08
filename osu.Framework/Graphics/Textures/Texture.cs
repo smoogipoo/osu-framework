@@ -16,12 +16,6 @@ namespace osu.Framework.Graphics.Textures
 {
     public class Texture : IDisposable
     {
-        // in case no other textures are used in the project, create a new atlas as a fallback source for the white pixel area (used to draw boxes etc.)
-        private static readonly Lazy<TextureWhitePixel> white_pixel = new Lazy<TextureWhitePixel>(() =>
-            new TextureAtlas(TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
-
-        public static Texture WhitePixel => white_pixel.Value;
-
         public virtual ITexture TextureGL { get; }
 
         public string Filename;
@@ -55,8 +49,8 @@ namespace osu.Framework.Graphics.Textures
             TextureGL = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
         }
 
-        public Texture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
-            : this(new TextureGLSingle(width, height, manualMipmaps, filteringMode))
+        public Texture(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
+            : this(new TextureGLSingle(renderer, width, height, manualMipmaps, filteringMode))
         {
         }
 
@@ -85,10 +79,11 @@ namespace osu.Framework.Graphics.Textures
         /// <summary>
         /// Creates a texture from a data stream representing a bitmap.
         /// </summary>
+        /// <param name="renderer"></param>
         /// <param name="stream">The data stream containing the texture data.</param>
         /// <param name="atlas">The atlas to add the texture to.</param>
         /// <returns>The created texture.</returns>
-        public static Texture FromStream(Stream stream, TextureAtlas atlas = null)
+        public static Texture FromStream(IRenderer renderer, Stream stream, TextureAtlas atlas = null)
         {
             if (stream == null || stream.Length == 0)
                 return null;
@@ -96,7 +91,7 @@ namespace osu.Framework.Graphics.Textures
             try
             {
                 var data = new TextureUpload(stream);
-                Texture tex = atlas == null ? new Texture(data.Width, data.Height) : new Texture(atlas.Add(data.Width, data.Height));
+                Texture tex = atlas == null ? new Texture(renderer, data.Width, data.Height) : new Texture(atlas.Add(data.Width, data.Height));
                 tex.SetData(data);
                 return tex;
             }

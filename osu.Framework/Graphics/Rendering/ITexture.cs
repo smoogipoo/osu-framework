@@ -12,6 +12,11 @@ namespace osu.Framework.Graphics.Rendering
     public interface ITexture : IDisposable
     {
         /// <summary>
+        /// Maximum texture size in any direction.
+        /// </summary>
+        int MaxSize { get; }
+
+        /// <summary>
         /// Whether the texture is opaque, transparent, or a mix of both.
         /// </summary>
         Opacity Opacity { get; }
@@ -49,6 +54,11 @@ namespace osu.Framework.Graphics.Rendering
         bool BypassTextureUploadQueueing { get; set; }
 
         /// <summary>
+        /// Whether the texture is currently queued for upload.
+        /// </summary>
+        internal bool IsQueuedForUpload { get; set; }
+
+        /// <summary>
         /// Sets the pixel data of the texture.
         /// </summary>
         /// <param name="upload">The <see cref="ITextureUpload"/> containing the data.</param>
@@ -63,12 +73,9 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="uploadOpacity">Whether the upload is opaque, transparent, or a mix of both.</param>
         internal void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity);
 
-        /// <summary>
-        /// Bind as active texture.
-        /// </summary>
-        /// <param name="unit">The texture unit to bind to. Defaults to Texture0.</param>
-        /// <returns>True if bind was successful.</returns>
-        bool Bind(TextureUnit unit = TextureUnit.Texture0);
+        internal bool Upload();
+
+        internal bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT);
 
         RectangleF GetTextureRect(RectangleF? textureRect);
     }

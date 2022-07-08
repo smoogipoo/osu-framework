@@ -3,10 +3,12 @@
 
 #nullable disable
 
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Platform;
 using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,23 +17,27 @@ namespace osu.Framework.Tests.Visual.UserInterface
 {
     public class TestSceneCircularProgress : FrameworkTestScene
     {
-        private readonly CircularProgress clock;
+        private CircularProgress clock;
+
+        [Resolved]
+        private GameHost host { get; set; }
 
         private int rotateMode;
         private const double period = 4000;
         private const double transition_period = 2000;
 
-        private readonly Texture gradientTextureHorizontal;
-        private readonly Texture gradientTextureVertical;
-        private readonly Texture gradientTextureBoth;
+        private Texture gradientTextureHorizontal;
+        private Texture gradientTextureVertical;
+        private Texture gradientTextureBoth;
 
-        public TestSceneCircularProgress()
+        [BackgroundDependencyLoader]
+        private void load()
         {
             const int width = 128;
 
             var image = new Image<Rgba32>(width, 1);
 
-            gradientTextureHorizontal = new Texture(width, 1, true);
+            gradientTextureHorizontal = new Texture(host.Renderer, width, 1, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -43,7 +49,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             image = new Image<Rgba32>(width, 1);
 
-            gradientTextureVertical = new Texture(1, width, true);
+            gradientTextureVertical = new Texture(host.Renderer, 1, width, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -55,7 +61,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             image = new Image<Rgba32>(width, width);
 
-            gradientTextureBoth = new Texture(width, width, true);
+            gradientTextureBoth = new Texture(host.Renderer, width, width, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -149,7 +155,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
             switch (textureMode)
             {
                 case 0:
-                    clock.Texture = Texture.WhitePixel;
+                    clock.Texture = host.Renderer.WhitePixel;
                     break;
 
                 case 1:

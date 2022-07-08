@@ -4,12 +4,14 @@
 #nullable disable
 
 using System;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osu.Framework.Testing;
 using osuTK;
 using osuTK.Graphics;
@@ -24,8 +26,13 @@ namespace osu.Framework.Tests.Visual.Input
         public TestSceneInputResampler()
             : base(3, 3)
         {
+        }
+
+        [BackgroundDependencyLoader]
+        private void load(GameHost host)
+        {
             const int width = 2;
-            Texture gradientTexture = new Texture(width, 1, true);
+            Texture gradientTexture = new Texture(host.Renderer, width, 1, true);
             var image = new Image<Rgba32>(width, 1);
 
             for (int i = 0; i < width; ++i)

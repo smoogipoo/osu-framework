@@ -4,8 +4,10 @@
 #nullable disable
 
 using System;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Platform;
 
 namespace osu.Framework.Graphics.Shapes
 {
@@ -14,9 +16,10 @@ namespace osu.Framework.Graphics.Shapes
     /// </summary>
     public class Box : Sprite
     {
-        public Box()
+        [BackgroundDependencyLoader]
+        private void load(GameHost host)
         {
-            base.Texture = Texture.WhitePixel;
+            base.Texture = host.Renderer.WhitePixel;
         }
 
         public override Texture Texture

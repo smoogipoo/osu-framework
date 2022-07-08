@@ -126,6 +126,11 @@ namespace osu.Framework.Graphics.Rendering
         bool UsingBackbuffer { get; }
 
         /// <summary>
+        /// The texture for a white pixel.
+        /// </summary>
+        Texture WhitePixel { get; }
+
+        /// <summary>
         /// Performs a once-off initialisation of this <see cref="IRenderer"/>.
         /// </summary>
         internal void Initialise();
@@ -174,7 +179,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="wrapModeS">The texture's horizontal wrap mode.</param>
         /// <param name="wrapModeT">The texture's vertex wrap mode.</param>
         /// <returns>Whether <paramref name="texture"/> was newly-bound.</returns>
-        bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None);
+        bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null);
 
         /// <summary>
         /// Binds a texture.
@@ -289,6 +294,12 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="disposalAction">The disposal action.</param>
         /// <param name="target">The target to be disposed.</param>
         void ScheduleDisposal<T>(Action<T> disposalAction, T target);
+
+        /// <summary>
+        /// Enqueues a texture to be uploaded in the next frame.
+        /// </summary>
+        /// <param name="texture">The texture to be uploaded.</param>
+        void EnqueueTextureUpload(ITexture texture);
 
         /// <summary>
         /// Creates a new <see cref="IFrameBuffer"/>.

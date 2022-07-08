@@ -59,6 +59,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <summary>
         /// Creates a new <see cref="TextureGLSingle"/>.
         /// </summary>
+        /// <param name="renderer"></param>
         /// <param name="width">The width of the texture.</param>
         /// <param name="height">The height of the texture.</param>
         /// <param name="manualMipmaps">Whether manual mipmaps will be uploaded to the texture. If false, the texture will compute mipmaps automatically.</param>
@@ -66,8 +67,9 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
         /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
         /// <param name="initialisationColour">The colour to initialise texture levels with (in the case of sub region initial uploads).</param>
-        public TextureGLSingle(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
-            : base(wrapModeS, wrapModeT)
+        public TextureGLSingle(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
+                               WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
+            : base(renderer, wrapModeS, wrapModeT)
         {
             Width = width;
             Height = height;
@@ -101,7 +103,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             while (tryGetNextUpload(out var upload))
                 upload.Dispose();
 
-            GLWrapper.ScheduleDisposal(texture =>
+            Renderer.ScheduleDisposal(texture =>
             {
                 int disposableId = texture.textureId;
 
@@ -214,6 +216,9 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             if (!Available)
                 throw new ObjectDisposedException(ToString(), "Can not set data of a disposed texture.");
 
+            if (upload.Bounds.Width > Renderer.MaxTextureSize || Bounds.Height > Renderer.MaxTextureSize)
+                throw new TextureTooLargeForGLException();
+
             if (upload.Bounds.IsEmpty && upload.Data.Length > 0)
             {
                 upload.Bounds = Bounds;
@@ -229,7 +234,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
                 uploadQueue.Enqueue(upload);
 
                 if (requireUpload && !BypassTextureUploadQueueing)
-                    GLWrapper.EnqueueTextureUpload(this);
+                    Renderer.EnqueueTextureUpload(this);
             }
         }
 
@@ -243,7 +248,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             if (textureId <= 0)
                 return false;
 
-            if (GLWrapper.BindTexture(this, unit, wrapModeS, wrapModeT))
+            if (Renderer.BindTexture(textureId, unit, wrapModeS, wrapModeT))
                 BindCount++;
 
             return true;
@@ -318,7 +323,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
                     textureId = textures[0];
 
-                    GLWrapper.BindTexture(this);
+                    Renderer.BindTexture(textureId);
 
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, IRenderer.MAX_MIPMAP_LEVELS);
@@ -335,7 +340,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
                 }
                 else
-                    GLWrapper.BindTexture(this);
+                    Renderer.BindTexture(textureId);
 
                 if ((width == upload.Bounds.Width && height == upload.Bounds.Height) || dataPointer == IntPtr.Zero)
                 {
@@ -353,7 +358,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             // Just update content of the current texture
             else if (dataPointer != IntPtr.Zero)
             {
-                GLWrapper.BindTexture(this);
+                Renderer.BindTexture(textureId);
 
                 if (!manualMipmaps && upload.Level > 0)
                 {

@@ -7,6 +7,7 @@ using System;
 using osu.Framework.Allocation;
 using osu.Framework.Caching;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Platform;
 using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,6 +16,9 @@ namespace osu.Framework.Graphics.Lines
 {
     public class SmoothPath : Path
     {
+        [Resolved]
+        private GameHost host { get; set; }
+
         [BackgroundDependencyLoader]
         private void load()
         {
@@ -63,7 +67,7 @@ namespace osu.Framework.Graphics.Lines
                 raw[i, 0] = new Rgba32(colour.R, colour.G, colour.B, colour.A * Math.Min(progress / aa_portion, 1));
             }
 
-            var texture = new DisposableTexture(textureWidth, 1, true);
+            var texture = new DisposableTexture(host.Renderer, textureWidth, 1, true);
             texture.SetData(new TextureUpload(raw));
             Texture = texture;
 

@@ -12,6 +12,7 @@ using osu.Framework.Allocation;
 using System.Collections.Generic;
 using osu.Framework.Caching;
 using osu.Framework.Extensions.EnumExtensions;
+using osu.Framework.Platform;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
 
@@ -22,6 +23,9 @@ namespace osu.Framework.Graphics.Lines
         public IShader RoundedTextureShader { get; private set; }
         public IShader TextureShader { get; private set; }
         private IShader pathShader;
+
+        [Resolved]
+        private GameHost host { get; set; }
 
         public Path()
         {
@@ -259,7 +263,7 @@ namespace osu.Framework.Graphics.Lines
 
         protected Texture Texture
         {
-            get => texture ?? Texture.WhitePixel;
+            get => texture ?? host.Renderer.WhitePixel;
             set
             {
                 if (texture == value)
