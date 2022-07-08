@@ -20,6 +20,7 @@ using osu.Framework.Timing;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace osu.Framework.Graphics.OpenGL
 {
@@ -752,6 +753,10 @@ namespace osu.Framework.Graphics.OpenGL
 
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex
             => new QuadBatch<TVertex>(this, size, maxBuffers);
+
+        public ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
+                                      Rgba32 initialisationColour = default)
+            => new TextureGLSingle(width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {

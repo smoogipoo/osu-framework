@@ -12,6 +12,7 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics.ES30;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace osu.Framework.Graphics.Rendering
 {
@@ -311,6 +312,11 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="size">Number of quads.</param>
         /// <param name="maxBuffers">Maximum number of vertex buffers.</param>
         IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex;
+
+        /// <summary>
+        /// Creates a new texture.
+        /// </summary>
+        ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default);
 
         /// <summary>
         /// Sets the value of a uniform.

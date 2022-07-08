@@ -262,8 +262,8 @@ namespace osu.Framework.Tests.Visual.Sprites
                 var host = parent.Get<GameHost>();
 
                 BlockingOnlineStore = new BlockingResourceStore(new NamespacedResourceStore<byte[]>(game.Resources, "Textures"));
-                NormalStore = new TextureStore(host.CreateTextureLoaderStore(BlockingOnlineStore));
-                LargeStore = new LargeTextureStore(host.CreateTextureLoaderStore(BlockingOnlineStore));
+                NormalStore = new TextureStore(host.Renderer, host.CreateTextureLoaderStore(BlockingOnlineStore));
+                LargeStore = new LargeTextureStore(host.Renderer, host.CreateTextureLoaderStore(BlockingOnlineStore));
 
                 return base.CreateChildDependencies(parent);
             }

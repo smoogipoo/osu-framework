@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using osu.Framework.Extensions;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Logging;
 using osuTK.Graphics.ES30;
 
@@ -43,7 +44,7 @@ namespace osu.Framework.Graphics.Textures
         /// </summary>
         public readonly float ScaleAdjust;
 
-        public TextureStore(IResourceStore<TextureUpload> store = null, bool useAtlas = true, All filteringMode = All.Linear, bool manualMipmaps = false, float scaleAdjust = 2)
+        public TextureStore(IRenderer renderer, IResourceStore<TextureUpload> store = null, bool useAtlas = true, All filteringMode = All.Linear, bool manualMipmaps = false, float scaleAdjust = 2)
         {
             if (store != null)
                 AddTextureSource(store);
