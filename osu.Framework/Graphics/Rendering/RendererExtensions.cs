@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.Colour;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Buffers;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
@@ -32,15 +31,15 @@ namespace osu.Framework.Graphics.Rendering
             Vector2 inflationAmount = inflationPercentage.HasValue ? new Vector2(inflationPercentage.Value.X * texRect.Width, inflationPercentage.Value.Y * texRect.Height) : Vector2.Zero;
 
             // If clamp to edge is active, allow the texture coordinates to penetrate by half the repeated atlas margin width
-            if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge || GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
+            if (renderer.CurrentWrapModeS == WrapMode.ClampToEdge || renderer.CurrentWrapModeT == WrapMode.ClampToEdge)
             {
                 Vector2 inflationVector = Vector2.Zero;
 
                 const int mipmap_padding_requirement = (1 << IRenderer.MAX_MIPMAP_LEVELS) / 2;
 
-                if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge)
+                if (renderer.CurrentWrapModeS == WrapMode.ClampToEdge)
                     inflationVector.X = mipmap_padding_requirement / (float)texture.Width;
-                if (GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
+                if (renderer.CurrentWrapModeT == WrapMode.ClampToEdge)
                     inflationVector.Y = mipmap_padding_requirement / (float)texture.Height;
                 texRect = texRect.Inflate(inflationVector);
             }
@@ -106,15 +105,15 @@ namespace osu.Framework.Graphics.Rendering
             Vector2 inflationAmount = inflationPercentage.HasValue ? new Vector2(inflationPercentage.Value.X * texRect.Width, inflationPercentage.Value.Y * texRect.Height) : Vector2.Zero;
 
             // If clamp to edge is active, allow the texture coordinates to penetrate by half the repeated atlas margin width
-            if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge || GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
+            if (renderer.CurrentWrapModeS == WrapMode.ClampToEdge || renderer.CurrentWrapModeT == WrapMode.ClampToEdge)
             {
                 Vector2 inflationVector = Vector2.Zero;
 
                 const int mipmap_padding_requirement = (1 << IRenderer.MAX_MIPMAP_LEVELS) / 2;
 
-                if (GLWrapper.CurrentWrapModeS == WrapMode.ClampToEdge)
+                if (renderer.CurrentWrapModeS == WrapMode.ClampToEdge)
                     inflationVector.X = mipmap_padding_requirement / (float)texture.Width;
-                if (GLWrapper.CurrentWrapModeT == WrapMode.ClampToEdge)
+                if (renderer.CurrentWrapModeT == WrapMode.ClampToEdge)
                     inflationVector.Y = mipmap_padding_requirement / (float)texture.Height;
                 texRect = texRect.Inflate(inflationVector);
             }
@@ -177,7 +176,7 @@ namespace osu.Framework.Graphics.Rendering
                                           Vector2? inflationPercentage = null, RectangleF? textureCoords = null)
             where T : IConvexPolygon
         {
-            var maskingQuad = GLWrapper.CurrentMaskingInfo.ConservativeScreenSpaceQuad;
+            var maskingQuad = renderer.CurrentMaskingInfo.ConservativeScreenSpaceQuad;
 
             var clipper = new ConvexPolygonClipper<Quad, T>(ref maskingQuad, ref polygon);
             Span<Vector2> buffer = stackalloc Vector2[clipper.GetClipBufferSize()];
