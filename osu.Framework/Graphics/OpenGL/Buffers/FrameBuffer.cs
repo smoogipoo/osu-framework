@@ -68,7 +68,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             renderer.BindFrameBuffer(frameBuffer);
 
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget2d.Texture2D, textureGL.TextureId, 0);
-            renderer.BindTexture(null);
+            renderer.BindTexture(0);
 
             if (renderBufferFormats != null)
             {
