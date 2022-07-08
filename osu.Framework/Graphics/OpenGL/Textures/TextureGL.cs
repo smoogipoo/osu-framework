@@ -12,17 +12,17 @@ using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Graphics.OpenGL.Textures
 {
-    public abstract class TextureGL : ITexture, IDisposable
+    public abstract class TextureGL : ITexture
     {
         /// <summary>
         /// The texture wrap mode in horizontal direction.
         /// </summary>
-        public readonly WrapMode WrapModeS;
+        public WrapMode WrapModeS { get; }
 
         /// <summary>
         /// The texture wrap mode in vertical direction.
         /// </summary>
-        public readonly WrapMode WrapModeT;
+        public WrapMode WrapModeT { get; }
 
         protected TextureGL(WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
@@ -39,7 +39,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// When this is true, this will be bypassed and textures will only be uploaded on use. Should be set for every-frame texture uploads
         /// to avoid overloading the global queue.
         /// </summary>
-        public bool BypassTextureUploadQueueing;
+        public bool BypassTextureUploadQueueing { get; set; }
 
         /// <summary>
         /// Whether this <see cref="TextureGL"/> can used for drawing.
@@ -116,6 +116,8 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// </summary>
         /// <param name="upload">The <see cref="ITextureUpload"/> containing the data.</param>
         public void SetData(ITextureUpload upload) => SetData(upload, WrapModeS, WrapModeT, null);
+
+        void ITexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity) => SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
 
         /// <summary>
         /// Sets the pixel data of this <see cref="TextureGLAtlas"/>.

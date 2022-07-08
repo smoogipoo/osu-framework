@@ -5,7 +5,7 @@
 
 using System;
 using System.Threading;
-using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Textures
 {
@@ -16,7 +16,7 @@ namespace osu.Framework.Graphics.Textures
     {
         private readonly ReferenceCount count;
 
-        public TextureWithRefCount(TextureGL textureGl, ReferenceCount count)
+        public TextureWithRefCount(ITexture textureGl, ReferenceCount count)
             : base(textureGl)
         {
             this.count = count;
@@ -24,7 +24,7 @@ namespace osu.Framework.Graphics.Textures
             count.Increment();
         }
 
-        public sealed override TextureGL TextureGL
+        public sealed override ITexture TextureGL
         {
             get
             {

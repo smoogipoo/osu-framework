@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Rendering;
 using osuTK;
 using osuTK.Graphics.ES30;
 using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
@@ -21,7 +22,7 @@ namespace osu.Framework.Graphics.Textures
 
         public static Texture WhitePixel => white_pixel.Value;
 
-        public virtual TextureGL TextureGL { get; }
+        public virtual ITexture TextureGL { get; }
 
         public string Filename;
         public string AssetName;
@@ -49,7 +50,7 @@ namespace osu.Framework.Graphics.Textures
         /// Create a new texture.
         /// </summary>
         /// <param name="textureGl">The GL texture.</param>
-        public Texture(TextureGL textureGl)
+        public Texture(ITexture textureGl)
         {
             TextureGL = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
         }
@@ -78,7 +79,7 @@ namespace osu.Framework.Graphics.Textures
                 cropRectangle *= scale;
             }
 
-            return new Texture(new TextureGLSub(cropRectangle, TextureGL, wrapModeS, wrapModeT));
+            return new Texture(new TextureSub(TextureGL, cropRectangle, wrapModeS, wrapModeT));
         }
 
         /// <summary>

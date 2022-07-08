@@ -3,17 +3,17 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.OpenGL.Textures;
+using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Textures
 {
     /// <summary>
-    /// A texture which can cleans up any resources held by the underlying <see cref="TextureGL"/> on <see cref="Dispose"/>.
+    /// A texture which can cleans up any resources held by the underlying <see cref="ITexture"/> on <see cref="Dispose"/>.
     /// </summary>
     public class DisposableTexture : Texture
     {
-        public DisposableTexture(TextureGL textureGl)
+        public DisposableTexture(ITexture textureGl)
             : base(textureGl)
         {
         }

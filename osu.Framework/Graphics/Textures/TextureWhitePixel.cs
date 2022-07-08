@@ -4,14 +4,14 @@
 #nullable disable
 
 using osu.Framework.Graphics.OpenGL;
-using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Textures
 {
     internal class TextureWhitePixel : Texture
     {
-        public TextureWhitePixel(TextureGL textureGl)
+        public TextureWhitePixel(ITexture textureGl)
             : base(textureGl)
         {
         }

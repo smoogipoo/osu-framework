@@ -43,7 +43,7 @@ namespace osu.Framework.Graphics.Textures
                 if (AtlasTexture == null)
                     Reset();
 
-                return new TextureWhitePixel(new TextureGLAtlasWhite(AtlasTexture));
+                return new TextureWhitePixel(new TextureSubAtlasWhite(AtlasTexture));
             }
         }
 
@@ -73,7 +73,7 @@ namespace osu.Framework.Graphics.Textures
             RectangleI bounds = new RectangleI(0, 0, WHITE_PIXEL_SIZE, WHITE_PIXEL_SIZE);
             subTextureBounds.Add(bounds);
 
-            using (var whiteTex = new TextureGLSub(bounds, AtlasTexture, WrapMode.Repeat, WrapMode.Repeat))
+            using (var whiteTex = new TextureSub(AtlasTexture, bounds, WrapMode.Repeat, WrapMode.Repeat))
                 // Generate white padding as if WhitePixel was wrapped, even though it isn't
                 whiteTex.SetData(new TextureUpload(new Image<Rgba32>(SixLabors.ImageSharp.Configuration.Default, whiteTex.Width, whiteTex.Height, new Rgba32(Vector4.One))));
 
@@ -88,7 +88,7 @@ namespace osu.Framework.Graphics.Textures
         /// <param name="wrapModeS">The horizontal wrap mode of the texture.</param>
         /// <param name="wrapModeT">The vertical wrap mode of the texture.</param>
         /// <returns>A texture, or null if the requested size exceeds the atlas' bounds.</returns>
-        internal TextureGL Add(int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        internal ITexture Add(int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
             if (!canFitEmptyTextureAtlas(width, height)) return null;
 
@@ -98,7 +98,7 @@ namespace osu.Framework.Graphics.Textures
                 RectangleI bounds = new RectangleI(position.X, position.Y, width, height);
                 subTextureBounds.Add(bounds);
 
-                return new TextureGLSub(bounds, AtlasTexture, wrapModeS, wrapModeT);
+                return new TextureSub(AtlasTexture, bounds, wrapModeS, wrapModeT);
             }
         }
 

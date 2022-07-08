@@ -313,7 +313,13 @@ namespace osu.Framework.Graphics.OpenGL
 
         public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            bool didBind = BindTexture(texture.TextureGL.TextureId, unit, wrapModeS, wrapModeT);
+            if (texture.TextureGL is TextureSubAtlasWhite && atlasTextureIsBound(unit))
+            {
+                // We can use the special white space from any atlas texture.
+                return true;
+            }
+
+            bool didBind = texture.TextureGL.Bind(unit);
             lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
 
             return didBind;
