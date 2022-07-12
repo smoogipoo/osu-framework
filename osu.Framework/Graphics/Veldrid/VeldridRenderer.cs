@@ -96,16 +96,14 @@ namespace osu.Framework.Graphics.Veldrid
         private bool isInitialised;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
 
+        public GraphicsDevice Device { get; set; }
+
+
         void IRenderer.Initialise()
         {
-            string version = GL.GetString(StringName.Version);
-            IsEmbedded = version.Contains("OpenGL ES"); // As defined by https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetString.xml
-
-            MaxTextureSize = GL.GetInteger(GetPName.MaxTextureSize);
-            MaxRenderBufferSize = GL.GetInteger(GetPName.MaxRenderbufferSize);
-
-            GL.Disable(EnableCap.StencilTest);
-            GL.Enable(EnableCap.Blend);
+            // todo: port device creation logic (https://github.com/frenzibyte/osu-framework/blob/3e9458b007b1de1eaaa5f0483387c862f27bb331/osu.Framework/Graphics/Veldrid/Vd_Device.cs#L21-L240)
+            // that requires further thought as it includes acquiring the current window and display handle.
+            Device = null!;
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
