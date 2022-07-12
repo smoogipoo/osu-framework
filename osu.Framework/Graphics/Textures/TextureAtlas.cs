@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.Sprites;
@@ -70,7 +71,7 @@ namespace osu.Framework.Graphics.Textures
 
             // We pass PADDING/2 as opposed to PADDING such that the padded region of each individual texture
             // occupies half of the padded space.
-            AtlasTexture = new TextureGLAtlas(renderer, atlasWidth, atlasHeight, manualMipmaps, filteringMode, PADDING / 2);
+            AtlasTexture = new TextureGLAtlas((OpenGLRenderer)renderer, atlasWidth, atlasHeight, manualMipmaps, filteringMode, PADDING / 2);
 
             RectangleI bounds = new RectangleI(0, 0, WHITE_PIXEL_SIZE, WHITE_PIXEL_SIZE);
             subTextureBounds.Add(bounds);

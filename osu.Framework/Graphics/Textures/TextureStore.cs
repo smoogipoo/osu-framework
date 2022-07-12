@@ -116,7 +116,7 @@ namespace osu.Framework.Graphics.Textures
                 }
             }
 
-            nativeTexture ??= new TextureGLSingle(renderer, upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
+            nativeTexture ??= renderer.CreateTexture(upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
 
             Texture tex = new Texture(nativeTexture) { ScaleAdjust = ScaleAdjust };
             tex.SetData(upload);

@@ -19,6 +19,7 @@ using JetBrains.Annotations;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions.EnumExtensions;
+using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
@@ -640,7 +641,7 @@ namespace osu.Framework.Graphics.Video
                     continue;
 
                 if (!availableTextures.TryDequeue(out var tex))
-                    tex = new Texture(new VideoTexture(renderer, frame.Pointer->width, frame.Pointer->height));
+                    tex = new Texture(new VideoTexture((OpenGLRenderer)renderer, frame.Pointer->width, frame.Pointer->height));
 
                 var upload = new VideoTextureUpload(frame);
 

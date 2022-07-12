@@ -6,7 +6,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,7 +26,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         private static readonly Rgba32 initialisation_colour = default;
 
-        public TextureGLAtlas(IRenderer renderer, int width, int height, bool manualMipmaps, All filteringMode = All.Linear, int padding = 0)
+        public TextureGLAtlas(OpenGLRenderer renderer, int width, int height, bool manualMipmaps, All filteringMode = All.Linear, int padding = 0)
             : base(renderer, width, height, manualMipmaps, filteringMode, initialisationColour: initialisation_colour)
         {
             this.padding = padding;

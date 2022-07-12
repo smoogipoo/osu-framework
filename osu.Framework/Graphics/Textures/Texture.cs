@@ -50,7 +50,7 @@ namespace osu.Framework.Graphics.Textures
         }
 
         public Texture(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
-            : this(new TextureGLSingle(renderer, width, height, manualMipmaps, filteringMode))
+            : this(renderer.CreateTexture(width, height, manualMipmaps, filteringMode))
         {
         }
 

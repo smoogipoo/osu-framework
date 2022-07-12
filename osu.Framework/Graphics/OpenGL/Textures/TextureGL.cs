@@ -14,7 +14,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 {
     public abstract class TextureGL : ITexture
     {
-        protected readonly IRenderer Renderer;
+        protected readonly OpenGLRenderer Renderer;
 
         /// <summary>
         /// The texture wrap mode in horizontal direction.
@@ -26,7 +26,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// </summary>
         public WrapMode WrapModeT { get; }
 
-        protected TextureGL(IRenderer renderer, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        protected TextureGL(OpenGLRenderer renderer, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
             Renderer = renderer;
             WrapModeS = wrapModeS;
