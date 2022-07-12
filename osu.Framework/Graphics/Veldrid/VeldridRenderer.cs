@@ -14,16 +14,13 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
-using osu.Framework.Platform;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
-using SDL2;
 using Veldrid;
-using PixelFormat = Veldrid.PixelFormat;
 using Shader = osu.Framework.Graphics.Shaders.Shader;
 using Texture = osu.Framework.Graphics.Textures.Texture;
 
@@ -96,14 +93,24 @@ namespace osu.Framework.Graphics.Veldrid
         private bool isInitialised;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
 
-        public GraphicsDevice Device { get; set; }
+        public GraphicsDevice Device { get; private set; } = null!;
 
+        public ResourceFactory Factory => Device.ResourceFactory;
+
+        private GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
+        {
+            RasterizerState = RasterizerStateDescription.CullNone,
+        };
+
+        private static readonly GlobalStatistic<int> stat_graphics_pipeline_created = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Total pipelines created");
 
         void IRenderer.Initialise()
         {
             // todo: port device creation logic (https://github.com/frenzibyte/osu-framework/blob/3e9458b007b1de1eaaa5f0483387c862f27bb331/osu.Framework/Graphics/Veldrid/Vd_Device.cs#L21-L240)
             // that requires further thought as it includes acquiring the current window and display handle.
             Device = null!;
+
+            pipelineDescription.Outputs = Device.SwapchainFramebuffer.OutputDescription;
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
@@ -115,6 +122,21 @@ namespace osu.Framework.Graphics.Veldrid
         {
             disposalQueue.CheckPendingDisposals();
         }
+
+        private readonly Dictionary<GraphicsPipelineDescription, Pipeline> pipelineCache = new Dictionary<GraphicsPipelineDescription, Pipeline>();
+
+        private Pipeline getPipeline()
+        {
+            if (!pipelineCache.TryGetValue(pipelineDescription, out var pipeline))
+            {
+                pipelineCache[pipelineDescription] = pipeline = Factory.CreateGraphicsPipeline(pipelineDescription);
+                stat_graphics_pipeline_created.Value++;
+            }
+
+            return pipeline;
+        }
+
+        #region IRenderer stuff
 
         void IRenderer.BeginFrame(Vector2 windowSize)
         {
@@ -842,5 +864,7 @@ namespace osu.Framework.Graphics.Veldrid
         {
             lastActiveBatch?.Draw();
         }
+
+        #endregion
     }
 }
