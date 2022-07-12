@@ -112,7 +112,7 @@ namespace osu.Framework.Graphics.Veldrid
         internal static readonly ResourceLayoutDescription UNIFORM_LAYOUT = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("m_Uniforms", ResourceKind.UniformBuffer, ShaderStages.Fragment | ShaderStages.Vertex));
 
-        private GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
+        private GraphicsPipelineDescription pipeline = new GraphicsPipelineDescription
         {
             RasterizerState = RasterizerStateDescription.CullNone,
         };
@@ -129,9 +129,9 @@ namespace osu.Framework.Graphics.Veldrid
 
             uniformLayout = Factory.CreateResourceLayout(UNIFORM_LAYOUT);
 
-            pipelineDescription.ResourceLayouts = new ResourceLayout[2];
-            pipelineDescription.ResourceLayouts[UNIFORM_RESOURCE_SLOT] = uniformLayout;
-            pipelineDescription.Outputs = Device.SwapchainFramebuffer.OutputDescription;
+            pipeline.ResourceLayouts = new ResourceLayout[2];
+            pipeline.ResourceLayouts[UNIFORM_RESOURCE_SLOT] = uniformLayout;
+            pipeline.Outputs = Device.SwapchainFramebuffer.OutputDescription;
 
             var defaultTexture = Factory.CreateTexture(TextureDescription.Texture2D(1, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled));
             Device.UpdateTexture(defaultTexture, new ReadOnlySpan<Rgba32>(new[] { new Rgba32(0, 0, 0) }), 0, 0, 0, 1, 1, 1, 0, 0);
@@ -150,15 +150,15 @@ namespace osu.Framework.Graphics.Veldrid
 
         private readonly Dictionary<GraphicsPipelineDescription, Pipeline> pipelineCache = new Dictionary<GraphicsPipelineDescription, Pipeline>();
 
-        private Pipeline getPipeline()
+        private Pipeline getPipelineInstance()
         {
-            if (!pipelineCache.TryGetValue(pipelineDescription, out var pipeline))
+            if (!pipelineCache.TryGetValue(pipeline, out var instance))
             {
-                pipelineCache[pipelineDescription] = pipeline = Factory.CreateGraphicsPipeline(pipelineDescription);
+                pipelineCache[pipeline] = instance = Factory.CreateGraphicsPipeline(this.pipeline);
                 stat_graphics_pipeline_created.Value++;
             }
 
-            return pipeline;
+            return instance;
         }
 
         #region IRenderer stuff
@@ -346,10 +346,7 @@ namespace osu.Framework.Graphics.Veldrid
 
             currentScissorState = enabled;
 
-            if (enabled)
-                GL.Enable(EnableCap.ScissorTest);
-            else
-                GL.Disable(EnableCap.ScissorTest);
+            pipeline.RasterizerState.ScissorTestEnabled = enabled;
         }
 
         public bool BindBuffer(BufferTarget target, int buffer)
@@ -418,25 +415,7 @@ namespace osu.Framework.Graphics.Veldrid
 
             flushCurrentBatch();
 
-            if (blendingParameters.IsDisabled)
-            {
-                if (!lastBlendingEnabledState.HasValue || lastBlendingEnabledState.Value)
-                    GL.Disable(EnableCap.Blend);
-
-                lastBlendingEnabledState = false;
-            }
-            else
-            {
-                if (!lastBlendingEnabledState.HasValue || !lastBlendingEnabledState.Value)
-                    GL.Enable(EnableCap.Blend);
-
-                lastBlendingEnabledState = true;
-
-                GL.BlendEquationSeparate(blendingParameters.RGBEquationMode, blendingParameters.AlphaEquationMode);
-                GL.BlendFuncSeparate(blendingParameters.SourceBlendingFactor, blendingParameters.DestinationBlendingFactor,
-                    blendingParameters.SourceAlphaBlendingFactor, blendingParameters.DestinationAlphaBlendingFactor);
-            }
-
+            pipeline.BlendState = new BlendStateDescription(default, blendingParameters.ToBlendAttachment());
             lastBlendingParameters = blendingParameters;
         }
 
@@ -712,15 +691,9 @@ namespace osu.Framework.Graphics.Veldrid
         {
             flushCurrentBatch();
 
-            if (depthInfo.DepthTest)
-            {
-                GL.Enable(EnableCap.DepthTest);
-                GL.DepthFunc(depthInfo.Function);
-            }
-            else
-                GL.Disable(EnableCap.DepthTest);
-
-            GL.DepthMask(depthInfo.WriteDepth);
+            pipeline.DepthStencilState.DepthTestEnabled = depthInfo.DepthTest;
+            pipeline.DepthStencilState.DepthWriteEnabled = depthInfo.WriteDepth;
+            pipeline.DepthStencilState.DepthComparison = depthInfo.Function.ToComparisonKind();
         }
 
         public void BindFrameBuffer(int frameBuffer)
