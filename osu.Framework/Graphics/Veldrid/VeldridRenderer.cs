@@ -56,7 +56,7 @@ namespace osu.Framework.Graphics.Veldrid
         public float BackbufferDrawDepth { get; private set; }
         public bool UsingBackbuffer => frameBufferStack.Count > 0 && frameBufferStack.Peek() == BackbufferFramebuffer;
 
-        protected virtual int BackbufferFramebuffer => 0;
+        protected Framebuffer BackbufferFramebuffer { get; private set; }
 
         private readonly GlobalStatistic<int> statExpensiveOperationsQueued = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Expensive operation queue length");
         private readonly GlobalStatistic<int> statTextureUploadsQueued = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Texture upload queue length");
@@ -80,7 +80,7 @@ namespace osu.Framework.Graphics.Veldrid
         private readonly Stack<Vector2I> scissorOffsetStack = new Stack<Vector2I>();
         private readonly Stack<Shader> shaderStack = new Stack<Shader>();
         private readonly Stack<bool> scissorStateStack = new Stack<bool>();
-        private readonly Stack<int> frameBufferStack = new Stack<int>();
+        private readonly Stack<Framebuffer> frameBufferStack = new Stack<Framebuffer>();
         private readonly bool[] lastBoundTextureIsAtlas = new bool[16];
         private readonly int[] lastBoundBuffers = new int[2];
         private readonly int[] lastBoundTexture = new int[16];
@@ -129,9 +129,11 @@ namespace osu.Framework.Graphics.Veldrid
 
             uniformLayout = Factory.CreateResourceLayout(UNIFORM_LAYOUT);
 
+            BackbufferFramebuffer = Device.SwapchainFramebuffer;
+
             pipeline.ResourceLayouts = new ResourceLayout[2];
             pipeline.ResourceLayouts[UNIFORM_RESOURCE_SLOT] = uniformLayout;
-            pipeline.Outputs = Device.SwapchainFramebuffer.OutputDescription;
+            pipeline.Outputs = BackbufferFramebuffer.OutputDescription;
 
             var defaultTexture = Factory.CreateTexture(TextureDescription.Texture2D(1, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled));
             Device.UpdateTexture(defaultTexture, new ReadOnlySpan<Rgba32>(new[] { new Rgba32(0, 0, 0) }), 0, 0, 0, 1, 1, 1, 0, 0);
@@ -162,6 +164,8 @@ namespace osu.Framework.Graphics.Veldrid
         }
 
         #region IRenderer stuff
+
+        private Vector2 currentSize;
 
         void IRenderer.BeginFrame(Vector2 windowSize)
         {
@@ -206,6 +210,18 @@ namespace osu.Framework.Graphics.Veldrid
 
             quadBatches.Clear();
             quadBatches.Push(defaultQuadBatch);
+
+            if (windowSize != currentSize)
+            {
+                // todo: look for better window resize handling
+                Device.MainSwapchain.Resize((uint)windowSize.X, (uint)windowSize.Y);
+
+                // resizing swapchain could cause it to recreate the framebuffer,
+                // update current backbuffer property to new instance.
+                BackbufferFramebuffer = Device.SwapchainFramebuffer;
+
+                currentSize = windowSize;
+            }
 
             Commands.Begin();
 
@@ -292,36 +308,12 @@ namespace osu.Framework.Graphics.Veldrid
 
         public void Clear(ClearInfo clearInfo)
         {
-            PushDepthInfo(new DepthInfo(writeDepth: true));
-            PushScissorState(false);
-            if (clearInfo.Colour != currentClearInfo.Colour)
-                GL.ClearColor(clearInfo.Colour);
+            Commands.ClearColorTarget(0, clearInfo.Colour.ToRgbaFloat());
 
-            if (clearInfo.Depth != currentClearInfo.Depth)
-            {
-                if (IsEmbedded)
-                {
-                    // GL ES only supports glClearDepthf
-                    // See: https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glClearDepthf.xhtml
-                    GL.ClearDepth((float)clearInfo.Depth);
-                }
-                else
-                {
-                    // Older desktop platforms don't support glClearDepthf, so standard GL's double version is used instead
-                    // See: https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glClearDepth.xhtml
-                    osuTK.Graphics.OpenGL.GL.ClearDepth(clearInfo.Depth);
-                }
-            }
-
-            if (clearInfo.Stencil != currentClearInfo.Stencil)
-                GL.ClearStencil(clearInfo.Stencil);
-
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            if (frameBufferStack.Peek().DepthTarget != null)
+                Commands.ClearDepthStencil((float)clearInfo.Depth, (byte)clearInfo.Stencil);
 
             currentClearInfo = clearInfo;
-
-            PopScissorState();
-            PopDepthInfo();
         }
 
         public void PushScissorState(bool enabled)
@@ -443,8 +435,7 @@ namespace osu.Framework.Graphics.Veldrid
                 return;
 
             Viewport = actualRect;
-
-            GL.Viewport(Viewport.Left, Viewport.Top, Viewport.Width, Viewport.Height);
+            setViewport(actualRect);
         }
 
         public void PopViewport()
@@ -460,8 +451,12 @@ namespace osu.Framework.Graphics.Veldrid
                 return;
 
             Viewport = actualRect;
+            setViewport(actualRect);
+        }
 
-            GL.Viewport(Viewport.Left, Viewport.Top, Viewport.Width, Viewport.Height);
+        private void setViewport(RectangleI viewport)
+        {
+            Commands.SetViewport(0, new Viewport(viewport.Left, viewport.Top, viewport.Width, viewport.Height, 0, 1));
         }
 
         public void PushScissor(RectangleI scissor)
@@ -506,7 +501,7 @@ namespace osu.Framework.Graphics.Veldrid
                 scissor.Height = -scissor.Height;
             }
 
-            GL.Scissor(scissor.X, Viewport.Height - scissor.Bottom, scissor.Width, scissor.Height);
+            Commands.SetScissorRect(0, (uint)scissor.X, (uint)scissor.Y, (uint)scissor.Width, (uint)scissor.Height);
         }
 
         public void PushScissorOffset(Vector2I offset)
@@ -544,9 +539,7 @@ namespace osu.Framework.Graphics.Veldrid
                 return;
 
             Ortho = ortho;
-
-            ProjectionMatrix = Matrix4.CreateOrthographicOffCenter(Ortho.Left, Ortho.Right, Ortho.Bottom, Ortho.Top, -1, 1);
-            GlobalPropertyManager.Set(GlobalProperty.ProjMatrix, ProjectionMatrix);
+            setProjectionMatrix(ortho);
         }
 
         public void PopOrtho()
@@ -562,8 +555,15 @@ namespace osu.Framework.Graphics.Veldrid
                 return;
 
             Ortho = actualRect;
+            setProjectionMatrix(actualRect);
+        }
 
-            ProjectionMatrix = Matrix4.CreateOrthographicOffCenter(Ortho.Left, Ortho.Right, Ortho.Bottom, Ortho.Top, -1, 1);
+        private void setProjectionMatrix(RectangleF ortho)
+        {
+            // Inverse the near/far values to not affect with depth values during multiplication.
+            // todo: replace this with a custom implementation or otherwise.
+            ProjectionMatrix = Matrix4.CreateOrthographicOffCenter(ortho.Left, ortho.Right, ortho.Bottom, ortho.Top, 1, -1);
+
             GlobalPropertyManager.Set(GlobalProperty.ProjMatrix, ProjectionMatrix);
         }
 
@@ -696,10 +696,8 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.DepthStencilState.DepthComparison = depthInfo.Function.ToComparisonKind();
         }
 
-        public void BindFrameBuffer(int frameBuffer)
+        public void BindFrameBuffer(Framebuffer frameBuffer)
         {
-            if (frameBuffer == -1) return;
-
             bool alreadyBound = frameBufferStack.Count > 0 && frameBufferStack.Peek() == frameBuffer;
 
             frameBufferStack.Push(frameBuffer);
@@ -707,7 +705,9 @@ namespace osu.Framework.Graphics.Veldrid
             if (!alreadyBound)
             {
                 flushCurrentBatch();
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBuffer);
+
+                Commands.SetFramebuffer(frameBuffer);
+                pipeline.Outputs = frameBuffer.OutputDescription;
 
                 GlobalPropertyManager.Set(GlobalProperty.BackbufferDraw, UsingBackbuffer);
             }
@@ -715,17 +715,17 @@ namespace osu.Framework.Graphics.Veldrid
             GlobalPropertyManager.Set(GlobalProperty.GammaCorrection, UsingBackbuffer);
         }
 
-        public void UnbindFrameBuffer(int frameBuffer)
+        public void UnbindFrameBuffer(Framebuffer frameBuffer)
         {
-            if (frameBuffer == -1) return;
-
             if (frameBufferStack.Peek() != frameBuffer)
                 return;
 
             frameBufferStack.Pop();
 
             flushCurrentBatch();
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBufferStack.Peek());
+
+            Commands.SetFramebuffer(frameBufferStack.Peek());
+            pipeline.Outputs = frameBufferStack.Peek().OutputDescription;
 
             GlobalPropertyManager.Set(GlobalProperty.BackbufferDraw, UsingBackbuffer);
             GlobalPropertyManager.Set(GlobalProperty.GammaCorrection, UsingBackbuffer);
@@ -848,20 +848,6 @@ namespace osu.Framework.Graphics.Veldrid
         void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => quadBatches.Push(quadBatch);
 
         void IRenderer.PopQuadBatch() => quadBatches.Pop();
-
-        /// <summary>
-        /// Deletes a frame buffer.
-        /// </summary>
-        /// <param name="frameBuffer">The frame buffer to delete.</param>
-        public void DeleteFrameBuffer(int frameBuffer)
-        {
-            if (frameBuffer == -1) return;
-
-            while (frameBufferStack.Peek() == frameBuffer)
-                UnbindFrameBuffer(frameBuffer);
-
-            ScheduleDisposal(GL.DeleteFramebuffer, frameBuffer);
-        }
 
         private void flushCurrentBatch()
         {
