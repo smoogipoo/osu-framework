@@ -197,7 +197,6 @@ namespace osu.Framework.Graphics.Veldrid
             currentShader?.Unbind();
             currentShader = null;
             shaderStack.Clear();
-            GL.UseProgram(0);
 
             viewportStack.Clear();
             orthoStack.Clear();
@@ -755,7 +754,12 @@ namespace osu.Framework.Graphics.Veldrid
 
             flushCurrentBatch();
 
-            GL.UseProgram(shader);
+            // todo: support Veldrid shaders once IRenderer supports creating its own shaders
+            // pipelineDescription.ShaderSet.Shaders = shader.Shaders;
+
+            // if (shader.VertexLayout.Elements?.Length > 0)
+                // pipelineDescription.ShaderSet.VertexLayouts = new[] { shader.VertexLayout };
+
             currentShader = shader;
         }
 
@@ -787,44 +791,45 @@ namespace osu.Framework.Graphics.Veldrid
             if (uniform.Owner == currentShader)
                 flushCurrentBatch();
 
-            switch (uniform)
-            {
-                case IUniformWithValue<bool> b:
-                    GL.Uniform1(uniform.Location, b.GetValue() ? 1 : 0);
-                    break;
-
-                case IUniformWithValue<int> i:
-                    GL.Uniform1(uniform.Location, i.GetValue());
-                    break;
-
-                case IUniformWithValue<float> f:
-                    GL.Uniform1(uniform.Location, f.GetValue());
-                    break;
-
-                case IUniformWithValue<Vector2> v2:
-                    GL.Uniform2(uniform.Location, ref v2.GetValueByRef());
-                    break;
-
-                case IUniformWithValue<Vector3> v3:
-                    GL.Uniform3(uniform.Location, ref v3.GetValueByRef());
-                    break;
-
-                case IUniformWithValue<Vector4> v4:
-                    GL.Uniform4(uniform.Location, ref v4.GetValueByRef());
-                    break;
-
-                case IUniformWithValue<Matrix2> m2:
-                    GL.UniformMatrix2(uniform.Location, false, ref m2.GetValueByRef());
-                    break;
-
-                case IUniformWithValue<Matrix3> m3:
-                    GL.UniformMatrix3(uniform.Location, false, ref m3.GetValueByRef());
-                    break;
-
-                case IUniformWithValue<Matrix4> m4:
-                    GL.UniformMatrix4(uniform.Location, false, ref m4.GetValueByRef());
-                    break;
-            }
+            // todo: pending veldrid shader support, reference code: https://github.com/frenzibyte/osu-framework/blob/3e9458b007b1de1eaaa5f0483387c862f27bb331/osu.Framework/Graphics/Veldrid/Vd_Resources.cs#L267-L298
+            // switch (uniform)
+            // {
+            //     case IUniformWithValue<bool> b:
+            //         GL.Uniform1(uniform.Location, b.GetValue() ? 1 : 0);
+            //         break;
+            //
+            //     case IUniformWithValue<int> i:
+            //         GL.Uniform1(uniform.Location, i.GetValue());
+            //         break;
+            //
+            //     case IUniformWithValue<float> f:
+            //         GL.Uniform1(uniform.Location, f.GetValue());
+            //         break;
+            //
+            //     case IUniformWithValue<Vector2> v2:
+            //         GL.Uniform2(uniform.Location, ref v2.GetValueByRef());
+            //         break;
+            //
+            //     case IUniformWithValue<Vector3> v3:
+            //         GL.Uniform3(uniform.Location, ref v3.GetValueByRef());
+            //         break;
+            //
+            //     case IUniformWithValue<Vector4> v4:
+            //         GL.Uniform4(uniform.Location, ref v4.GetValueByRef());
+            //         break;
+            //
+            //     case IUniformWithValue<Matrix2> m2:
+            //         GL.UniformMatrix2(uniform.Location, false, ref m2.GetValueByRef());
+            //         break;
+            //
+            //     case IUniformWithValue<Matrix3> m3:
+            //         GL.UniformMatrix3(uniform.Location, false, ref m3.GetValueByRef());
+            //         break;
+            //
+            //     case IUniformWithValue<Matrix4> m4:
+            //         GL.UniformMatrix4(uniform.Location, false, ref m4.GetValueByRef());
+            //         break;
+            // }
         }
 
         void IRenderer.RegisterVertexBufferUse(IVertexBuffer buffer) => vertexBuffersInUse.Add(buffer);
