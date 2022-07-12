@@ -14,13 +14,16 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
+using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
+using PixelFormat = Veldrid.PixelFormat;
 using Shader = osu.Framework.Graphics.Shaders.Shader;
 using Texture = osu.Framework.Graphics.Textures.Texture;
 
@@ -93,9 +96,21 @@ namespace osu.Framework.Graphics.Veldrid
         private bool isInitialised;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
 
+        internal const uint UNIFORM_RESOURCE_SLOT = 0;
+        internal const uint TEXTURE_RESOURCE_SLOT = 1;
+
         public GraphicsDevice Device { get; private set; } = null!;
 
         public ResourceFactory Factory => Device.ResourceFactory;
+
+        public CommandList Commands { get; private set; } = null!;
+
+        private ResourceLayout uniformLayout = null!;
+
+        private VeldridTextureSamplerSet defaultTextureSet = null!;
+
+        internal static readonly ResourceLayoutDescription UNIFORM_LAYOUT = new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("m_Uniforms", ResourceKind.UniformBuffer, ShaderStages.Fragment | ShaderStages.Vertex));
 
         private GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
         {
@@ -110,7 +125,17 @@ namespace osu.Framework.Graphics.Veldrid
             // that requires further thought as it includes acquiring the current window and display handle.
             Device = null!;
 
+            Commands = Factory.CreateCommandList();
+
+            uniformLayout = Factory.CreateResourceLayout(UNIFORM_LAYOUT);
+
+            pipelineDescription.ResourceLayouts = new ResourceLayout[2];
+            pipelineDescription.ResourceLayouts[UNIFORM_RESOURCE_SLOT] = uniformLayout;
             pipelineDescription.Outputs = Device.SwapchainFramebuffer.OutputDescription;
+
+            var defaultTexture = Factory.CreateTexture(TextureDescription.Texture2D(1, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled));
+            Device.UpdateTexture(defaultTexture, new ReadOnlySpan<Rgba32>(new[] { new Rgba32(0, 0, 0) }), 0, 0, 0, 1, 1, 1, 0, 0);
+            defaultTextureSet = new VeldridTextureSamplerSet(this, defaultTexture, Device.LinearSampler);
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
@@ -182,6 +207,8 @@ namespace osu.Framework.Graphics.Veldrid
             quadBatches.Clear();
             quadBatches.Push(defaultQuadBatch);
 
+            Commands.Begin();
+
             BindFrameBuffer(BackbufferFramebuffer);
 
             Scissor = RectangleI.Empty;
@@ -244,6 +271,9 @@ namespace osu.Framework.Graphics.Veldrid
         void IRenderer.FinishFrame()
         {
             flushCurrentBatch();
+
+            Commands.End();
+            Device.SubmitCommands(Commands);
         }
 
         private void freeUnusedVertexBuffers()
