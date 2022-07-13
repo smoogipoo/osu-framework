@@ -214,5 +214,29 @@ namespace osu.Framework.Graphics.Veldrid
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
         }
+
+        public static PrimitiveTopology ToPrimitiveTopology(this PrimitiveType type)
+        {
+            switch (type)
+            {
+                case PrimitiveType.Points:
+                    return PrimitiveTopology.PointList;
+
+                case PrimitiveType.Lines:
+                    return PrimitiveTopology.LineList;
+
+                case PrimitiveType.LineStrip:
+                    return PrimitiveTopology.LineStrip;
+
+                case PrimitiveType.Triangles:
+                    return PrimitiveTopology.TriangleList;
+
+                case PrimitiveType.TriangleStrip:
+                    return PrimitiveTopology.TriangleStrip;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type));
+            }
+        }
     }
 }
