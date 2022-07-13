@@ -265,18 +265,6 @@ namespace osu.Framework.Graphics.Rendering
         void PopDepthInfo();
 
         /// <summary>
-        /// Binds a framebuffer.
-        /// </summary>
-        /// <param name="frameBuffer">The framebuffer to bind.</param>
-        void BindFrameBuffer(int frameBuffer);
-
-        /// <summary>
-        /// Unbinds a framebuffer, if bound.
-        /// </summary>
-        /// <param name="frameBuffer">The framebuffer to unbind.</param>
-        void UnbindFrameBuffer(int frameBuffer);
-
-        /// <summary>
         /// Binds a shader.
         /// </summary>
         /// <param name="shader">The shader to bind.</param>
