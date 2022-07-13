@@ -25,7 +25,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     public class QuadVertexBuffer<T> : VertexBuffer<T>
         where T : struct, IEquatable<T>, IVertex
     {
-        private readonly IRenderer renderer;
+        private readonly OpenGLRenderer renderer;
         private readonly int amountIndices;
 
         private const int indices_per_quad = IRenderer.VERTICES_PER_QUAD + 2;
@@ -35,7 +35,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         /// </summary>
         public const int MAX_QUADS = ushort.MaxValue / indices_per_quad;
 
-        internal QuadVertexBuffer(IRenderer renderer, int amountQuads, BufferUsageHint usage)
+        internal QuadVertexBuffer(OpenGLRenderer renderer, int amountQuads, BufferUsageHint usage)
             : base(renderer, amountQuads * IRenderer.VERTICES_PER_QUAD, usage)
         {
             this.renderer = renderer;

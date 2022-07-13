@@ -5,7 +5,6 @@
 
 using System;
 using osu.Framework.Graphics.OpenGL.Vertices;
-using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
@@ -27,10 +26,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     public class LinearVertexBuffer<T> : VertexBuffer<T>
         where T : struct, IEquatable<T>, IVertex
     {
-        private readonly IRenderer renderer;
+        private readonly OpenGLRenderer renderer;
         private readonly int amountVertices;
 
-        internal LinearVertexBuffer(IRenderer renderer, int amountVertices, PrimitiveType type, BufferUsageHint usage)
+        internal LinearVertexBuffer(OpenGLRenderer renderer, int amountVertices, PrimitiveType type, BufferUsageHint usage)
             : base(renderer, amountVertices, usage)
         {
             this.renderer = renderer;

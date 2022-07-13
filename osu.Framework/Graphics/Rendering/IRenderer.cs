@@ -164,14 +164,6 @@ namespace osu.Framework.Graphics.Rendering
         void PopScissorState();
 
         /// <summary>
-        /// Binds a vertex buffer.
-        /// </summary>
-        /// <param name="target">The target to bind the buffer to.</param>
-        /// <param name="buffer">The buffer to bind.</param>
-        /// <returns>Whether <paramref name="buffer"/> was newly-bound.</returns>
-        bool BindBuffer(BufferTarget target, int buffer);
-
-        /// <summary>
         /// Binds a texture.
         /// </summary>
         /// <param name="texture">The texture to bind.</param>

@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     {
         protected static readonly int STRIDE = OpenGLVertexUtils<DepthWrappingVertex<T>>.STRIDE;
 
-        private readonly IRenderer renderer;
+        private readonly OpenGLRenderer renderer;
         private readonly BufferUsageHint usage;
 
         private Memory<DepthWrappingVertex<T>> vertexMemory;
@@ -28,7 +28,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         private int vboId = -1;
 
-        protected VertexBuffer(IRenderer renderer, int amountVertices, BufferUsageHint usage)
+        protected VertexBuffer(OpenGLRenderer renderer, int amountVertices, BufferUsageHint usage)
         {
             this.renderer = renderer;
             this.usage = usage;

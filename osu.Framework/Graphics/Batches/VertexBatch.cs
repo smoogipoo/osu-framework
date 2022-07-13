@@ -72,7 +72,7 @@ namespace osu.Framework.Graphics.Batches
             currentVertexIndex = 0;
         }
 
-        protected abstract VertexBuffer<T> CreateVertexBuffer(IRenderer renderer);
+        protected abstract VertexBuffer<T> CreateVertexBuffer();
 
         /// <summary>
         /// Adds a vertex to this <see cref="VertexBatch{T}"/>.
@@ -90,7 +90,7 @@ namespace osu.Framework.Graphics.Batches
 
             // currentIndex will change after Draw() above, so this cannot be in an else-condition
             while (currentBufferIndex >= VertexBuffers.Count)
-                VertexBuffers.Add(CreateVertexBuffer(renderer));
+                VertexBuffers.Add(CreateVertexBuffer());
 
             if (currentVertexBuffer.SetVertex(currentVertexIndex, vertex))
             {
