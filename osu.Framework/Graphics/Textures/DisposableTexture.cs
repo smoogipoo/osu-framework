@@ -1,8 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Textures
@@ -12,15 +10,19 @@ namespace osu.Framework.Graphics.Textures
     /// </summary>
     public class DisposableTexture : Texture
     {
-        public DisposableTexture(Texture texture)
-            : base(texture)
+        private readonly Texture parent;
+
+        public DisposableTexture(Texture parent)
+            : base(parent)
         {
+            this.parent = parent;
         }
 
         protected override void Dispose(bool isDisposing)
         {
             base.Dispose(isDisposing);
             TextureGL.Dispose();
+            parent.Dispose();
         }
     }
 }

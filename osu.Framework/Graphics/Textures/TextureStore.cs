@@ -303,8 +303,8 @@ namespace osu.Framework.Graphics.Textures
                 {
                     // we are doing this locally as right now, Textures don't dispose the underlying texture (leaving it to GC finalizers).
                     // in the case of a purge operation we are pretty sure this is the intended behaviour.
-                    tex?.TextureGL?.Dispose();
-                    tex?.Dispose();
+                    if (tex != null)
+                        new DisposableTexture(tex).Dispose();
                 }
 
                 textureCache.Remove(texture.LookupKey);
