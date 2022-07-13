@@ -9,7 +9,7 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Rendering
 {
-    public interface ITexture : IDisposable
+    public interface INativeTexture : IDisposable
     {
         /// <summary>
         /// Maximum texture size in any direction.

@@ -8,7 +8,7 @@ using osu.Framework.Graphics.Rendering;
 namespace osu.Framework.Graphics.Textures
 {
     /// <summary>
-    /// A texture which can cleans up any resources held by the underlying <see cref="ITexture"/> on <see cref="Dispose"/>.
+    /// A texture which can cleans up any resources held by the underlying <see cref="INativeTexture"/> on <see cref="Dispose"/>.
     /// </summary>
     public class DisposableTexture : Texture
     {

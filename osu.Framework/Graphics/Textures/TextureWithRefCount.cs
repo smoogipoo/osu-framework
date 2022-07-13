@@ -24,7 +24,7 @@ namespace osu.Framework.Graphics.Textures
             count.Increment();
         }
 
-        public sealed override ITexture TextureGL
+        public sealed override INativeTexture TextureGL
         {
             get
             {

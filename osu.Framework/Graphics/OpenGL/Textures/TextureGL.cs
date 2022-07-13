@@ -12,7 +12,7 @@ using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Graphics.OpenGL.Textures
 {
-    public abstract class TextureGL : ITexture
+    public abstract class TextureGL : INativeTexture
     {
         protected readonly OpenGLRenderer Renderer;
 
@@ -35,7 +35,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         #region Disposal
 
-        bool ITexture.IsQueuedForUpload { get; set; }
+        bool INativeTexture.IsQueuedForUpload { get; set; }
 
         /// <summary>
         /// By default, texture uploads are queued for upload at the beginning of each frame, allowing loading them ahead of time.
@@ -98,7 +98,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <returns>True if bind was successful.</returns>
         internal abstract bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT);
 
-        bool ITexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => Bind(unit, wrapModeS, wrapModeT);
+        bool INativeTexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => Bind(unit, wrapModeS, wrapModeT);
 
         /// <summary>
         /// Uploads pending texture data to the GPU if it exists.
@@ -106,7 +106,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <returns>Whether pending data existed and an upload has been performed.</returns>
         internal abstract bool Upload();
 
-        bool ITexture.Upload() => Upload();
+        bool INativeTexture.Upload() => Upload();
 
         /// <summary>
         /// Flush any unprocessed uploads without actually uploading.
@@ -119,7 +119,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <param name="upload">The <see cref="ITextureUpload"/> containing the data.</param>
         public void SetData(ITextureUpload upload) => SetData(upload, WrapModeS, WrapModeT, null);
 
-        void ITexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity) => SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
+        void INativeTexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity) => SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
 
         /// <summary>
         /// Sets the pixel data of this <see cref="TextureGLAtlas"/>.

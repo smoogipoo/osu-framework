@@ -25,7 +25,7 @@ using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid.Textures
 {
-    internal class VeldridTexture : ITexture
+    internal class VeldridTexture : INativeTexture
     {
         /// <summary>
         /// Contains all currently-active <see cref="VeldridTexture"/>s.
@@ -186,7 +186,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         public bool Available { get; private set; }
         public bool BypassTextureUploadQueueing { get; set; }
 
-        bool ITexture.IsQueuedForUpload { get; set; }
+        bool INativeTexture.IsQueuedForUpload { get; set; }
 
         public Opacity Opacity { get; private set; }
 
@@ -252,7 +252,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             throw new NotImplementedException();
         }
 
-        void ITexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
+        void INativeTexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
         {
             SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
         }
@@ -331,7 +331,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         /// </summary>
         private readonly bool manualMipmaps;
 
-        bool ITexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
+        bool INativeTexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             if (!Available)
                 throw new ObjectDisposedException(ToString(), "Can not bind a disposed texture.");
@@ -372,7 +372,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             return didUpload;
         }
 
-        bool ITexture.Upload() => Upload();
+        bool INativeTexture.Upload() => Upload();
 
         private bool tryGetNextUpload(out ITextureUpload upload)
         {

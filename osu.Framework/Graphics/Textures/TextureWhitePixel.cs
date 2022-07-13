@@ -10,7 +10,7 @@ namespace osu.Framework.Graphics.Textures
 {
     internal class TextureWhitePixel : Texture
     {
-        public TextureWhitePixel(ITexture textureGl)
+        public TextureWhitePixel(INativeTexture textureGl)
             : base(textureGl)
         {
         }

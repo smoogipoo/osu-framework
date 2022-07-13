@@ -43,7 +43,7 @@ namespace osu.Framework.Tests.Graphics
         private void testWithSize(int width, int height)
         {
             TextureAtlas atlas = new TextureAtlas(new OpenGLRenderer(), 1024, 1024);
-            ITexture texture = atlas.Add(width, height);
+            INativeTexture texture = atlas.Add(width, height);
 
             if (texture != null)
             {
@@ -70,7 +70,7 @@ namespace osu.Framework.Tests.Graphics
 
             var atlas = new TextureAtlas(new OpenGLRenderer(), atlas_size, atlas_size);
 
-            ITexture texture = atlas.Add(64, 64);
+            INativeTexture texture = atlas.Add(64, 64);
 
             RectangleF rect = texture.GetTextureRect(null);
             Assert.GreaterOrEqual(atlas_size * rect.X, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, message: "Texture is placed on top of the white pixel");
@@ -84,7 +84,7 @@ namespace osu.Framework.Tests.Graphics
 
             var atlas = new TextureAtlas(new OpenGLRenderer(), atlas_size, atlas_size);
 
-            ITexture texture = atlas.Add(atlas_size - 2 * TextureAtlas.PADDING, 64);
+            INativeTexture texture = atlas.Add(atlas_size - 2 * TextureAtlas.PADDING, 64);
 
             RectangleF rect = texture.GetTextureRect(null);
             Assert.GreaterOrEqual(atlas_size * rect.X, TextureAtlas.PADDING, message: "Texture has insufficient padding");

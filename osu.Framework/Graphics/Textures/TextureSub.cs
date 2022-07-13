@@ -9,12 +9,12 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Textures
 {
-    internal class TextureSub : ITexture
+    internal class TextureSub : INativeTexture
     {
-        private readonly ITexture parent;
+        private readonly INativeTexture parent;
         private RectangleI bounds;
 
-        public TextureSub(ITexture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
+        public TextureSub(INativeTexture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             this.parent = parent;
             this.bounds = bounds;
@@ -48,15 +48,15 @@ namespace osu.Framework.Graphics.Textures
             set => throw new InvalidOperationException(); // Todo: I'm preeeeeetty sure this is correct, need to check.
         }
 
-        bool ITexture.IsQueuedForUpload
+        bool INativeTexture.IsQueuedForUpload
         {
             get => parent.IsQueuedForUpload;
             set => parent.IsQueuedForUpload = value;
         }
 
-        public void SetData(ITextureUpload upload) => ((ITexture)this).SetData(upload, WrapModeS, WrapModeS, null);
+        public void SetData(ITextureUpload upload) => ((INativeTexture)this).SetData(upload, WrapModeS, WrapModeS, null);
 
-        void ITexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
+        void INativeTexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
         {
             if (upload.Bounds.Width > bounds.Width || upload.Bounds.Height > bounds.Height)
             {
@@ -84,9 +84,9 @@ namespace osu.Framework.Graphics.Textures
             parent.SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
         }
 
-        bool ITexture.Upload() => parent.Upload();
+        bool INativeTexture.Upload() => parent.Upload();
 
-        bool ITexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => parent.Bind(unit, wrapModeS, wrapModeT);
+        bool INativeTexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => parent.Bind(unit, wrapModeS, wrapModeT);
 
         public RectangleF GetTextureRect(RectangleF? textureRect) => parent.GetTextureRect(boundsInParent(textureRect));
 

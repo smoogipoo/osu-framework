@@ -15,7 +15,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
     /// </summary>
     internal class TextureSubAtlasWhite : TextureSub
     {
-        public TextureSubAtlasWhite(ITexture parent)
+        public TextureSubAtlasWhite(INativeTexture parent)
             : base(parent, new RectangleI(0, 0, 1, 1), parent.WrapModeS, parent.WrapModeT)
         {
         }

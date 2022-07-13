@@ -71,7 +71,7 @@ namespace osu.Framework.Graphics.Veldrid
         private readonly GlobalStatistic<int> statTextureUploadsPerformed = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Texture uploads performed");
 
         private readonly ConcurrentQueue<ScheduledDelegate> expensiveOperationQueue = new ConcurrentQueue<ScheduledDelegate>();
-        private readonly ConcurrentQueue<ITexture> textureUploadQueue = new ConcurrentQueue<ITexture>();
+        private readonly ConcurrentQueue<INativeTexture> textureUploadQueue = new ConcurrentQueue<INativeTexture>();
         private readonly GLDisposalQueue disposalQueue = new GLDisposalQueue();
 
         private readonly Scheduler resetScheduler = new Scheduler(() => ThreadSafety.IsDrawThread, new StopwatchClock(true)); // force no thread set until we are actually on the draw thread.
@@ -271,7 +271,7 @@ namespace osu.Framework.Graphics.Veldrid
             int uploadedPixels = 0;
 
             // continue attempting to upload textures until enough uploads have been performed.
-            while (textureUploadQueue.TryDequeue(out ITexture? texture))
+            while (textureUploadQueue.TryDequeue(out INativeTexture? texture))
             {
                 statTextureUploadsDequeued.Value++;
 
@@ -837,7 +837,7 @@ namespace osu.Framework.Graphics.Veldrid
                 disposalAction.Invoke(target);
         }
 
-        public void EnqueueTextureUpload(ITexture texture)
+        public void EnqueueTextureUpload(INativeTexture texture)
         {
             if (texture.IsQueuedForUpload)
                 return;

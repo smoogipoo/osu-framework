@@ -104,7 +104,7 @@ namespace osu.Framework.Graphics.Textures
         {
             if (upload == null) return null;
 
-            ITexture nativeTexture = null;
+            INativeTexture nativeTexture = null;
 
             if (Atlas != null)
             {

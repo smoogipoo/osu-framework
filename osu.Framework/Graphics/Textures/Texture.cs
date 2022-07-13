@@ -15,7 +15,7 @@ namespace osu.Framework.Graphics.Textures
 {
     public class Texture : IDisposable
     {
-        public virtual ITexture TextureGL { get; }
+        public virtual INativeTexture TextureGL { get; }
 
         public string Filename;
         public string AssetName;
@@ -43,7 +43,7 @@ namespace osu.Framework.Graphics.Textures
         /// Create a new texture.
         /// </summary>
         /// <param name="textureGl">The GL texture.</param>
-        internal Texture(ITexture textureGl)
+        internal Texture(INativeTexture textureGl)
         {
             TextureGL = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
         }
