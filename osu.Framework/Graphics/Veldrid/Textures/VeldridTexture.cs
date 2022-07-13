@@ -157,7 +157,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             }
         }
 
-        bool INativeTexture.IsQueuedForUpload { get; set; }
+        public bool IsQueuedForUpload { get; set; }
 
         public int MaxSize => renderer.MaxTextureSize;
 
@@ -183,7 +183,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             }
         }
 
-        void INativeTexture.FlushUploads()
+        public void FlushUploads()
         {
             while (tryGetNextUpload(out var upload))
                 upload.Dispose();
@@ -207,7 +207,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         /// </summary>
         private readonly bool manualMipmaps;
 
-        bool INativeTexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
+        public bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             if (!Available)
                 throw new ObjectDisposedException(ToString(), "Can not bind a disposed texture.");
@@ -223,7 +223,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             return true;
         }
 
-        internal bool Upload()
+        public bool Upload()
         {
             if (!Available)
                 return false;
@@ -247,8 +247,6 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
             return didUpload;
         }
-
-        bool INativeTexture.Upload() => Upload();
 
         private bool tryGetNextUpload(out ITextureUpload upload)
         {
