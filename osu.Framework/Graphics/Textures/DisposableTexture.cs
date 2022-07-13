@@ -4,7 +4,6 @@
 #nullable disable
 
 using osu.Framework.Graphics.Rendering;
-using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Textures
 {
@@ -13,13 +12,8 @@ namespace osu.Framework.Graphics.Textures
     /// </summary>
     public class DisposableTexture : Texture
     {
-        public DisposableTexture(ITexture textureGl)
+        internal DisposableTexture(ITexture textureGl)
             : base(textureGl)
-        {
-        }
-
-        public DisposableTexture(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
-            : base(renderer, width, height, manualMipmaps, filteringMode)
         {
         }
 

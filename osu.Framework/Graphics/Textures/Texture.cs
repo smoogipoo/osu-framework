@@ -9,7 +9,6 @@ using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Rendering;
 using osuTK;
-using osuTK.Graphics.ES30;
 using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
 
 namespace osu.Framework.Graphics.Textures
@@ -44,14 +43,9 @@ namespace osu.Framework.Graphics.Textures
         /// Create a new texture.
         /// </summary>
         /// <param name="textureGl">The GL texture.</param>
-        public Texture(ITexture textureGl)
+        internal Texture(ITexture textureGl)
         {
             TextureGL = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
-        }
-
-        public Texture(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear)
-            : this(renderer.CreateTexture(width, height, manualMipmaps, filteringMode))
-        {
         }
 
         /// <summary>
@@ -91,7 +85,7 @@ namespace osu.Framework.Graphics.Textures
             try
             {
                 var data = new TextureUpload(stream);
-                Texture tex = atlas == null ? new Texture(renderer, data.Width, data.Height) : new Texture(atlas.Add(data.Width, data.Height));
+                Texture tex = atlas == null ? renderer.CreateTexture(data.Width, data.Height) : new Texture(atlas.Add(data.Width, data.Height));
                 tex.SetData(data);
                 return tex;
             }

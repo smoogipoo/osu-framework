@@ -37,7 +37,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             var image = new Image<Rgba32>(width, 1);
 
-            gradientTextureHorizontal = new Texture(host.Renderer, width, 1, true);
+            gradientTextureHorizontal = host.Renderer.CreateTexture(width, 1, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -49,7 +49,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             image = new Image<Rgba32>(width, 1);
 
-            gradientTextureVertical = new Texture(host.Renderer, 1, width, true);
+            gradientTextureVertical = host.Renderer.CreateTexture(1, width, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -61,7 +61,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             image = new Image<Rgba32>(width, width);
 
-            gradientTextureBoth = new Texture(host.Renderer, width, width, true);
+            gradientTextureBoth = host.Renderer.CreateTexture(width, width, true);
 
             for (int i = 0; i < width; ++i)
             {

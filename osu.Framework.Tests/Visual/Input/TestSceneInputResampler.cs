@@ -32,7 +32,7 @@ namespace osu.Framework.Tests.Visual.Input
         private void load(GameHost host)
         {
             const int width = 2;
-            Texture gradientTexture = new Texture(host.Renderer, width, 1, true);
+            Texture gradientTexture = host.Renderer.CreateTexture(width, 1, true);
             var image = new Image<Rgba32>(width, 1);
 
             for (int i = 0; i < width; ++i)

@@ -60,7 +60,7 @@ namespace osu.Framework.Tests.Visual.Sprites
             {
                 var image = t.GetResultSafely();
 
-                var tex = new Texture(host.Renderer, image.Width, image.Height);
+                var tex = host.Renderer.CreateTexture(image.Width, image.Height);
                 tex.SetData(new TextureUpload(image));
 
                 display.Texture = tex;

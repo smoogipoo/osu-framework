@@ -37,7 +37,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
                 image[i, 0] = new Rgba32(255, 255, 255, brightnessByte);
             }
 
-            gradientTexture = new Texture(host.Renderer, texture_width, 1, true);
+            gradientTexture = host.Renderer.CreateTexture(texture_width, 1, true);
             gradientTexture.SetData(new TextureUpload(image));
         }
 

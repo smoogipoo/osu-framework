@@ -259,7 +259,7 @@ namespace osu.Framework.Graphics.Performance
 
             if (counterBarBackground != null)
             {
-                counterBarBackground.Texture = new Texture(host.Renderer, 1, HEIGHT, true);
+                counterBarBackground.Texture = host.Renderer.CreateTexture(1, HEIGHT, true);
                 counterBarBackground.Texture.SetData(columnUpload);
             }
 
@@ -523,7 +523,8 @@ namespace osu.Framework.Graphics.Performance
             [BackgroundDependencyLoader]
             private void load(GameHost host)
             {
-                Sprite.Texture = new Texture(host.Renderer, WIDTH, HEIGHT, true) { TextureGL = { BypassTextureUploadQueueing = true } };
+                Sprite.Texture = host.Renderer.CreateTexture(WIDTH, HEIGHT, true);
+                Sprite.Texture.TextureGL.BypassTextureUploadQueueing = true;
             }
         }
 

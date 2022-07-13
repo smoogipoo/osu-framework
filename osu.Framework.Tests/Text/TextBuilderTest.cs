@@ -624,7 +624,7 @@ namespace osu.Framework.Tests.Text
 
         private readonly struct TestGlyph : ITexturedCharacterGlyph
         {
-            public Texture Texture => new Texture(new OpenGLRenderer(), 1, 1);
+            public Texture Texture => new OpenGLRenderer().CreateTexture(1, 1);
             public float XOffset { get; }
             public float YOffset { get; }
             public float XAdvance { get; }

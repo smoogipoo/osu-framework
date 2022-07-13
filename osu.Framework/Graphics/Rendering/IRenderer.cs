@@ -305,7 +305,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Creates a new texture.
         /// </summary>
-        ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default);
+        Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default);
 
         /// <summary>
         /// Sets the value of a uniform.

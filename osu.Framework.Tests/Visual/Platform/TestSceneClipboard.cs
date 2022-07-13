@@ -58,7 +58,7 @@ namespace osu.Framework.Tests.Visual.Platform
                 var image = clipboard.GetImage<Rgba32>();
                 clipboardImage = image.Clone();
 
-                var texture = new Texture(host.Renderer, image.Width, image.Height);
+                var texture = host.Renderer.CreateTexture(image.Width, image.Height);
                 texture.SetData(new TextureUpload(image));
 
                 Child = new Sprite

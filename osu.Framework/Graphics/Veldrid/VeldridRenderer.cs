@@ -858,8 +858,9 @@ namespace osu.Framework.Graphics.Veldrid
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex
             => throw new NotImplementedException();
 
-        public ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
-            => new VeldridTexture(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
+        public osu.Framework.Graphics.Textures.Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
+                                                                     WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
+            => new osu.Framework.Graphics.Textures.Texture(new VeldridTexture(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour));
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {

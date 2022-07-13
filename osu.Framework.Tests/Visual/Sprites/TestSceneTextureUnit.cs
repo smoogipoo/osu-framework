@@ -87,7 +87,7 @@ namespace osu.Framework.Tests.Visual.Sprites
                         texData[x, y] = pixel;
                 }
 
-                var tex = new Texture(host.Renderer, texData.Width, texData.Height, true);
+                var tex = host.Renderer.CreateTexture(texData.Width, texData.Height, true);
                 tex.SetData(new TextureUpload(texData));
 
                 return tex;
