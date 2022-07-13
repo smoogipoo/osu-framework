@@ -8,13 +8,14 @@ using System.IO;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics.Rendering;
 using osuTK;
+using osuTK.Graphics.ES30;
 using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
 
 namespace osu.Framework.Graphics.Textures
 {
     public class Texture : IDisposable
     {
-        internal virtual INativeTexture NativeTexture { get; }
+        protected virtual INativeTexture NativeTexture { get; }
 
         public string Filename;
         public string AssetName;
@@ -128,6 +129,8 @@ namespace osu.Framework.Graphics.Textures
         }
 
         public Vector2 Size => new Vector2(Width, Height);
+
+        internal bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => NativeTexture.Bind(unit, wrapModeS, wrapModeT);
 
         /// <summary>
         /// Queue a <see cref="TextureUpload"/> to be uploaded on the draw thread.
