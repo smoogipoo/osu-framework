@@ -12,10 +12,8 @@ using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
-using osuTK;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
 
 namespace osu.Framework.Graphics.OpenGL.Textures
 {
@@ -34,9 +32,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// The total amount of times this <see cref="TextureGLSingle"/> was bound.
         /// </summary>
         public ulong BindCount { get; protected set; }
-
-        // ReSharper disable once InconsistentlySynchronizedField (no need to lock here. we don't really care if the value is stale).
-        public override bool Loaded => textureId > 0 || uploadQueue.Count > 0;
 
         /// <summary>
         /// Creates a new <see cref="TextureGLSingle"/>.
@@ -121,8 +116,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         private int height;
 
-        public override TextureGL Native => this;
-
         public override int Height
         {
             get => height;
@@ -151,32 +144,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
                 return textureId;
             }
-        }
-
-        /// <summary>
-        /// Retrieves the size of this texture in bytes.
-        /// </summary>
-        public virtual int GetByteSize() => Width * Height * 4;
-
-        private static void rotateVector(ref Vector2 toRotate, float sin, float cos)
-        {
-            float oldX = toRotate.X;
-            toRotate.X = toRotate.X * cos - toRotate.Y * sin;
-            toRotate.Y = oldX * sin + toRotate.Y * cos;
-        }
-
-        public override RectangleF GetTextureRect(RectangleF? textureRect)
-        {
-            RectangleF texRect = textureRect != null
-                ? new RectangleF(textureRect.Value.X, textureRect.Value.Y, textureRect.Value.Width, textureRect.Value.Height)
-                : new RectangleF(0, 0, Width, Height);
-
-            texRect.X /= width;
-            texRect.Y /= height;
-            texRect.Width /= width;
-            texRect.Height /= height;
-
-            return texRect;
         }
 
         public override void SetData(ITextureUpload upload)

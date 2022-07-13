@@ -10,13 +10,11 @@ using osu.Framework.Extensions.ImageExtensions;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
-using osuTK;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
 using PixelFormat = Veldrid.PixelFormat;
-using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
 using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid.Textures
@@ -184,36 +182,6 @@ namespace osu.Framework.Graphics.Veldrid.Textures
                 return resource;
             }
         }
-
-        /// <summary>
-        /// Retrieves the size of this texture in bytes.
-        /// </summary>
-        public virtual int GetByteSize() => Width * Height * 4;
-
-        private static void rotateVector(ref Vector2 toRotate, float sin, float cos)
-        {
-            float oldX = toRotate.X;
-            toRotate.X = toRotate.X * cos - toRotate.Y * sin;
-            toRotate.Y = oldX * sin + toRotate.Y * cos;
-        }
-
-        public RectangleF GetTextureRect(RectangleF? textureRect)
-        {
-            RectangleF texRect = textureRect != null
-                ? new RectangleF(textureRect.Value.X, textureRect.Value.Y, textureRect.Value.Width, textureRect.Value.Height)
-                : new RectangleF(0, 0, Width, Height);
-
-            texRect.X /= Width;
-            texRect.Y /= Height;
-            texRect.Width /= Width;
-            texRect.Height /= Height;
-
-            return texRect;
-        }
-
-        public const int VERTICES_PER_TRIANGLE = 4;
-
-        public const int VERTICES_PER_QUAD = 4;
 
         void INativeTexture.FlushUploads()
         {

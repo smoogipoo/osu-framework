@@ -4,10 +4,8 @@
 #nullable disable
 
 using System;
-using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
-using osuTK;
 using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Graphics.OpenGL.Textures
@@ -59,10 +57,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         #endregion
 
-        public abstract TextureGL Native { get; }
-
-        public abstract bool Loaded { get; }
-
         public int MaxSize => Renderer.MaxTextureSize;
 
         public abstract int TextureId { get; }
@@ -70,10 +64,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         public abstract int Height { get; set; }
 
         public abstract int Width { get; set; }
-
-        public Vector2 Size => new Vector2(Width, Height);
-
-        public abstract RectangleF GetTextureRect(RectangleF? textureRect);
 
         /// <summary>
         /// Bind as active texture.

@@ -26,10 +26,6 @@ namespace osu.Framework.Graphics.Video
 
         public override int TextureId => textureIds?[0] ?? 0;
 
-        private int textureSize;
-
-        public override int GetByteSize() => textureSize;
-
         internal override bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             if (!Available)
@@ -71,8 +67,6 @@ namespace osu.Framework.Graphics.Video
 
                     int width = videoUpload.GetPlaneWidth(i);
                     int height = videoUpload.GetPlaneHeight(i);
-
-                    textureSize += width * height;
 
                     GL.TexImage2D(TextureTarget2d.Texture2D, 0, TextureComponentCount.R8, width, height,
                         0, PixelFormat.Red, PixelType.UnsignedByte, IntPtr.Zero);
