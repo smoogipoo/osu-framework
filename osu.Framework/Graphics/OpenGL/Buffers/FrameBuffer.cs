@@ -25,15 +25,15 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         private readonly OpenGLRenderer renderer;
         private readonly RenderbufferInternalFormat[] renderBufferFormats;
-        private readonly TextureGL textureGL;
+        private readonly All filteringMode;
+
+        private TextureGL textureGL;
 
         public FrameBuffer(OpenGLRenderer renderer, RenderbufferInternalFormat[] renderBufferFormats = null, All filteringMode = All.Linear)
         {
             this.renderer = renderer;
             this.renderBufferFormats = renderBufferFormats;
-
-            textureGL = new FrameBufferTexture(renderer, Size, filteringMode);
-            Texture = new Texture(textureGL);
+            this.filteringMode = filteringMode;
         }
 
         private Vector2 size = Vector2.One;
@@ -56,7 +56,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                     Texture.Width = (int)Math.Ceiling(size.X);
                     Texture.Height = (int)Math.Ceiling(size.Y);
 
-                    Texture.SetData(new TextureUpload());
+                    textureGL.SetData(new TextureUpload());
                     textureGL.Upload();
                 }
             }
@@ -65,6 +65,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         private void initialise()
         {
             frameBuffer = GL.GenFramebuffer();
+            Texture = new Texture(textureGL = new FrameBufferTexture(renderer, Size, filteringMode));
+
             renderer.BindFrameBuffer(frameBuffer);
 
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget2d.Texture2D, textureGL.TextureId, 0);
@@ -134,8 +136,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             if (isInitialised)
             {
-                Texture?.Dispose();
-                Texture = null;
+                textureGL?.Dispose();
+                textureGL = null;
 
                 renderer.DeleteFrameBuffer(frameBuffer);
 
