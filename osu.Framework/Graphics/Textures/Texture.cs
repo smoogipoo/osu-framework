@@ -115,13 +115,13 @@ namespace osu.Framework.Graphics.Textures
             }
         }
 
-        public int Width
+        public virtual int Width
         {
             get => NativeTexture.Width;
             set => NativeTexture.Width = value;
         }
 
-        public int Height
+        public virtual int Height
         {
             get => NativeTexture.Height;
             set => NativeTexture.Height = value;
@@ -208,13 +208,10 @@ namespace osu.Framework.Graphics.Textures
         {
             RectangleF texRect = textureRect ?? new RectangleF(0, 0, DisplayWidth, DisplayHeight);
 
-            if (ScaleAdjust != 1)
-            {
-                texRect.Width *= ScaleAdjust;
-                texRect.Height *= ScaleAdjust;
-                texRect.X *= ScaleAdjust;
-                texRect.Y *= ScaleAdjust;
-            }
+            texRect.X *= ScaleAdjust / Width;
+            texRect.Y *= ScaleAdjust / Height;
+            texRect.Width *= ScaleAdjust / Width;
+            texRect.Height *= ScaleAdjust / Height;
 
             return texRect;
         }

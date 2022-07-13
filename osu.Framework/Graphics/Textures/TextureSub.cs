@@ -18,6 +18,10 @@ namespace osu.Framework.Graphics.Textures
             this.bounds = bounds;
         }
 
+        public override int Width => bounds.Width;
+
+        public override int Height => bounds.Height;
+
         internal override void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? opacity)
         {
             if (upload.Bounds.Width > bounds.Width || upload.Bounds.Height > bounds.Height)
@@ -39,16 +43,13 @@ namespace osu.Framework.Graphics.Textures
                 upload.Bounds = adjustedBounds;
             }
 
-            // Todo: How?
-            // UpdateOpacity(upload, ref uploadOpacity);
-
             // Todo: Not sure if this is correct...
             parent.SetData(upload, wrapModeS, wrapModeT, opacity);
         }
 
-        protected override RectangleF TextureBounds(RectangleF? textureRect = null)
+        private RectangleF boundsInParent(RectangleF? textureRect)
         {
-            var actualBounds = base.TextureBounds(textureRect);
+            RectangleF actualBounds = bounds;
 
             if (textureRect.HasValue)
             {
@@ -61,5 +62,7 @@ namespace osu.Framework.Graphics.Textures
 
             return actualBounds;
         }
+
+        protected override RectangleF TextureBounds(RectangleF? textureRect = null) => parent.GetTextureRect(boundsInParent(textureRect));
     }
 }
