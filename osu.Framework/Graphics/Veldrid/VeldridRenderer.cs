@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using osu.Framework.Development;
-using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Buffers;
 using osu.Framework.Graphics.OpenGL.Textures;
@@ -14,7 +13,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
-using osu.Framework.Graphics.Veldrid.Textures;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
@@ -23,7 +22,6 @@ using osuTK.Graphics;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
-using PixelFormat = Veldrid.PixelFormat;
 using Shader = osu.Framework.Graphics.Shaders.Shader;
 using Texture = osu.Framework.Graphics.Textures.Texture;
 
@@ -41,7 +39,7 @@ namespace osu.Framework.Graphics.Veldrid
         public int MaxRenderBufferSize { get; private set; } = 4096; // default value is to allow roughly normal flow in cases we don't have a graphics context, like headless CI.
         public int MaxTexturesUploadedPerFrame { get; set; } = 32;
         public int MaxPixelsUploadedPerFrame { get; set; } = 1024 * 1024 * 2;
-        public bool IsEmbedded { get; private set; }
+        public bool IsEmbedded => false;
         public ulong ResetId { get; private set; }
         public ref readonly MaskingInfo CurrentMaskingInfo => ref currentMaskingInfo;
         public RectangleI Viewport { get; private set; }
@@ -56,7 +54,12 @@ namespace osu.Framework.Graphics.Veldrid
         public float BackbufferDrawDepth { get; private set; }
         public bool UsingBackbuffer => frameBufferStack.Count > 0 && frameBufferStack.Peek() == BackbufferFramebuffer;
 
-        protected Framebuffer BackbufferFramebuffer { get; private set; }
+        // in case no other textures are used in the project, create a new atlas as a fallback source for the white pixel area (used to draw boxes etc.)
+        private readonly Lazy<TextureWhitePixel> whitePixel;
+
+        public Texture WhitePixel => whitePixel.Value;
+
+        protected Framebuffer BackbufferFramebuffer { get; private set; } = null!;
 
         private readonly GlobalStatistic<int> statExpensiveOperationsQueued = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Expensive operation queue length");
         private readonly GlobalStatistic<int> statTextureUploadsQueued = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Texture upload queue length");
@@ -64,7 +67,7 @@ namespace osu.Framework.Graphics.Veldrid
         private readonly GlobalStatistic<int> statTextureUploadsPerformed = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Texture uploads performed");
 
         private readonly ConcurrentQueue<ScheduledDelegate> expensiveOperationQueue = new ConcurrentQueue<ScheduledDelegate>();
-        private readonly ConcurrentQueue<TextureGL> textureUploadQueue = new ConcurrentQueue<TextureGL>();
+        private readonly ConcurrentQueue<ITexture> textureUploadQueue = new ConcurrentQueue<ITexture>();
         private readonly GLDisposalQueue disposalQueue = new GLDisposalQueue();
 
         private readonly Scheduler resetScheduler = new Scheduler(() => ThreadSafety.IsDrawThread, new StopwatchClock(true)); // force no thread set until we are actually on the draw thread.
@@ -87,17 +90,13 @@ namespace osu.Framework.Graphics.Veldrid
 
         private BlendingParameters lastBlendingParameters;
         private IVertexBatch? lastActiveBatch;
-        private TextureUnit lastActiveTextureUnit;
         private MaskingInfo currentMaskingInfo;
-        private ClearInfo currentClearInfo;
         private Shader? currentShader;
-        private bool? lastBlendingEnabledState;
         private bool currentScissorState;
         private bool isInitialised;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
 
         internal const uint UNIFORM_RESOURCE_SLOT = 0;
-        internal const uint TEXTURE_RESOURCE_SLOT = 1;
 
         public GraphicsDevice Device { get; private set; } = null!;
 
@@ -106,8 +105,6 @@ namespace osu.Framework.Graphics.Veldrid
         public CommandList Commands { get; private set; } = null!;
 
         private ResourceLayout uniformLayout = null!;
-
-        private VeldridTextureSamplerSet defaultTextureSet = null!;
 
         internal static readonly ResourceLayoutDescription UNIFORM_LAYOUT = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("m_Uniforms", ResourceKind.UniformBuffer, ShaderStages.Fragment | ShaderStages.Vertex));
@@ -118,6 +115,12 @@ namespace osu.Framework.Graphics.Veldrid
         };
 
         private static readonly GlobalStatistic<int> stat_graphics_pipeline_created = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Total pipelines created");
+
+        public VeldridRenderer()
+        {
+            whitePixel = new Lazy<TextureWhitePixel>(() =>
+                new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
+        }
 
         void IRenderer.Initialise()
         {
@@ -134,10 +137,6 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.ResourceLayouts = new ResourceLayout[2];
             pipeline.ResourceLayouts[UNIFORM_RESOURCE_SLOT] = uniformLayout;
             pipeline.Outputs = BackbufferFramebuffer.OutputDescription;
-
-            var defaultTexture = Factory.CreateTexture(TextureDescription.Texture2D(1, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled));
-            Device.UpdateTexture(defaultTexture, new ReadOnlySpan<Rgba32>(new[] { new Rgba32(0, 0, 0) }), 0, 0, 0, 1, 1, 1, 0, 0);
-            defaultTextureSet = new VeldridTextureSamplerSet(this, defaultTexture, Device.LinearSampler);
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
@@ -156,14 +155,12 @@ namespace osu.Framework.Graphics.Veldrid
         {
             if (!pipelineCache.TryGetValue(pipeline, out var instance))
             {
-                pipelineCache[pipeline] = instance = Factory.CreateGraphicsPipeline(this.pipeline);
+                pipelineCache[pipeline] = instance = Factory.CreateGraphicsPipeline(pipeline);
                 stat_graphics_pipeline_created.Value++;
             }
 
             return instance;
         }
-
-        #region IRenderer stuff
 
         private Vector2 currentSize;
 
@@ -188,7 +185,6 @@ namespace osu.Framework.Graphics.Veldrid
 
             lastActiveBatch = null;
             lastBlendingParameters = new BlendingParameters();
-            lastBlendingEnabledState = null;
 
             foreach (var b in batchResetList)
                 b.ResetCounters();
@@ -260,7 +256,7 @@ namespace osu.Framework.Graphics.Veldrid
             int uploadedPixels = 0;
 
             // continue attempting to upload textures until enough uploads have been performed.
-            while (textureUploadQueue.TryDequeue(out TextureGL? texture))
+            while (textureUploadQueue.TryDequeue(out ITexture? texture))
             {
                 statTextureUploadsDequeued.Value++;
 
@@ -311,8 +307,6 @@ namespace osu.Framework.Graphics.Veldrid
 
             if (frameBufferStack.Peek().DepthTarget != null)
                 Commands.ClearDepthStencil((float)clearInfo.Depth, (byte)clearInfo.Stencil);
-
-            currentClearInfo = clearInfo;
         }
 
         public void PushScissorState(bool enabled)
@@ -342,62 +336,65 @@ namespace osu.Framework.Graphics.Veldrid
 
         public bool BindBuffer(BufferTarget target, int buffer)
         {
-            int bufferIndex = target - BufferTarget.ArrayBuffer;
-            if (lastBoundBuffers[bufferIndex] == buffer)
-                return false;
+            // int bufferIndex = target - BufferTarget.ArrayBuffer;
+            // if (lastBoundBuffers[bufferIndex] == buffer)
+                // return false;
 
-            lastBoundBuffers[bufferIndex] = buffer;
-            GL.BindBuffer(target, buffer);
+            // lastBoundBuffers[bufferIndex] = buffer;
+            // GL.BindBuffer(target, buffer);
 
-            FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+            // FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
 
-            return true;
+            return false;
         }
 
-        public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
-            bool didBind = BindTexture(texture.TextureGL.TextureId, unit, wrapModeS, wrapModeT);
-            lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
+            // if (texture.TextureGL is TextureSubAtlasWhite && atlasTextureIsBound(unit))
+            // {
+                // We can use the special white space from any atlas texture.
+                // return true;
+            // }
 
-            return didBind;
+            // bool didBind = texture.TextureGL.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
+            // lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
+
+            return false;
         }
 
         public bool BindTexture(int textureId, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            int index = getTextureUnitId(unit);
-
-            if (wrapModeS != CurrentWrapModeS)
-            {
-                // Will flush the current batch internally.
-                GlobalPropertyManager.Set(GlobalProperty.WrapModeS, (int)wrapModeS);
-                CurrentWrapModeS = wrapModeS;
-            }
-
-            if (wrapModeT != CurrentWrapModeT)
-            {
-                // Will flush the current batch internally.
-                GlobalPropertyManager.Set(GlobalProperty.WrapModeT, (int)wrapModeT);
-                CurrentWrapModeT = wrapModeT;
-            }
-
-            if (lastActiveTextureUnit == unit && lastBoundTexture[index] == textureId)
-                return false;
-
-            flushCurrentBatch();
-
-            GL.ActiveTexture(unit);
-            GL.BindTexture(TextureTarget.Texture2D, textureId);
-
-            lastBoundTexture[index] = textureId;
-            lastBoundTextureIsAtlas[getTextureUnitId(unit)] = false;
-            lastActiveTextureUnit = unit;
-
-            FrameStatistics.Increment(StatisticsCounterType.TextureBinds);
-            return true;
+            // int index = getTextureUnitId(unit);
+            //
+            // if (wrapModeS != CurrentWrapModeS)
+            // {
+            //     // Will flush the current batch internally.
+            //     GlobalPropertyManager.Set(GlobalProperty.WrapModeS, (int)wrapModeS);
+            //     CurrentWrapModeS = wrapModeS;
+            // }
+            //
+            // if (wrapModeT != CurrentWrapModeT)
+            // {
+            //     // Will flush the current batch internally.
+            //     GlobalPropertyManager.Set(GlobalProperty.WrapModeT, (int)wrapModeT);
+            //     CurrentWrapModeT = wrapModeT;
+            // }
+            //
+            // if (lastActiveTextureUnit == unit && lastBoundTexture[index] == textureId)
+            //     return false;
+            //
+            // flushCurrentBatch();
+            //
+            // GL.ActiveTexture(unit);
+            // GL.BindTexture(TextureTarget.Texture2D, textureId);
+            //
+            // lastBoundTexture[index] = textureId;
+            // lastBoundTextureIsAtlas[getTextureUnitId(unit)] = false;
+            // lastActiveTextureUnit = unit;
+            //
+            // FrameStatistics.Increment(StatisticsCounterType.TextureBinds);
+            return false;
         }
-
-        private int getTextureUnitId(TextureUnit unit) => (int)unit - (int)TextureUnit.Texture0;
-        private bool atlasTextureIsBound(TextureUnit unit) => lastBoundTextureIsAtlas[getTextureUnitId(unit)];
 
         public void SetBlend(BlendingParameters blendingParameters)
         {
@@ -777,14 +774,30 @@ namespace osu.Framework.Graphics.Veldrid
                 disposalAction.Invoke(target);
         }
 
+        public void EnqueueTextureUpload(ITexture texture)
+        {
+            if (texture.IsQueuedForUpload)
+                return;
+
+            if (isInitialised)
+            {
+                texture.IsQueuedForUpload = true;
+                textureUploadQueue.Enqueue(texture);
+            }
+        }
+
         public IFrameBuffer CreateFrameBuffer(RenderbufferInternalFormat[]? renderBufferFormats = null, All filteringMode = All.Linear)
-            => new FrameBuffer(this, renderBufferFormats, filteringMode);
+            => throw new NotImplementedException();
 
         public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : struct, IEquatable<TVertex>, IVertex
-            => new LinearBatch<TVertex>(this, size, maxBuffers, primitiveType);
+            => throw new NotImplementedException();
 
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex
-            => new QuadBatch<TVertex>(this, size, maxBuffers);
+            => throw new NotImplementedException();
+
+        public ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
+                                      Rgba32 initialisationColour = default)
+            => throw new NotImplementedException();
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {
@@ -858,7 +871,5 @@ namespace osu.Framework.Graphics.Veldrid
         {
             lastActiveBatch?.Draw();
         }
-
-        #endregion
     }
 }
