@@ -6,7 +6,6 @@
 using System;
 using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Batches
@@ -24,6 +23,6 @@ namespace osu.Framework.Graphics.OpenGL.Batches
             this.type = type;
         }
 
-        protected override VertexBuffer<T> CreateVertexBuffer() => new LinearVertexBuffer<T>(renderer, Size, type, BufferUsageHint.DynamicDraw);
+        protected override IVertexBuffer<T> CreateVertexBuffer() => new LinearVertexBuffer<T>(renderer, Size, type, BufferUsageHint.DynamicDraw);
     }
 }

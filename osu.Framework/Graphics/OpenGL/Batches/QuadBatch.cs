@@ -6,7 +6,6 @@
 using System;
 using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Batches
@@ -25,6 +24,6 @@ namespace osu.Framework.Graphics.OpenGL.Batches
                 throw new OverflowException($"Attempted to initialise a {nameof(QuadVertexBuffer<T>)} with more than {nameof(QuadVertexBuffer<T>)}.{nameof(QuadVertexBuffer<T>.MAX_QUADS)} quads ({QuadVertexBuffer<T>.MAX_QUADS}).");
         }
 
-        protected override VertexBuffer<T> CreateVertexBuffer() => new QuadVertexBuffer<T>(renderer, Size, BufferUsageHint.DynamicDraw);
+        protected override IVertexBuffer<T> CreateVertexBuffer() => new QuadVertexBuffer<T>(renderer, Size, BufferUsageHint.DynamicDraw);
     }
 }

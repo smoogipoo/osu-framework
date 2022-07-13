@@ -5,7 +5,7 @@
 
 using System;
 using System.Diagnostics;
-using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.Rendering;
 using osuTK.Graphics.ES30;
 

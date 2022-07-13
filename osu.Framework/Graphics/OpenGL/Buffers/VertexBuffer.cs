@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
-    public abstract class VertexBuffer<T> : IVertexBuffer, IDisposable
+    public abstract class VertexBuffer<T> : IVertexBuffer<T>
         where T : struct, IEquatable<T>, IVertex
     {
         protected static readonly int STRIDE = OpenGLVertexUtils<DepthWrappingVertex<T>>.STRIDE;
@@ -36,12 +36,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             Size = amountVertices;
         }
 
-        /// <summary>
-        /// Sets the vertex at a specific index of this <see cref="VertexBuffer{T}"/>.
-        /// </summary>
-        /// <param name="vertexIndex">The index of the vertex.</param>
-        /// <param name="vertex">The vertex.</param>
-        /// <returns>Whether the vertex changed.</returns>
         public bool SetVertex(int vertexIndex, T vertex)
         {
             ref var currentVertex = ref getMemory().Span[vertexIndex];
@@ -54,9 +48,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             return isNewVertex;
         }
 
-        /// <summary>
-        /// Gets the number of vertices in this <see cref="VertexBuffer{T}"/>.
-        /// </summary>
         public int Size { get; }
 
         /// <summary>

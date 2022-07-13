@@ -6,8 +6,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Statistics;
 
@@ -16,7 +14,7 @@ namespace osu.Framework.Graphics.Batches
     internal abstract class VertexBatch<T> : IVertexBatch<T>
         where T : struct, IEquatable<T>, IVertex
     {
-        public List<VertexBuffer<T>> VertexBuffers = new List<VertexBuffer<T>>();
+        public List<IVertexBuffer<T>> VertexBuffers = new List<IVertexBuffer<T>>();
 
         /// <summary>
         /// The number of vertices in each VertexBuffer.
@@ -32,7 +30,7 @@ namespace osu.Framework.Graphics.Batches
         private readonly IRenderer renderer;
         private readonly int maxBuffers;
 
-        private VertexBuffer<T> currentVertexBuffer => VertexBuffers[currentBufferIndex];
+        private IVertexBuffer<T> currentVertexBuffer => VertexBuffers[currentBufferIndex];
 
         protected VertexBatch(IRenderer renderer, int bufferSize, int maxBuffers)
         {
@@ -58,7 +56,7 @@ namespace osu.Framework.Graphics.Batches
         {
             if (disposing)
             {
-                foreach (VertexBuffer<T> vbo in VertexBuffers)
+                foreach (IVertexBuffer<T> vbo in VertexBuffers)
                     vbo.Dispose();
             }
         }
@@ -72,7 +70,7 @@ namespace osu.Framework.Graphics.Batches
             currentVertexIndex = 0;
         }
 
-        protected abstract VertexBuffer<T> CreateVertexBuffer();
+        protected abstract IVertexBuffer<T> CreateVertexBuffer();
 
         /// <summary>
         /// Adds a vertex to this <see cref="VertexBatch{T}"/>.
@@ -110,7 +108,7 @@ namespace osu.Framework.Graphics.Batches
             if (currentVertexIndex == 0)
                 return 0;
 
-            VertexBuffer<T> vertexBuffer = currentVertexBuffer;
+            IVertexBuffer<T> vertexBuffer = currentVertexBuffer;
             if (changeBeginIndex >= 0)
                 vertexBuffer.UpdateRange(changeBeginIndex, changeEndIndex);
 
