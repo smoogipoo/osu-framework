@@ -49,6 +49,15 @@ namespace osu.Framework.Graphics.Textures
         }
 
         /// <summary>
+        /// Creates a new texture using the same backing texture as another <see cref="Texture"/>.
+        /// </summary>
+        /// <param name="other">The other <see cref="Texture"/>.</param>
+        public Texture(Texture other)
+            : this(other.TextureGL)
+        {
+        }
+
+        /// <summary>
         /// Crop the texture.
         /// </summary>
         /// <param name="cropRectangle">The rectangle the cropped texture should reference.</param>

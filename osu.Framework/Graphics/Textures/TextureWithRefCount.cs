@@ -16,8 +16,8 @@ namespace osu.Framework.Graphics.Textures
     {
         private readonly ReferenceCount count;
 
-        public TextureWithRefCount(ITexture textureGl, ReferenceCount count)
-            : base(textureGl)
+        public TextureWithRefCount(Texture other, ReferenceCount count)
+            : base(other)
         {
             this.count = count;
 

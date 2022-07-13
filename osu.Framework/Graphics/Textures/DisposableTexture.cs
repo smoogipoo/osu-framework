@@ -12,8 +12,8 @@ namespace osu.Framework.Graphics.Textures
     /// </summary>
     public class DisposableTexture : Texture
     {
-        internal DisposableTexture(ITexture textureGl)
-            : base(textureGl)
+        public DisposableTexture(Texture texture)
+            : base(texture)
         {
         }
 

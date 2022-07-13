@@ -57,7 +57,7 @@ namespace osu.Framework.Graphics.Textures
                 if (!referenceCounts.TryGetValue(lookupKey, out TextureWithRefCount.ReferenceCount count))
                     referenceCounts[lookupKey] = count = new TextureWithRefCount.ReferenceCount(referenceCountLock, () => onAllReferencesLost(baseTexture));
 
-                return new TextureWithRefCount(baseTexture.TextureGL, count);
+                return new TextureWithRefCount(baseTexture, count);
             }
         }
 
