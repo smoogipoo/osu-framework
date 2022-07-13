@@ -48,12 +48,12 @@ namespace osu.Framework.Graphics.Textures
         /// <summary>
         /// Create a new texture.
         /// </summary>
-        /// <param name="textureGl">The GL texture.</param>
+        /// <param name="nativeTexture">The GL texture.</param>
         /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
         /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
-        internal Texture(INativeTexture textureGl, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        internal Texture(INativeTexture nativeTexture, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            NativeTexture = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
+            NativeTexture = nativeTexture ?? throw new ArgumentNullException(nameof(nativeTexture));
             WrapModeS = wrapModeS;
             WrapModeT = wrapModeT;
         }

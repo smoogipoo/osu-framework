@@ -164,7 +164,7 @@ namespace osu.Framework.Graphics.Textures
         }
 
         /// <summary>
-        /// A TextureGL which is acting as the backing for an atlas.
+        /// A texture which is acting as the backing for an atlas.
         /// </summary>
         private class AtlasTexture : Texture
         {
