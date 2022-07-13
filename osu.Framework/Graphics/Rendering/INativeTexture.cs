@@ -44,12 +44,12 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Whether the texture is currently queued for upload.
         /// </summary>
-        internal bool IsQueuedForUpload { get; set; }
+        bool IsQueuedForUpload { get; set; }
 
         /// <summary>
         /// Flush any unprocessed uploads without actually uploading.
         /// </summary>
-        internal void FlushUploads();
+        void FlushUploads();
 
         /// <summary>
         /// Sets the pixel data of the texture.
@@ -57,8 +57,8 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="upload">The <see cref="ITextureUpload"/> containing the data.</param>
         void SetData(ITextureUpload upload);
 
-        internal bool Upload();
+        bool Upload();
 
-        internal bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT);
+        bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT);
     }
 }

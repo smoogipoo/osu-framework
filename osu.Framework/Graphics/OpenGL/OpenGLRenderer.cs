@@ -786,7 +786,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         public Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
                                      Rgba32 initialisationColour = default)
-            => new Texture(new TextureGLSingle(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
+            => new Texture(new TextureGL(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
 
         public Texture CreateVideoTexture(int width, int height)
             => new Texture(new VideoTextureGL(this, width, height));

@@ -150,7 +150,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         #endregion
 
-        private class FrameBufferTexture : TextureGLSingle
+        private class FrameBufferTexture : TextureGL
         {
             private readonly OpenGLRenderer renderer;
 

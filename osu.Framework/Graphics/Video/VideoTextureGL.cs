@@ -13,7 +13,7 @@ using osu.Framework.Platform;
 
 namespace osu.Framework.Graphics.Video
 {
-    internal unsafe class VideoTextureGL : TextureGLSingle
+    internal unsafe class VideoTextureGL : TextureGL
     {
         private int[] textureIds;
 
@@ -26,7 +26,7 @@ namespace osu.Framework.Graphics.Video
 
         public override int TextureId => textureIds?[0] ?? 0;
 
-        internal override bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
+        public override bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             if (!Available)
                 throw new ObjectDisposedException(ToString(), "Can not bind a disposed texture.");
