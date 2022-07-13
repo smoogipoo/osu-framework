@@ -233,8 +233,8 @@ namespace osu.Framework.Graphics.Lines
             {
                 base.Dispose(isDisposing);
 
-                halfCircleBatch.Dispose();
-                quadBatch.Dispose();
+                halfCircleBatch?.Dispose();
+                quadBatch?.Dispose();
             }
         }
     }

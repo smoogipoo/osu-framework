@@ -406,7 +406,7 @@ namespace osu.Framework.Graphics.Audio
             {
                 base.Dispose(isDisposing);
 
-                vertexBatch.Dispose();
+                vertexBatch?.Dispose();
             }
         }
     }
