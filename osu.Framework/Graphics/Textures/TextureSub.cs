@@ -48,11 +48,15 @@ namespace osu.Framework.Graphics.Textures
             set => throw new InvalidOperationException(); // Todo: I'm preeeeeetty sure this is correct, need to check.
         }
 
+        public bool UploadComplete => parent.UploadComplete;
+
         bool INativeTexture.IsQueuedForUpload
         {
             get => parent.IsQueuedForUpload;
             set => parent.IsQueuedForUpload = value;
         }
+
+        void INativeTexture.FlushUploads() => parent.FlushUploads();
 
         public void SetData(ITextureUpload upload) => ((INativeTexture)this).SetData(upload, WrapModeS, WrapModeS, null);
 

@@ -152,6 +152,16 @@ namespace osu.Framework.Graphics.Textures
         /// </summary>
         public virtual bool Available => TextureGL.Available;
 
+        /// <summary>
+        /// Whether the latest data has been uploaded.
+        /// </summary>
+        public bool UploadComplete => TextureGL.UploadComplete;
+
+        /// <summary>
+        /// Flush any unprocessed uploads without actually uploading.
+        /// </summary>
+        internal void FlushUploads() => TextureGL.FlushUploads();
+
         #region Disposal
 
         // Intentionally no finalizer implementation as our disposal is NOOP. Finalizer is implemented in TextureWithRefCount usage.

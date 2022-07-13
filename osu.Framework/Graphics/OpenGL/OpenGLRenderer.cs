@@ -14,6 +14,7 @@ using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Video;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
@@ -786,6 +787,9 @@ namespace osu.Framework.Graphics.OpenGL
         public Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
                                      Rgba32 initialisationColour = default)
             => new Texture(new TextureGLSingle(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour));
+
+        public Texture CreateVideoTexture(int width, int height)
+            => new Texture(new VideoTextureGL(this, width, height));
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {

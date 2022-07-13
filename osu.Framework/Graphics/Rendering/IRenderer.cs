@@ -308,6 +308,11 @@ namespace osu.Framework.Graphics.Rendering
         Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default);
 
         /// <summary>
+        /// Creates a new video texture.
+        /// </summary>
+        Texture CreateVideoTexture(int width, int height);
+
+        /// <summary>
         /// Sets the value of a uniform.
         /// </summary>
         /// <param name="uniform">The uniform to set.</param>

@@ -54,9 +54,19 @@ namespace osu.Framework.Graphics.Rendering
         bool BypassTextureUploadQueueing { get; set; }
 
         /// <summary>
+        /// Whether the latest data has been uploaded.
+        /// </summary>
+        bool UploadComplete { get; }
+
+        /// <summary>
         /// Whether the texture is currently queued for upload.
         /// </summary>
         internal bool IsQueuedForUpload { get; set; }
+
+        /// <summary>
+        /// Flush any unprocessed uploads without actually uploading.
+        /// </summary>
+        internal void FlushUploads();
 
         /// <summary>
         /// Sets the pixel data of the texture.

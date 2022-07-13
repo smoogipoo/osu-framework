@@ -286,7 +286,16 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             return didUpload;
         }
 
-        internal override void FlushUploads()
+        public override bool UploadComplete
+        {
+            get
+            {
+                lock (uploadQueue)
+                    return uploadQueue.Count == 0;
+            }
+        }
+
+        protected override void FlushUploads()
         {
             while (tryGetNextUpload(out var upload))
                 upload.Dispose();

@@ -13,16 +13,11 @@ using osu.Framework.Platform;
 
 namespace osu.Framework.Graphics.Video
 {
-    internal unsafe class VideoTexture : TextureGLSingle
+    internal unsafe class VideoTextureGL : TextureGLSingle
     {
         private int[] textureIds;
 
-        /// <summary>
-        /// Whether the latest frame data has been uploaded.
-        /// </summary>
-        public bool UploadComplete { get; private set; }
-
-        public VideoTexture(OpenGLRenderer renderer, int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        public VideoTextureGL(OpenGLRenderer renderer, int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
             : base(renderer, width, height, true, All.Linear, wrapModeS, wrapModeT)
         {
         }
@@ -33,8 +28,6 @@ namespace osu.Framework.Graphics.Video
         {
             if (uploadOpacity != null && uploadOpacity != Opacity.Opaque)
                 throw new InvalidOperationException("Video texture uploads must always be opaque");
-
-            UploadComplete = false;
 
             // We do not support videos with transparency at this point,
             // so the upload's opacity as well as the texture's opacity
@@ -114,8 +107,6 @@ namespace osu.Framework.Graphics.Video
             }
 
             GL.PixelStore(PixelStoreParameter.UnpackRowLength, 0);
-
-            UploadComplete = true;
         }
 
         #region Disposal

@@ -35,6 +35,8 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         #region Disposal
 
+        public abstract bool UploadComplete { get; }
+
         bool INativeTexture.IsQueuedForUpload { get; set; }
 
         /// <summary>
@@ -108,10 +110,9 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         bool INativeTexture.Upload() => Upload();
 
-        /// <summary>
-        /// Flush any unprocessed uploads without actually uploading.
-        /// </summary>
-        internal abstract void FlushUploads();
+        protected abstract void FlushUploads();
+
+        void INativeTexture.FlushUploads() => FlushUploads();
 
         /// <summary>
         /// Sets the pixel data of this <see cref="TextureGL"/>.

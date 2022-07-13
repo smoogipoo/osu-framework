@@ -186,6 +186,15 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         public bool Available { get; private set; }
         public bool BypassTextureUploadQueueing { get; set; }
 
+        public bool UploadComplete
+        {
+            get
+            {
+                lock (uploadQueue)
+                    return uploadQueue.Count == 0;
+            }
+        }
+
         bool INativeTexture.IsQueuedForUpload { get; set; }
 
         public Opacity Opacity { get; private set; }
@@ -246,6 +255,12 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         public const int VERTICES_PER_TRIANGLE = 4;
 
         public const int VERTICES_PER_QUAD = 4;
+
+        void INativeTexture.FlushUploads()
+        {
+            while (tryGetNextUpload(out var upload))
+                upload.Dispose();
+        }
 
         public void SetData(ITextureUpload upload)
         {
@@ -432,7 +447,8 @@ namespace osu.Framework.Graphics.Veldrid.Textures
                     maximumUploadedLod = upload.Level;
                 }
 
-                renderer.UpdateTexture(texture, upload.Bounds.X >> upload.Level, upload.Bounds.Y >> upload.Level, upload.Bounds.Width >> upload.Level, upload.Bounds.Height >> upload.Level, upload.Level, upload.Data);
+                renderer.UpdateTexture(texture, upload.Bounds.X >> upload.Level, upload.Bounds.Y >> upload.Level, upload.Bounds.Width >> upload.Level, upload.Bounds.Height >> upload.Level,
+                    upload.Level, upload.Data);
             }
 
             if (sampler == null || maximumUploadedLod > lastMaximumUploadedLod)
