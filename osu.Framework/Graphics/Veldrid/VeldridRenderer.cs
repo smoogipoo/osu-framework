@@ -9,7 +9,6 @@ using System.Linq;
 using osu.Framework.Development;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
@@ -365,14 +364,14 @@ namespace osu.Framework.Graphics.Veldrid
 
         public bool BindTexture(Graphics.Textures.Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
-            if (texture.TextureGL is TextureSubAtlasWhite && AtlasTextureIsBound)
+            if (texture is TextureWhitePixel && AtlasTextureIsBound)
             {
                 // We can use the special white space from any atlas texture.
                 return true;
             }
 
-            bool didBind = texture.TextureGL.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
-            AtlasTextureIsBound = texture.TextureGL is VeldridTextureAtlas;
+            bool didBind = texture.NativeTexture.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
+            AtlasTextureIsBound = texture is TextureAtlasSubTexture;
 
             return didBind;
         }
@@ -860,7 +859,7 @@ namespace osu.Framework.Graphics.Veldrid
 
         public Graphics.Textures.Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
                                                        WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
-            => new Graphics.Textures.Texture(new VeldridTexture(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour));
+            => new Graphics.Textures.Texture(new VeldridTexture(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
 
         public Graphics.Textures.Texture CreateVideoTexture(int width, int height)
             => throw new NotImplementedException();

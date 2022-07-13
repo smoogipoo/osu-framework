@@ -4,24 +4,14 @@
 #nullable disable
 
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Textures
 {
-    internal class TextureWhitePixel : Texture
+    internal class TextureWhitePixel : TextureSub
     {
-        public TextureWhitePixel(INativeTexture textureGl)
-            : base(textureGl)
+        public TextureWhitePixel(Texture texture)
+            : base(texture, new RectangleI(0, 0, 1, 1), texture.WrapModeS, texture.WrapModeT)
         {
-        }
-
-        protected override RectangleF TextureBounds(RectangleF? textureRect = null)
-        {
-            // We need non-zero texture bounds for EdgeSmoothness to work correctly.
-            // Let's be very conservative and use a tenth of the size of a pixel in the
-            // largest possible texture.
-            float smallestPixelTenth = 0.1f / TextureGL.MaxSize;
-            return new RectangleF(0, 0, smallestPixelTenth, smallestPixelTenth);
         }
     }
 }

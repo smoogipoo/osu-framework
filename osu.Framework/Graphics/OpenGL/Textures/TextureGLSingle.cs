@@ -5,15 +5,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
 using osu.Framework.Extensions.ImageExtensions;
-using osu.Framework.Graphics.Primitives;
 using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
-using osu.Framework.Lists;
 using osu.Framework.Platform;
 using osuTK;
 using SixLabors.ImageSharp;
@@ -24,20 +21,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 {
     internal class TextureGLSingle : TextureGL
     {
-        /// <summary>
-        /// Contains all currently-active <see cref="TextureGLSingle"/>es.
-        /// </summary>
-        private static readonly LockedWeakList<TextureGLSingle> all_textures = new LockedWeakList<TextureGLSingle>();
-
         private readonly Queue<ITextureUpload> uploadQueue = new Queue<ITextureUpload>();
-
-        /// <summary>
-        /// Invoked when a new <see cref="TextureGLAtlas"/> is created.
-        /// </summary>
-        /// <remarks>
-        /// Invocation from the draw or update thread cannot be assumed.
-        /// </remarks>
-        public static event Action<TextureGLSingle> TextureCreated;
 
         private int internalWidth;
         private int internalHeight;
@@ -54,8 +38,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         // ReSharper disable once InconsistentlySynchronizedField (no need to lock here. we don't really care if the value is stale).
         public override bool Loaded => textureId > 0 || uploadQueue.Count > 0;
 
-        public override RectangleI Bounds => new RectangleI(0, 0, Width, Height);
-
         /// <summary>
         /// Creates a new <see cref="TextureGLSingle"/>.
         /// </summary>
@@ -64,28 +46,16 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <param name="height">The height of the texture.</param>
         /// <param name="manualMipmaps">Whether manual mipmaps will be uploaded to the texture. If false, the texture will compute mipmaps automatically.</param>
         /// <param name="filteringMode">The filtering mode.</param>
-        /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
-        /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
         /// <param name="initialisationColour">The colour to initialise texture levels with (in the case of sub region initial uploads).</param>
-        public TextureGLSingle(OpenGLRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
-                               WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
-            : base(renderer, wrapModeS, wrapModeT)
+        public TextureGLSingle(OpenGLRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, Rgba32 initialisationColour = default)
+            : base(renderer)
         {
             Width = width;
             Height = height;
             this.manualMipmaps = manualMipmaps;
             this.filteringMode = filteringMode;
             this.initialisationColour = initialisationColour;
-
-            all_textures.Add(this);
-
-            TextureCreated?.Invoke(this);
         }
-
-        /// <summary>
-        /// Retrieves all currently-active <see cref="TextureGLSingle"/>s.
-        /// </summary>
-        public static TextureGLSingle[] GetAllTextures() => all_textures.ToArray();
 
         #region Disposal
 
@@ -97,8 +67,6 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         protected override void Dispose(bool isDisposing)
         {
             base.Dispose(isDisposing);
-
-            all_textures.Remove(this);
 
             while (tryGetNextUpload(out var upload))
                 upload.Dispose();
@@ -211,23 +179,8 @@ namespace osu.Framework.Graphics.OpenGL.Textures
             return texRect;
         }
 
-        internal override void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
+        public override void SetData(ITextureUpload upload)
         {
-            if (!Available)
-                throw new ObjectDisposedException(ToString(), "Can not set data of a disposed texture.");
-
-            if (upload.Bounds.Width > Renderer.MaxTextureSize || Bounds.Height > Renderer.MaxTextureSize)
-                throw new TextureTooLargeForGLException();
-
-            if (upload.Bounds.IsEmpty && upload.Data.Length > 0)
-            {
-                upload.Bounds = Bounds;
-                if (width * height > upload.Data.Length)
-                    throw new InvalidOperationException($"Size of texture upload ({width}x{height}) does not contain enough data ({upload.Data.Length} < {width * height})");
-            }
-
-            UpdateOpacity(upload, ref uploadOpacity);
-
             lock (uploadQueue)
             {
                 bool requireUpload = uploadQueue.Count == 0;

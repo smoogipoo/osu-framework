@@ -21,7 +21,7 @@ namespace osu.Framework.Graphics.Textures
         protected override void Dispose(bool isDisposing)
         {
             base.Dispose(isDisposing);
-            TextureGL.Dispose();
+            NativeTexture.Dispose();
             parent.Dispose();
         }
     }

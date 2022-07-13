@@ -325,14 +325,14 @@ namespace osu.Framework.Graphics.OpenGL
 
         public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
-            if (texture.TextureGL is TextureSubAtlasWhite && atlasTextureIsBound(unit))
+            if (texture is TextureWhitePixel && atlasTextureIsBound(unit))
             {
                 // We can use the special white space from any atlas texture.
                 return true;
             }
 
-            bool didBind = texture.TextureGL.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
-            lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
+            bool didBind = texture.NativeTexture.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
+            lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture is TextureAtlasSubTexture;
 
             return didBind;
         }
@@ -786,7 +786,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         public Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
                                      Rgba32 initialisationColour = default)
-            => new Texture(new TextureGLSingle(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour));
+            => new Texture(new TextureGLSingle(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
 
         public Texture CreateVideoTexture(int width, int height)
             => new Texture(new VideoTextureGL(this, width, height));

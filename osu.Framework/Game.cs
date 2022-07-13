@@ -69,7 +69,7 @@ namespace osu.Framework
 
         private DrawVisualiser drawVisualiser;
 
-        private TextureVisualiser textureVisualiser;
+        // private TextureVisualiser textureVisualiser;
 
         private LogOverlay logOverlay;
 
@@ -321,16 +321,16 @@ namespace osu.Framework
 
                 case FrameworkAction.ToggleAtlasVisualiser:
 
-                    if (textureVisualiser == null)
-                    {
-                        LoadComponentAsync(textureVisualiser = new TextureVisualiser
-                        {
-                            Position = getCascadeLocation(2),
-                            Depth = float.MinValue / 2,
-                        }, AddInternal);
-                    }
-
-                    textureVisualiser.ToggleVisibility();
+                    // if (textureVisualiser == null)
+                    // {
+                    //     LoadComponentAsync(textureVisualiser = new TextureVisualiser
+                    //     {
+                    //         Position = getCascadeLocation(2),
+                    //         Depth = float.MinValue / 2,
+                    //     }, AddInternal);
+                    // }
+                    //
+                    // textureVisualiser.ToggleVisibility();
                     return true;
 
                 case FrameworkAction.ToggleAudioMixerVisualiser:

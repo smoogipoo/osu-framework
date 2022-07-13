@@ -2,65 +2,23 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.Graphics.Rendering;
-using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Textures
 {
-    internal class TextureSub : INativeTexture
+    public class TextureSub : Texture
     {
-        private readonly INativeTexture parent;
-        private RectangleI bounds;
+        private readonly Texture parent;
+        private readonly RectangleI bounds;
 
-        public TextureSub(INativeTexture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
+        public TextureSub(Texture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
+            : base(parent, wrapModeS, wrapModeT)
         {
             this.parent = parent;
             this.bounds = bounds;
-
-            WrapModeS = wrapModeS;
-            WrapModeT = wrapModeT;
         }
 
-        public int MaxSize => parent.MaxSize;
-        public Opacity Opacity => Opacity.Mixed;
-        public WrapMode WrapModeS { get; }
-        public WrapMode WrapModeT { get; }
-
-        public int Width
-        {
-            get => bounds.Width;
-            set => bounds.Height = value;
-        }
-
-        public int Height
-        {
-            get => bounds.Height;
-            set => bounds.Height = value;
-        }
-
-        public bool Available => parent.Available;
-
-        public bool BypassTextureUploadQueueing
-        {
-            get => parent.BypassTextureUploadQueueing;
-            set => throw new InvalidOperationException(); // Todo: I'm preeeeeetty sure this is correct, need to check.
-        }
-
-        public bool UploadComplete => parent.UploadComplete;
-
-        bool INativeTexture.IsQueuedForUpload
-        {
-            get => parent.IsQueuedForUpload;
-            set => parent.IsQueuedForUpload = value;
-        }
-
-        void INativeTexture.FlushUploads() => parent.FlushUploads();
-
-        public void SetData(ITextureUpload upload) => ((INativeTexture)this).SetData(upload, WrapModeS, WrapModeS, null);
-
-        void INativeTexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
+        internal override void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? opacity)
         {
             if (upload.Bounds.Width > bounds.Width || upload.Bounds.Height > bounds.Height)
             {
@@ -85,18 +43,12 @@ namespace osu.Framework.Graphics.Textures
             // UpdateOpacity(upload, ref uploadOpacity);
 
             // Todo: Not sure if this is correct...
-            parent.SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
+            parent.SetData(upload, wrapModeS, wrapModeT, opacity);
         }
 
-        bool INativeTexture.Upload() => parent.Upload();
-
-        bool INativeTexture.Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => parent.Bind(unit, wrapModeS, wrapModeT);
-
-        public RectangleF GetTextureRect(RectangleF? textureRect) => parent.GetTextureRect(boundsInParent(textureRect));
-
-        private RectangleF boundsInParent(RectangleF? textureRect)
+        protected override RectangleF TextureBounds(RectangleF? textureRect = null)
         {
-            RectangleF actualBounds = bounds;
+            var actualBounds = base.TextureBounds(textureRect);
 
             if (textureRect.HasValue)
             {
@@ -108,11 +60,6 @@ namespace osu.Framework.Graphics.Textures
             }
 
             return actualBounds;
-        }
-
-        public void Dispose()
-        {
-            // Todo: I'm preeeeeeeeeeeetty sure this shouldn't do anything, but TextureGLSub seemed to dispose the parent texture somehow?
         }
     }
 }

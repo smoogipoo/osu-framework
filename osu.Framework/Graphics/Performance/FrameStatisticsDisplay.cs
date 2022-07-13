@@ -524,7 +524,7 @@ namespace osu.Framework.Graphics.Performance
             private void load(GameHost host)
             {
                 Sprite.Texture = host.Renderer.CreateTexture(WIDTH, HEIGHT, true);
-                Sprite.Texture.TextureGL.BypassTextureUploadQueueing = true;
+                Sprite.Texture.BypassTextureUploadQueueing = true;
             }
         }
 

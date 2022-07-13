@@ -6,7 +6,6 @@
 using System;
 using System.IO;
 using osu.Framework.Extensions.EnumExtensions;
-using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Rendering;
 using osuTK;
 using RectangleF = osu.Framework.Graphics.Primitives.RectangleF;
@@ -15,7 +14,7 @@ namespace osu.Framework.Graphics.Textures
 {
     public class Texture : IDisposable
     {
-        public virtual INativeTexture TextureGL { get; }
+        internal virtual INativeTexture NativeTexture { get; }
 
         public string Filename;
         public string AssetName;
@@ -33,27 +32,39 @@ namespace osu.Framework.Graphics.Textures
         public float DisplayWidth => Width / ScaleAdjust;
         public float DisplayHeight => Height / ScaleAdjust;
 
-        public Opacity Opacity => TextureGL.Opacity;
+        public Opacity Opacity { get; protected set; } = Opacity.Mixed;
 
-        public WrapMode WrapModeS => TextureGL.WrapModeS;
+        /// <summary>
+        /// The texture wrap mode in horizontal direction.
+        /// </summary>
+        public readonly WrapMode WrapModeS;
 
-        public WrapMode WrapModeT => TextureGL.WrapModeT;
+        /// <summary>
+        /// The texture wrap mode in vertical direction.
+        /// </summary>
+        public readonly WrapMode WrapModeT;
 
         /// <summary>
         /// Create a new texture.
         /// </summary>
         /// <param name="textureGl">The GL texture.</param>
-        internal Texture(INativeTexture textureGl)
+        /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
+        /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
+        internal Texture(INativeTexture textureGl, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            TextureGL = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
+            NativeTexture = textureGl ?? throw new ArgumentNullException(nameof(textureGl));
+            WrapModeS = wrapModeS;
+            WrapModeT = wrapModeT;
         }
 
         /// <summary>
         /// Creates a new texture using the same backing texture as another <see cref="Texture"/>.
         /// </summary>
-        /// <param name="other">The other <see cref="Texture"/>.</param>
-        public Texture(Texture other)
-            : this(other.TextureGL)
+        /// <param name="parent">The other <see cref="Texture"/>.</param>
+        /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
+        /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
+        public Texture(Texture parent, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+            : this(parent.NativeTexture, wrapModeS, wrapModeT)
         {
         }
 
@@ -76,7 +87,7 @@ namespace osu.Framework.Graphics.Textures
                 cropRectangle *= scale;
             }
 
-            return new Texture(new TextureSub(TextureGL, cropRectangle, wrapModeS, wrapModeT));
+            return new TextureSub(this, cropRectangle, wrapModeS, wrapModeT);
         }
 
         /// <summary>
@@ -94,7 +105,7 @@ namespace osu.Framework.Graphics.Textures
             try
             {
                 var data = new TextureUpload(stream);
-                Texture tex = atlas == null ? renderer.CreateTexture(data.Width, data.Height) : new Texture(atlas.Add(data.Width, data.Height));
+                Texture tex = atlas == null ? renderer.CreateTexture(data.Width, data.Height) : atlas.Add(data.Width, data.Height);
                 tex.SetData(data);
                 return tex;
             }
@@ -106,14 +117,14 @@ namespace osu.Framework.Graphics.Textures
 
         public int Width
         {
-            get => TextureGL.Width;
-            set => TextureGL.Width = value;
+            get => NativeTexture.Width;
+            set => NativeTexture.Width = value;
         }
 
         public int Height
         {
-            get => TextureGL.Height;
-            set => TextureGL.Height = value;
+            get => NativeTexture.Height;
+            set => NativeTexture.Height = value;
         }
 
         public Vector2 Size => new Vector2(Width, Height);
@@ -123,9 +134,74 @@ namespace osu.Framework.Graphics.Textures
         /// The provided upload will be disposed after the upload is completed.
         /// </summary>
         /// <param name="upload"></param>
-        public void SetData(ITextureUpload upload)
+        public void SetData(ITextureUpload upload) => SetData(upload, WrapModeS, WrapModeT, null);
+
+        internal virtual void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? opacity)
         {
-            TextureGL?.SetData(upload);
+            if (!Available)
+                throw new ObjectDisposedException(ToString(), "Can not set data of a disposed texture.");
+
+            if (upload.Bounds.Width > NativeTexture.MaxSize || upload.Bounds.Height > NativeTexture.MaxSize)
+                throw new TextureTooLargeForGLException();
+
+            if (upload.Bounds.IsEmpty && upload.Data.Length > 0)
+            {
+                upload.Bounds = GetTextureRect().AABB;
+
+                if (upload.Bounds.Width * upload.Bounds.Height > upload.Data.Length)
+                {
+                    throw new InvalidOperationException(
+                        $"Size of texture upload ({upload.Bounds.Width}x{upload.Bounds.Height}) does not contain enough data ({upload.Data.Length} < {upload.Bounds.Width * upload.Bounds.Height})");
+                }
+            }
+
+            UpdateOpacity(upload, ref opacity);
+
+            NativeTexture?.SetData(upload);
+        }
+
+        protected static Opacity ComputeOpacity(ITextureUpload upload)
+        {
+            // TODO: Investigate performance issues and revert functionality once we are sure there is no overhead.
+            // see https://github.com/ppy/osu/issues/9307
+            return Opacity.Mixed;
+
+            // ReadOnlySpan<Rgba32> data = upload.Data;
+            //
+            // if (data.Length == 0)
+            //     return Opacity.Transparent;
+            //
+            // int firstPixelValue = data[0].A;
+            //
+            // // Check if the first pixel has partial transparency (neither fully-opaque nor fully-transparent).
+            // if (firstPixelValue != 0 && firstPixelValue != 255)
+            //     return Opacity.Mixed;
+            //
+            // // The first pixel is GUARANTEED to be either fully-opaque or fully-transparent.
+            // // Now we need to go through the rest of the image and check that every other pixel matches this value.
+            // for (int i = 1; i < data.Length; i++)
+            // {
+            //     if (data[i].A != firstPixelValue)
+            //         return Opacity.Mixed;
+            // }
+            //
+            // return firstPixelValue == 0 ? Opacity.Transparent : Opacity.Opaque;
+        }
+
+        protected void UpdateOpacity(ITextureUpload upload, ref Opacity? uploadOpacity)
+        {
+            // Compute opacity if it doesn't have a value yet
+            uploadOpacity ??= ComputeOpacity(upload);
+
+            // Update the texture's opacity depending on the upload's opacity.
+            // If the upload covers the entire bounds of the texture, it fully
+            // determines the texture's opacity. Otherwise, it can only turn
+            // the texture's opacity into a mixed state (if it disagrees with
+            // the texture's existing opacity).
+            if (upload.Bounds == GetTextureRect().AABB && upload.Level == 0)
+                Opacity = uploadOpacity.Value;
+            else if (uploadOpacity.Value != Opacity)
+                Opacity = Opacity.Mixed;
         }
 
         protected virtual RectangleF TextureBounds(RectangleF? textureRect = null)
@@ -143,24 +219,37 @@ namespace osu.Framework.Graphics.Textures
             return texRect;
         }
 
-        public RectangleF GetTextureRect(RectangleF? textureRect = null) => TextureGL.GetTextureRect(TextureBounds(textureRect));
+        public RectangleF GetTextureRect(RectangleF? textureRect = null) => TextureBounds(textureRect);
 
         public override string ToString() => $@"{AssetName} ({Width}, {Height})";
 
         /// <summary>
-        /// Whether <see cref="TextureGL"/> is in a usable state.
+        /// Whether <see cref="NativeTexture"/> is in a usable state.
         /// </summary>
-        public virtual bool Available => TextureGL.Available;
+        public virtual bool Available => NativeTexture.Available;
 
         /// <summary>
         /// Whether the latest data has been uploaded.
         /// </summary>
-        public bool UploadComplete => TextureGL.UploadComplete;
+        public bool UploadComplete => NativeTexture.UploadComplete;
 
         /// <summary>
         /// Flush any unprocessed uploads without actually uploading.
         /// </summary>
-        internal void FlushUploads() => TextureGL.FlushUploads();
+        internal void FlushUploads() => NativeTexture.FlushUploads();
+
+        internal bool HasSameNativeTexture(Texture other) => NativeTexture == other.NativeTexture;
+
+        /// <summary>
+        /// By default, texture uploads are queued for upload at the beginning of each frame, allowing loading them ahead of time.
+        /// When this is true, this will be bypassed and textures will only be uploaded on use. Should be set for every-frame texture uploads
+        /// to avoid overloading the global queue.
+        /// </summary>
+        public bool BypassTextureUploadQueueing
+        {
+            get => NativeTexture.BypassTextureUploadQueueing;
+            set => NativeTexture.BypassTextureUploadQueueing = value;
+        }
 
         #region Disposal
 

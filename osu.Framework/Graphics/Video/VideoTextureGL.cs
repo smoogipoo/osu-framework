@@ -17,23 +17,12 @@ namespace osu.Framework.Graphics.Video
     {
         private int[] textureIds;
 
-        public VideoTextureGL(OpenGLRenderer renderer, int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
-            : base(renderer, width, height, true, All.Linear, wrapModeS, wrapModeT)
+        public VideoTextureGL(OpenGLRenderer renderer, int width, int height)
+            : base(renderer, width, height, true)
         {
         }
 
         private NativeMemoryTracker.NativeMemoryLease memoryLease;
-
-        internal override void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
-        {
-            if (uploadOpacity != null && uploadOpacity != Opacity.Opaque)
-                throw new InvalidOperationException("Video texture uploads must always be opaque");
-
-            // We do not support videos with transparency at this point,
-            // so the upload's opacity as well as the texture's opacity
-            // is always opaque.
-            base.SetData(upload, wrapModeS, wrapModeT, Opacity = Opacity.Opaque);
-        }
 
         public override int TextureId => textureIds?[0] ?? 0;
 

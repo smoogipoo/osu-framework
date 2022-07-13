@@ -4,7 +4,6 @@
 #nullable disable
 
 using System;
-using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.IO.Stores;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -104,11 +103,11 @@ namespace osu.Framework.Graphics.Textures
         {
             if (upload == null) return null;
 
-            INativeTexture nativeTexture = null;
+            Texture tex = null;
 
             if (Atlas != null)
             {
-                if ((nativeTexture = Atlas.Add(upload.Width, upload.Height, wrapModeS, wrapModeT)) == null)
+                if ((tex = Atlas.Add(upload.Width, upload.Height, wrapModeS, wrapModeT)) == null)
                 {
                     Logger.Log(
                         $"Texture requested ({upload.Width}x{upload.Height}) which exceeds {nameof(TextureStore)}'s atlas size ({max_atlas_size}x{max_atlas_size}) - bypassing atlasing. Consider using {nameof(LargeTextureStore)}.",
@@ -116,7 +115,7 @@ namespace osu.Framework.Graphics.Textures
                 }
             }
 
-            Texture tex = nativeTexture != null ? new Texture(nativeTexture) : renderer.CreateTexture(upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
+            tex ??= renderer.CreateTexture(upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
             tex.ScaleAdjust = ScaleAdjust;
             tex.SetData(upload);
 

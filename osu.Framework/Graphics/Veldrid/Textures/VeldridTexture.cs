@@ -5,14 +5,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using osu.Framework.Development;
 using osu.Framework.Extensions.ImageExtensions;
-using osu.Framework.Graphics.OpenGL.Textures;
-using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
-using osu.Framework.Lists;
 using osu.Framework.Platform;
 using osuTK;
 using osuTK.Graphics.ES30;
@@ -27,20 +23,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 {
     internal class VeldridTexture : INativeTexture
     {
-        /// <summary>
-        /// Contains all currently-active <see cref="VeldridTexture"/>s.
-        /// </summary>
-        private static readonly LockedWeakList<VeldridTexture> all_textures = new LockedWeakList<VeldridTexture>();
-
         private readonly Queue<ITextureUpload> uploadQueue = new Queue<ITextureUpload>();
-
-        /// <summary>
-        /// Invoked when a new <see cref="VeldridTexture"/> is created.
-        /// </summary>
-        /// <remarks>
-        /// Invocation from the draw or update thread cannot be assumed.
-        /// </remarks>
-        public static event Action<VeldridTexture> TextureCreated;
 
         private readonly All filteringMode;
 
@@ -50,8 +33,6 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         /// The total amount of times this <see cref="VeldridTexture"/> was bound.
         /// </summary>
         public ulong BindCount { get; protected set; }
-
-        public RectangleI Bounds => new RectangleI(0, 0, Width, Height);
 
         protected virtual TextureUsage Usages
         {
@@ -76,11 +57,8 @@ namespace osu.Framework.Graphics.Veldrid.Textures
         /// <param name="height">The height of the texture.</param>
         /// <param name="manualMipmaps">Whether manual mipmaps will be uploaded to the texture. If false, the texture will compute mipmaps automatically.</param>
         /// <param name="filteringMode">The filtering mode.</param>
-        /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
-        /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
         /// <param name="initialisationColour">The colour to initialise texture levels with (in the case of sub region initial uploads).</param>
-        public VeldridTexture(VeldridRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear,
-                              WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
+        public VeldridTexture(VeldridRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, Rgba32 initialisationColour = default)
         {
             this.renderer = renderer;
             this.manualMipmaps = manualMipmaps;
@@ -89,19 +67,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
             Width = width;
             Height = height;
-
-            WrapModeS = wrapModeS;
-            WrapModeT = wrapModeT;
-
-            all_textures.Add(this);
-
-            TextureCreated?.Invoke(this);
         }
-
-        /// <summary>
-        /// Retrieves all currently-active <see cref="VeldridTexture"/>s.
-        /// </summary>
-        public static VeldridTexture[] GetAllTextures() => all_textures.ToArray();
 
         #region Disposal
 
@@ -125,8 +91,6 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
         protected void Dispose(bool isDisposing)
         {
-            all_textures.Remove(this);
-
             while (tryGetNextUpload(out var upload))
                 upload.Dispose();
 
@@ -197,12 +161,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
         bool INativeTexture.IsQueuedForUpload { get; set; }
 
-        public Opacity Opacity { get; private set; }
-
         public int MaxSize => renderer.MaxTextureSize;
-
-        public WrapMode WrapModeS { get; }
-        public WrapMode WrapModeT { get; }
 
         public int Width { get; set; }
         public int Height { get; set; }
@@ -264,28 +223,6 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
         public void SetData(ITextureUpload upload)
         {
-            throw new NotImplementedException();
-        }
-
-        void INativeTexture.SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
-        {
-            SetData(upload, wrapModeS, wrapModeT, uploadOpacity);
-        }
-
-        internal virtual void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? uploadOpacity)
-        {
-            if (!Available)
-                throw new ObjectDisposedException(ToString(), "Can not set data of a disposed texture.");
-
-            if (upload.Bounds.IsEmpty && upload.Data.Length > 0)
-            {
-                upload.Bounds = Bounds;
-                if (Width * Height > upload.Data.Length)
-                    throw new InvalidOperationException($"Size of texture upload ({Width}x{Height}) does not contain enough data ({upload.Data.Length} < {Width * Height})");
-            }
-
-            UpdateOpacity(upload, ref uploadOpacity);
-
             lock (uploadQueue)
             {
                 // bool requireUpload = uploadQueue.Count == 0;
@@ -295,50 +232,6 @@ namespace osu.Framework.Graphics.Veldrid.Textures
                 // if (requireUpload && !BypassTextureUploadQueueing)
                 // renderer.EnqueueTextureUpload(this);
             }
-        }
-
-        protected static Opacity ComputeOpacity(ITextureUpload upload)
-        {
-            // TODO: Investigate performance issues and revert functionality once we are sure there is no overhead.
-            // see https://github.com/ppy/osu/issues/9307
-            return Opacity.Mixed;
-
-            // ReadOnlySpan<Rgba32> data = upload.Data;
-            //
-            // if (data.Length == 0)
-            //     return Opacity.Transparent;
-            //
-            // int firstPixelValue = data[0].A;
-            //
-            // // Check if the first pixel has partial transparency (neither fully-opaque nor fully-transparent).
-            // if (firstPixelValue != 0 && firstPixelValue != 255)
-            //     return Opacity.Mixed;
-            //
-            // // The first pixel is GUARANTEED to be either fully-opaque or fully-transparent.
-            // // Now we need to go through the rest of the image and check that every other pixel matches this value.
-            // for (int i = 1; i < data.Length; i++)
-            // {
-            //     if (data[i].A != firstPixelValue)
-            //         return Opacity.Mixed;
-            // }
-            //
-            // return firstPixelValue == 0 ? Opacity.Transparent : Opacity.Opaque;
-        }
-
-        protected void UpdateOpacity(ITextureUpload upload, ref Opacity? uploadOpacity)
-        {
-            // Compute opacity if it doesn't have a value yet
-            uploadOpacity ??= ComputeOpacity(upload);
-
-            // Update the texture's opacity depending on the upload's opacity.
-            // If the upload covers the entire bounds of the texture, it fully
-            // determines the texture's opacity. Otherwise, it can only turn
-            // the texture's opacity into a mixed state (if it disagrees with
-            // the texture's existing opacity).
-            if (upload.Bounds == Bounds && upload.Level == 0)
-                Opacity = uploadOpacity.Value;
-            else if (uploadOpacity.Value != Opacity)
-                Opacity = Opacity.Mixed;
         }
 
         /// <summary>
