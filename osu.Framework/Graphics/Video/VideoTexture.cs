@@ -5,9 +5,9 @@
 
 using System;
 using System.Diagnostics;
+using osu.Framework.Graphics.OpenGL;
 using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.OpenGL.Textures;
-using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
 
@@ -22,7 +22,7 @@ namespace osu.Framework.Graphics.Video
         /// </summary>
         public bool UploadComplete { get; private set; }
 
-        public VideoTexture(IRenderer renderer, int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        public VideoTexture(OpenGLRenderer renderer, int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
             : base(renderer, width, height, true, All.Linear, wrapModeS, wrapModeT)
         {
         }

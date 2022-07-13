@@ -182,16 +182,6 @@ namespace osu.Framework.Graphics.Rendering
         bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null);
 
         /// <summary>
-        /// Binds a texture.
-        /// </summary>
-        /// <param name="textureId">The texture to bind.</param>
-        /// <param name="unit">The unit to bind the texture to.</param>
-        /// <param name="wrapModeS">The texture's horizontal wrap mode.</param>
-        /// <param name="wrapModeT">The texture's vertex wrap mode.</param>
-        /// <returns>Whether <paramref name="textureId"/> was newly-bound.</returns>
-        bool BindTexture(int textureId, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None);
-
-        /// <summary>
         /// Sets the current blending state.
         /// </summary>
         /// <param name="blendingParameters">The blending parameters.</param>

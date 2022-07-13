@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using osu.Framework.Development;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Buffers;
@@ -14,6 +15,7 @@ using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
@@ -22,8 +24,9 @@ using osuTK.Graphics;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
+using PixelFormat = Veldrid.PixelFormat;
 using Shader = osu.Framework.Graphics.Shaders.Shader;
-using Texture = osu.Framework.Graphics.Textures.Texture;
+using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid
 {
@@ -53,11 +56,12 @@ namespace osu.Framework.Graphics.Veldrid
         public bool IsMaskingActive => maskingStack.Count > 1;
         public float BackbufferDrawDepth { get; private set; }
         public bool UsingBackbuffer => frameBufferStack.Count > 0 && frameBufferStack.Peek() == BackbufferFramebuffer;
+        public bool AtlasTextureIsBound { get; private set; }
 
         // in case no other textures are used in the project, create a new atlas as a fallback source for the white pixel area (used to draw boxes etc.)
         private readonly Lazy<TextureWhitePixel> whitePixel;
 
-        public Texture WhitePixel => whitePixel.Value;
+        public Graphics.Textures.Texture WhitePixel => whitePixel.Value;
 
         protected Framebuffer BackbufferFramebuffer { get; private set; } = null!;
 
@@ -84,9 +88,7 @@ namespace osu.Framework.Graphics.Veldrid
         private readonly Stack<Shader> shaderStack = new Stack<Shader>();
         private readonly Stack<bool> scissorStateStack = new Stack<bool>();
         private readonly Stack<Framebuffer> frameBufferStack = new Stack<Framebuffer>();
-        private readonly bool[] lastBoundTextureIsAtlas = new bool[16];
         private readonly int[] lastBoundBuffers = new int[2];
-        private readonly int[] lastBoundTexture = new int[16];
 
         private BlendingParameters lastBlendingParameters;
         private IVertexBatch? lastActiveBatch;
@@ -97,6 +99,7 @@ namespace osu.Framework.Graphics.Veldrid
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
 
         internal const uint UNIFORM_RESOURCE_SLOT = 0;
+        internal const uint TEXTURE_RESOURCE_SLOT = 1;
 
         public GraphicsDevice Device { get; private set; } = null!;
 
@@ -106,8 +109,16 @@ namespace osu.Framework.Graphics.Veldrid
 
         private ResourceLayout uniformLayout = null!;
 
+        private VeldridTextureSamplerSet defaultTextureSet = null!;
+
+        private VeldridTextureSamplerSet? boundTextureSet;
+
         internal static readonly ResourceLayoutDescription UNIFORM_LAYOUT = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("m_Uniforms", ResourceKind.UniformBuffer, ShaderStages.Fragment | ShaderStages.Vertex));
+
+        internal static readonly ResourceLayoutDescription TEXTURE_LAYOUT = new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("m_Texture", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
+            new ResourceLayoutElementDescription("m_Sampler", ResourceKind.Sampler, ShaderStages.Fragment));
 
         private GraphicsPipelineDescription pipeline = new GraphicsPipelineDescription
         {
@@ -137,6 +148,10 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.ResourceLayouts = new ResourceLayout[2];
             pipeline.ResourceLayouts[UNIFORM_RESOURCE_SLOT] = uniformLayout;
             pipeline.Outputs = BackbufferFramebuffer.OutputDescription;
+
+            var defaultTexture = Factory.CreateTexture(TextureDescription.Texture2D(1, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled));
+            Device.UpdateTexture(defaultTexture, new ReadOnlySpan<Rgba32>(new[] { new Rgba32(0, 0, 0) }), 0, 0, 0, 1, 1, 1, 0, 0);
+            defaultTextureSet = new VeldridTextureSamplerSet(this, defaultTexture, Device.LinearSampler);
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
@@ -274,9 +289,9 @@ namespace osu.Framework.Graphics.Veldrid
                     break;
             }
 
-            lastBoundTexture.AsSpan().Clear();
-            lastBoundTextureIsAtlas.AsSpan().Clear();
             lastBoundBuffers.AsSpan().Clear();
+            // todo: this might not work, I'm not sure.
+            boundTextureSet = defaultTextureSet;
         }
 
         void IRenderer.FinishFrame()
@@ -348,52 +363,100 @@ namespace osu.Framework.Graphics.Veldrid
             return false;
         }
 
-        public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
+        public bool BindTexture(Graphics.Textures.Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
-            // if (texture.TextureGL is TextureSubAtlasWhite && atlasTextureIsBound(unit))
-            // {
+            if (texture.TextureGL is TextureSubAtlasWhite && AtlasTextureIsBound)
+            {
                 // We can use the special white space from any atlas texture.
-                // return true;
-            // }
+                return true;
+            }
 
-            // bool didBind = texture.TextureGL.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
-            // lastBoundTextureIsAtlas[getTextureUnitId(unit)] = texture.TextureGL is TextureGLAtlas;
+            bool didBind = texture.TextureGL.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
+            AtlasTextureIsBound = texture.TextureGL is VeldridTextureAtlas;
 
-            return false;
+            return didBind;
         }
 
-        public bool BindTexture(int textureId, TextureUnit unit = TextureUnit.Texture0, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        public bool BindTexture(VeldridTextureSamplerSet textureSet, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            // int index = getTextureUnitId(unit);
-            //
-            // if (wrapModeS != CurrentWrapModeS)
-            // {
-            //     // Will flush the current batch internally.
-            //     GlobalPropertyManager.Set(GlobalProperty.WrapModeS, (int)wrapModeS);
-            //     CurrentWrapModeS = wrapModeS;
-            // }
-            //
-            // if (wrapModeT != CurrentWrapModeT)
-            // {
-            //     // Will flush the current batch internally.
-            //     GlobalPropertyManager.Set(GlobalProperty.WrapModeT, (int)wrapModeT);
-            //     CurrentWrapModeT = wrapModeT;
-            // }
-            //
-            // if (lastActiveTextureUnit == unit && lastBoundTexture[index] == textureId)
-            //     return false;
-            //
-            // flushCurrentBatch();
-            //
-            // GL.ActiveTexture(unit);
-            // GL.BindTexture(TextureTarget.Texture2D, textureId);
-            //
-            // lastBoundTexture[index] = textureId;
-            // lastBoundTextureIsAtlas[getTextureUnitId(unit)] = false;
-            // lastActiveTextureUnit = unit;
-            //
-            // FrameStatistics.Increment(StatisticsCounterType.TextureBinds);
-            return false;
+            if (wrapModeS != CurrentWrapModeS)
+            {
+                // Will flush the current batch internally.
+                GlobalPropertyManager.Set(GlobalProperty.WrapModeS, (int)wrapModeS);
+                CurrentWrapModeS = wrapModeS;
+            }
+
+            if (wrapModeT != CurrentWrapModeT)
+            {
+                // Will flush the current batch internally.
+                GlobalPropertyManager.Set(GlobalProperty.WrapModeT, (int)wrapModeT);
+                CurrentWrapModeT = wrapModeT;
+            }
+
+            if (boundTextureSet == textureSet)
+                return false;
+
+            flushCurrentBatch();
+
+            pipeline.ResourceLayouts[TEXTURE_RESOURCE_SLOT] = textureSet.Layout;
+            boundTextureSet = textureSet;
+
+            FrameStatistics.Increment(StatisticsCounterType.TextureBinds);
+            return true;
+        }
+
+        /// <summary>
+        /// Updates a <see cref="Texture"/> with a <paramref name="data"/> at the specified coordinates.
+        /// </summary>
+        /// <param name="texture">The <see cref="Texture"/> to update.</param>
+        /// <param name="x">The X coordinate of the update region.</param>
+        /// <param name="y">The Y coordinate of the update region.</param>
+        /// <param name="width">The width of the update region.</param>
+        /// <param name="height">The height of the update region.</param>
+        /// <param name="level">The texture level.</param>
+        /// <param name="data">The textural data.</param>
+        /// <param name="bufferRowLength">An optional length per row on the given <paramref name="data"/>.</param>
+        /// <typeparam name="T">The pixel type.</typeparam>
+        public unsafe void UpdateTexture<T>(Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data, int? bufferRowLength = null)
+            where T : unmanaged
+        {
+            fixed (T* ptr = data)
+            {
+                if (bufferRowLength != null)
+                {
+                    var staging = Factory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, texture.Format, TextureUsage.Staging));
+
+                    for (uint yi = 0; yi < height; yi++)
+                        Device.UpdateTexture(staging, (IntPtr)(ptr + yi * bufferRowLength.Value), (uint)width, 0, yi, 0, (uint)width, 1, 1, 0, 0);
+
+                    Commands.CopyTexture(staging, texture);
+                    staging.Dispose();
+                }
+                else
+                    Device.UpdateTexture(texture, (IntPtr)ptr, (uint)(data.Length * sizeof(T)), (uint)x, (uint)y, 0, (uint)width, (uint)height, 1, (uint)level, 0);
+            }
+        }
+
+        private static readonly Dictionary<int, ResourceLayout> texture_layouts = new Dictionary<int, ResourceLayout>();
+
+        /// <summary>
+        /// Retrieves a <see cref="ResourceLayout"/> for a texture-sampler resource set.
+        /// </summary>
+        /// <param name="textureCount">The number of textures in the resource layout.</param>
+        /// <returns></returns>
+        public ResourceLayout GetTextureResourceLayout(int textureCount)
+        {
+            if (texture_layouts.TryGetValue(textureCount, out var layout))
+                return layout;
+
+            var description = new ResourceLayoutDescription(new ResourceLayoutElementDescription[textureCount + 1]);
+            var textureElement = TEXTURE_LAYOUT.Elements.Single(e => e.Kind == ResourceKind.TextureReadOnly);
+
+            for (int i = 0; i < textureCount; i++)
+                description.Elements[i] = new ResourceLayoutElementDescription($"{textureElement.Name}{i}", textureElement.Kind, textureElement.Stages);
+
+            description.Elements[^1] = TEXTURE_LAYOUT.Elements.Single(e => e.Kind == ResourceKind.Sampler);
+            return texture_layouts[textureCount] = Factory.CreateResourceLayout(description);
         }
 
         public void SetBlend(BlendingParameters blendingParameters)
@@ -795,9 +858,8 @@ namespace osu.Framework.Graphics.Veldrid
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex
             => throw new NotImplementedException();
 
-        public ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
-                                      Rgba32 initialisationColour = default)
-            => throw new NotImplementedException();
+        public ITexture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
+            => new VeldridTexture(this, width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {

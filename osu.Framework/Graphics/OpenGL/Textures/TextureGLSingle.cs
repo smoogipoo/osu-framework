@@ -67,7 +67,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
         /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
         /// <param name="initialisationColour">The colour to initialise texture levels with (in the case of sub region initial uploads).</param>
-        public TextureGLSingle(IRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
+        public TextureGLSingle(OpenGLRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
                                WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
             : base(renderer, wrapModeS, wrapModeT)
         {

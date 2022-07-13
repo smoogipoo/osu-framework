@@ -1,21 +1,22 @@
-﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 #nullable disable
 
 using System;
 using System.Runtime.CompilerServices;
+using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Textures;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace osu.Framework.Graphics.OpenGL.Textures
+namespace osu.Framework.Graphics.Veldrid.Textures
 {
     /// <summary>
-    /// A TextureGL which is acting as the backing for an atlas.
+    /// A <see cref="VeldridTexture"/> which is acting as the backing for an atlas.
     /// </summary>
-    internal class TextureGLAtlas : TextureGLSingle
+    internal class VeldridTextureAtlas : VeldridTexture
     {
         /// <summary>
         /// The amount of padding around each texture in the atlas.
@@ -26,7 +27,7 @@ namespace osu.Framework.Graphics.OpenGL.Textures
 
         private static readonly Rgba32 initialisation_colour = default;
 
-        public TextureGLAtlas(OpenGLRenderer renderer, int width, int height, bool manualMipmaps, All filteringMode = All.Linear, int padding = 0)
+        public VeldridTextureAtlas(VeldridRenderer renderer, int width, int height, bool manualMipmaps, All filteringMode = All.Linear, int padding = 0)
             : base(renderer, width, height, manualMipmaps, filteringMode, initialisationColour: initialisation_colour)
         {
             this.padding = padding;
