@@ -38,7 +38,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     }
 
     public class VeldridQuadVertexBuffer<T> : VeldridVertexBuffer<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly VeldridRenderer renderer;
         private readonly int amountIndices;

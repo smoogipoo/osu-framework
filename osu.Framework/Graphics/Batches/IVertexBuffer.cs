@@ -30,7 +30,7 @@ namespace osu.Framework.Graphics.Batches
     }
 
     public interface IVertexBuffer<in T> : IVertexBuffer, IDisposable
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         /// <summary>
         /// Gets the number of vertices in this <see cref="IVertexBuffer"/>.

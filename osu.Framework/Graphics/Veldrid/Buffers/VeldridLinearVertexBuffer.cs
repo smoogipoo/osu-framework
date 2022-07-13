@@ -39,7 +39,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     /// This type of vertex buffer lets the ith vertex be referenced by the ith index.
     /// </summary>
     public class VeldridLinearVertexBuffer<T> : VeldridVertexBuffer<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly VeldridRenderer renderer;
         private readonly int amountVertices;

@@ -16,7 +16,7 @@ using BufferUsage = Veldrid.BufferUsage;
 namespace osu.Framework.Graphics.Veldrid.Buffers
 {
     public abstract class VeldridVertexBuffer<T> : IVertexBuffer<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         protected static readonly int STRIDE = VertexUtils<DepthWrappingVertex<T>>.STRIDE;
 

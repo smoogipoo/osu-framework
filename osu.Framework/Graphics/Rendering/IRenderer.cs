@@ -285,14 +285,14 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="size">Number of quads.</param>
         /// <param name="maxBuffers">Maximum number of vertex buffers.</param>
         /// <param name="primitiveType">The type of primitive the vertices are drawn as.</param>
-        IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : struct, IEquatable<TVertex>, IVertex;
+        IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : unmanaged, IEquatable<TVertex>, IVertex;
 
         /// <summary>
         /// Creates a new quad vertex batch, accepting vertices and drawing as quads.
         /// </summary>
         /// <param name="size">Number of quads.</param>
         /// <param name="maxBuffers">Maximum number of vertex buffers.</param>
-        IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex;
+        IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : unmanaged, IEquatable<TVertex>, IVertex;
 
         /// <summary>
         /// Creates a new texture.

@@ -24,7 +24,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     /// This type of vertex buffer lets the ith vertex be referenced by the ith index.
     /// </summary>
     public class LinearVertexBuffer<T> : VertexBuffer<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly OpenGLRenderer renderer;
         private readonly int amountVertices;

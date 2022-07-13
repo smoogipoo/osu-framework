@@ -12,7 +12,7 @@ using BufferUsage = Veldrid.BufferUsage;
 namespace osu.Framework.Graphics.Veldrid.Batches
 {
     public class VeldridLinearBatch<T> : VertexBatch<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly VeldridRenderer renderer;
         private readonly PrimitiveTopology type;
