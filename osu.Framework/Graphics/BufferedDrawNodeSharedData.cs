@@ -45,6 +45,8 @@ namespace osu.Framework.Graphics
         /// </summary>
         private readonly IFrameBuffer[] effectBuffers;
 
+        private IRenderer renderer;
+
         private readonly int effectBufferCount;
         private readonly RenderbufferInternalFormat[] formats;
 
@@ -84,6 +86,8 @@ namespace osu.Framework.Graphics
             if (MainBuffer != null)
                 return;
 
+            this.renderer = renderer;
+
             All filterMode = PixelSnapping ? All.Nearest : All.Linear;
 
             MainBuffer = renderer.CreateFrameBuffer(formats, filterMode);
@@ -119,6 +123,12 @@ namespace osu.Framework.Graphics
         internal void ResetCurrentEffectBuffer() => currentEffectBuffer = -1;
 
         public void Dispose()
+        {
+            renderer?.ScheduleDisposal(d => d.Dispose(true), this);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool isDisposing)
         {
             MainBuffer.Dispose();
 
