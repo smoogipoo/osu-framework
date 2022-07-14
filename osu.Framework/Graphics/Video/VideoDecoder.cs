@@ -640,7 +640,7 @@ namespace osu.Framework.Graphics.Video
                     continue;
 
                 if (!availableTextures.TryDequeue(out var tex))
-                    tex = renderer.CreateTexture(frame.Pointer->width, frame.Pointer->height);
+                    tex = renderer.CreateVideoTexture(frame.Pointer->width, frame.Pointer->height);
 
                 var upload = new VideoTextureUpload(frame);
 
