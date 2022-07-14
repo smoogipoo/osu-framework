@@ -82,7 +82,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void Dispose()
         {
-            renderer.ScheduleDisposal(v => v.Dispose(true), this);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
