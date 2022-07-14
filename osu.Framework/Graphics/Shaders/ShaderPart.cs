@@ -165,7 +165,7 @@ namespace osu.Framework.Graphics.Shaders
 
         public void Dispose()
         {
-            renderer.ScheduleDisposal(s => s.Dispose(true), this);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 

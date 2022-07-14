@@ -36,7 +36,7 @@ namespace osu.Framework.Graphics.Shaders
 
         internal Shader(IRenderer renderer, string name, List<ShaderPart> parts)
         {
-            this.Renderer = renderer;
+            Renderer = renderer;
             this.name = name;
             this.parts = parts;
 
@@ -230,7 +230,7 @@ namespace osu.Framework.Graphics.Shaders
 
         public void Dispose()
         {
-            Renderer.ScheduleDisposal(s => s.Dispose(true), this);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 

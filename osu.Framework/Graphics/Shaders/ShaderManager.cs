@@ -120,11 +120,14 @@ namespace osu.Framework.Graphics.Shaders
 
                 store.Dispose();
 
-                foreach (var shader in shaderCache.Values)
-                    shader.Dispose();
+                renderer.ScheduleDisposal(s =>
+                {
+                    foreach (var shader in s.shaderCache.Values)
+                        shader.Dispose();
 
-                foreach (var part in partCache.Values)
-                    part.Dispose();
+                    foreach (var part in s.partCache.Values)
+                        part.Dispose();
+                }, this);
             }
         }
 
