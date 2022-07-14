@@ -35,6 +35,7 @@ using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
 using osu.Framework.Input.States;
 using osu.Framework.Layout;
+using osu.Framework.Platform;
 using osu.Framework.Testing;
 using osu.Framework.Utils;
 using osuTK.Input;
@@ -58,6 +59,9 @@ namespace osu.Framework.Graphics
     public abstract partial class Drawable : Transformable, IDisposable, IDrawable
     {
         #region Construction and disposal
+
+        [Resolved]
+        private GameHost host { get; set; }
 
         protected Drawable()
         {
@@ -107,8 +111,11 @@ namespace osu.Framework.Graphics
             OnDispose?.Invoke();
             OnDispose = null;
 
-            for (int i = 0; i < drawNodes.Length; i++)
-                drawNodes[i]?.Dispose();
+            host.Renderer.ScheduleDisposal(d =>
+            {
+                for (int i = 0; i < d.drawNodes.Length; i++)
+                    d.drawNodes[i]?.Dispose();
+            }, this);
 
             IsDisposed = true;
         }
