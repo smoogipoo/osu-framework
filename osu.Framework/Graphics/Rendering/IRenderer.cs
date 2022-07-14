@@ -345,5 +345,13 @@ namespace osu.Framework.Graphics.Rendering
         internal void PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch);
 
         internal void PopQuadBatch();
+
+        #region TextureVisualiser Support
+
+        internal event Action<Texture> TextureCreated;
+
+        internal Texture[] GetAllTextures();
+
+        #endregion
     }
 }

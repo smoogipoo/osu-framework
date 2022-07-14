@@ -3,12 +3,18 @@
 
 using System;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Visualisation;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Rendering
 {
     public interface INativeTexture : IDisposable
     {
+        /// <summary>
+        /// An identifier for this texture, to show up in the <see cref="TextureVisualiser"/>.
+        /// </summary>
+        string Identifier { get; }
+
         /// <summary>
         /// Maximum texture size in any direction.
         /// </summary>
@@ -60,5 +66,10 @@ namespace osu.Framework.Graphics.Rendering
         bool Upload();
 
         bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT);
+
+        /// <summary>
+        /// The size of this texture in bytes.
+        /// </summary>
+        int GetByteSize();
     }
 }

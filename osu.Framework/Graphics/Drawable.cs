@@ -60,7 +60,7 @@ namespace osu.Framework.Graphics
     {
         #region Construction and disposal
 
-        [Resolved]
+        [Resolved(CanBeNull = true)]
         private GameHost host { get; set; }
 
         protected Drawable()
@@ -111,7 +111,7 @@ namespace osu.Framework.Graphics
             OnDispose?.Invoke();
             OnDispose = null;
 
-            host.Renderer.ScheduleDisposal(d =>
+            host?.Renderer.ScheduleDisposal(d =>
             {
                 for (int i = 0; i < d.drawNodes.Length; i++)
                     d.drawNodes[i]?.Dispose();

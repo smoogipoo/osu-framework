@@ -22,10 +22,22 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         protected readonly OpenGLRenderer Renderer;
         private readonly Queue<ITextureUpload> uploadQueue = new Queue<ITextureUpload>();
 
+        public string Identifier
+        {
+            get
+            {
+                if (!Available || textureId == 0)
+                    return "-";
+
+                return textureId.ToString();
+            }
+        }
+
         public int MaxSize => Renderer.MaxTextureSize;
 
         public virtual int Width { get; set; }
         public virtual int Height { get; set; }
+        public virtual int GetByteSize() => Width * Height * 4;
         public bool Available { get; private set; } = true;
         public bool BypassTextureUploadQueueing { get; set; }
 

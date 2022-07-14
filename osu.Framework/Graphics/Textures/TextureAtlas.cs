@@ -166,7 +166,7 @@ namespace osu.Framework.Graphics.Textures
         /// <summary>
         /// A texture which is acting as the backing for an atlas.
         /// </summary>
-        private class AtlasTexture : Texture
+        internal class AtlasTexture : Texture
         {
             /// <summary>
             /// The amount of padding around each texture in the atlas.
@@ -175,13 +175,24 @@ namespace osu.Framework.Graphics.Textures
 
             private readonly RectangleI atlasBounds;
 
+            // Keep a reference to the parent for the texture visualiser.
+            // ReSharper disable once NotAccessedField.Local
+            private readonly Texture parent;
+
             private static readonly Rgba32 initialisation_colour = default;
 
             public AtlasTexture(IRenderer renderer, int width, int height, bool manualMipmaps, All filteringMode = All.Linear, int padding = 0)
-                : base(renderer.CreateTexture(width, height, manualMipmaps, filteringMode, initialisationColour: initialisation_colour))
+                : this(renderer.CreateTexture(width, height, manualMipmaps, filteringMode, initialisationColour: initialisation_colour))
             {
                 this.padding = padding;
                 atlasBounds = new RectangleI(0, 0, Width, Height);
+            }
+
+            private AtlasTexture(Texture parent)
+                : base(parent)
+            {
+                this.parent = parent;
+                parent.IsAtlasTexture = true;
             }
 
             internal override void SetData(ITextureUpload upload, WrapMode wrapModeS, WrapMode wrapModeT, Opacity? opacity)

@@ -145,6 +145,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
         #endregion
 
+        public virtual int GetByteSize() => Width * Height * 4;
         public bool Available { get; private set; }
         public bool BypassTextureUploadQueueing { get; set; }
 
@@ -159,6 +160,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
         public bool IsQueuedForUpload { get; set; }
 
+        public string Identifier => string.Empty;
         public int MaxSize => renderer.MaxTextureSize;
 
         public int Width { get; set; }

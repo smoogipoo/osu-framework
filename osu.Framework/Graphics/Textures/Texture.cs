@@ -51,7 +51,7 @@ namespace osu.Framework.Graphics.Textures
         /// <param name="nativeTexture">The GL texture.</param>
         /// <param name="wrapModeS">The texture wrap mode in horizontal direction.</param>
         /// <param name="wrapModeT">The texture wrap mode in vertical direction.</param>
-        internal Texture(INativeTexture nativeTexture, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        internal Texture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             NativeTexture = nativeTexture ?? throw new ArgumentNullException(nameof(nativeTexture));
             WrapModeS = wrapModeS;
@@ -130,7 +130,16 @@ namespace osu.Framework.Graphics.Textures
 
         public Vector2 Size => new Vector2(Width, Height);
 
-        internal bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT) => NativeTexture.Bind(unit, wrapModeS, wrapModeT);
+        internal bool Bind(TextureUnit unit, WrapMode wrapModeS, WrapMode wrapModeT)
+        {
+            if (NativeTexture.Bind(unit, wrapModeS, wrapModeT))
+            {
+                BindCount++;
+                return true;
+            }
+
+            return false;
+        }
 
         /// <summary>
         /// Queue a <see cref="TextureUpload"/> to be uploaded on the draw thread.
@@ -250,6 +259,21 @@ namespace osu.Framework.Graphics.Textures
             get => NativeTexture.BypassTextureUploadQueueing;
             set => NativeTexture.BypassTextureUploadQueueing = value;
         }
+
+        #region TextureVisualiser Support
+
+        internal bool IsAtlasTexture { get; set; }
+
+        /// <summary>
+        /// The total amount of times this <see cref="Texture"/> was bound.
+        /// </summary>
+        internal ulong BindCount { get; private set; }
+
+        internal int GetByteSize() => NativeTexture.GetByteSize();
+
+        internal string Identifier => NativeTexture.Identifier;
+
+        #endregion
 
         #region Disposal
 

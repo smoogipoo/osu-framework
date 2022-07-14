@@ -15,6 +15,7 @@ using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid.Textures;
+using osu.Framework.Lists;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
@@ -859,10 +860,20 @@ namespace osu.Framework.Graphics.Veldrid
 
         public Graphics.Textures.Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
                                                        WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
-            => new Graphics.Textures.Texture(new VeldridTexture(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
+            => createTexture(new VeldridTexture(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
 
         public Graphics.Textures.Texture CreateVideoTexture(int width, int height)
             => throw new NotImplementedException();
+
+        private Graphics.Textures.Texture createTexture(VeldridTexture texture, WrapMode wrapModeS, WrapMode wrapModeT)
+        {
+            var tex = new Graphics.Textures.Texture(texture, wrapModeS, wrapModeT);
+
+            allTextures.Add(tex);
+            TextureCreated?.Invoke(tex);
+
+            return tex;
+        }
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {
@@ -931,6 +942,18 @@ namespace osu.Framework.Graphics.Veldrid
         void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => quadBatches.Push(quadBatch);
 
         void IRenderer.PopQuadBatch() => quadBatches.Pop();
+
+        private readonly LockedWeakList<Graphics.Textures.Texture> allTextures = new LockedWeakList<Graphics.Textures.Texture>();
+
+        internal event Action<Graphics.Textures.Texture>? TextureCreated;
+
+        event Action<Graphics.Textures.Texture>? IRenderer.TextureCreated
+        {
+            add => TextureCreated += value;
+            remove => TextureCreated -= value;
+        }
+
+        Graphics.Textures.Texture[] IRenderer.GetAllTextures() => allTextures.ToArray();
 
         private void flushCurrentBatch()
         {
