@@ -788,12 +788,12 @@ namespace osu.Framework.Graphics.OpenGL
 
         public Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
                                      Rgba32 initialisationColour = default)
-            => createTexture(new TextureGL(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
+            => CreateTexture(new TextureGL(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
 
         public Texture CreateVideoTexture(int width, int height)
-            => createTexture(new VideoTextureGL(this, width, height), WrapMode.None, WrapMode.None);
+            => CreateTexture(new VideoTextureGL(this, width, height), WrapMode.None, WrapMode.None);
 
-        private Texture createTexture(TextureGL texture, WrapMode wrapModeS, WrapMode wrapModeT)
+        internal Texture CreateTexture(TextureGL texture, WrapMode wrapModeS, WrapMode wrapModeT)
         {
             var tex = new Texture(texture, wrapModeS, wrapModeT);
 
