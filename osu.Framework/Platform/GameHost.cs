@@ -452,11 +452,9 @@ namespace osu.Framework.Platform
             Root.UpdateSubTree();
             Root.UpdateSubTreeMasking(Root, Root.ScreenSpaceDrawQuad.AABBFloat);
 
-            using (var buffer = DrawRoots.Get(UsageType.Write))
+            using (var buffer = DrawRoots.GetForWrite())
                 buffer.Object = Root.GenerateDrawNodeSubtree(frameCount, buffer.Index, false);
         }
-
-        private long lastDrawFrameId;
 
         private readonly DepthValue depthValue = new DepthValue();
 
@@ -465,64 +463,60 @@ namespace osu.Framework.Platform
             if (Root == null)
                 return;
 
-            while (ExecutionState == ExecutionState.Running)
+            if (ExecutionState != ExecutionState.Running)
+                return;
+
+            ObjectUsage<DrawNode> buffer;
+
+            using (drawMonitor.BeginCollecting(PerformanceCollectionType.Sleep))
+                buffer = DrawRoots.GetForRead();
+
+            if (buffer == null)
+                return;
+
+            try
             {
-                using (var buffer = DrawRoots.Get(UsageType.Read))
+                using (drawMonitor.BeginCollecting(PerformanceCollectionType.GLReset))
+                    Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
+
+                if (!bypassFrontToBackPass.Value)
                 {
-                    if (buffer?.Object == null || buffer.FrameId == lastDrawFrameId)
-                    {
-                        // if a buffer is not available in single threaded mode there's no point in looping.
-                        // in the general case this should never happen, but may occur during exception handling.
-                        if (executionMode.Value == ExecutionMode.SingleThread)
-                            break;
+                    depthValue.Reset();
 
-                        using (drawMonitor.BeginCollecting(PerformanceCollectionType.Sleep))
-                            Thread.Sleep(1);
+                    GL.ColorMask(false, false, false, false);
+                    Renderer.SetBlend(BlendingParameters.None);
+                    Renderer.PushDepthInfo(DepthInfo.Default);
 
-                        continue;
-                    }
-
-                    using (drawMonitor.BeginCollecting(PerformanceCollectionType.GLReset))
-                        Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
-
-                    if (!bypassFrontToBackPass.Value)
-                    {
-                        depthValue.Reset();
-
-                        GL.ColorMask(false, false, false, false);
-                        Renderer.SetBlend(BlendingParameters.None);
-                        Renderer.PushDepthInfo(DepthInfo.Default);
-
-                        // Front pass
-                        buffer.Object.DrawOpaqueInteriorSubTree(Renderer, depthValue);
-
-                        Renderer.PopDepthInfo();
-                        GL.ColorMask(true, true, true, true);
-
-                        // The back pass doesn't write depth, but needs to depth test properly
-                        Renderer.PushDepthInfo(new DepthInfo(true, false));
-                    }
-                    else
-                    {
-                        // Disable depth testing
-                        Renderer.PushDepthInfo(new DepthInfo());
-                    }
-
-                    // Back pass
-                    buffer.Object.Draw(Renderer);
+                    // Front pass
+                    buffer.Object.DrawOpaqueInteriorSubTree(Renderer, depthValue);
 
                     Renderer.PopDepthInfo();
+                    GL.ColorMask(true, true, true, true);
 
-                    lastDrawFrameId = buffer.FrameId;
-                    break;
+                    // The back pass doesn't write depth, but needs to depth test properly
+                    Renderer.PushDepthInfo(new DepthInfo(true, false));
+                }
+                else
+                {
+                    // Disable depth testing
+                    Renderer.PushDepthInfo(new DepthInfo());
+                }
+
+                // Back pass
+                buffer.Object.Draw(Renderer);
+
+                Renderer.PopDepthInfo();
+
+                Renderer.FinishFrame();
+
+                using (drawMonitor.BeginCollecting(PerformanceCollectionType.SwapBuffer))
+                {
+                    Swap();
                 }
             }
-
-            Renderer.FinishFrame();
-
-            using (drawMonitor.BeginCollecting(PerformanceCollectionType.SwapBuffer))
+            finally
             {
-                Swap();
+                buffer.Dispose();
             }
         }
 
@@ -755,7 +749,7 @@ namespace osu.Framework.Platform
                                 break;
 
                             case OsuTKWindow tkWindow:
-                                tkWindow.UpdateFrame += (o, e) => windowUpdate();
+                                tkWindow.UpdateFrame += (_, _) => windowUpdate();
                                 break;
                         }
 
@@ -1012,7 +1006,24 @@ namespace osu.Framework.Platform
             threadLocale = Config.GetBindable<string>(FrameworkSetting.Locale);
             threadLocale.BindValueChanged(locale =>
             {
-                var culture = CultureInfo.GetCultures(CultureTypes.AllCultures).FirstOrDefault(c => c.Name.Equals(locale.NewValue, StringComparison.OrdinalIgnoreCase)) ?? CultureInfo.InvariantCulture;
+                CultureInfo culture;
+
+                try
+                {
+                    // After dropping netstandard we can use `predefinedOnly` override.
+                    // See https://github.com/dotnet/runtime/pull/1261/files
+                    culture = CultureInfo.GetCultureInfo(locale.NewValue);
+
+                    // This is best-effort for now to catch cases where dotnet is creating cultures.
+                    // See https://github.com/dotnet/runtime/blob/5877e8b713742b6d80bd1aa9819094be029e3e1f/src/libraries/System.Private.CoreLib/src/System/Globalization/CultureData.Icu.cs#L341-L345
+                    if (culture.ThreeLetterWindowsLanguageName == "ZZZ")
+                        culture = CultureInfo.InvariantCulture;
+                }
+                catch (Exception e)
+                {
+                    Logger.Log($"Culture for {locale.NewValue} could not be found ({e})");
+                    culture = CultureInfo.InvariantCulture;
+                }
 
                 CultureInfo.DefaultThreadCurrentCulture = culture;
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
