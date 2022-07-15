@@ -11,7 +11,7 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Batches
 {
-    public class QuadBatch<T> : VertexBatch<T>
+    internal class QuadBatch<T> : VertexBatch<T>
         where T : struct, IEquatable<T>, IVertex
     {
         public QuadBatch(IRenderer renderer, int size, int maxBuffers)

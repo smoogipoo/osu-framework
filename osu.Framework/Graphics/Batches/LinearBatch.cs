@@ -11,7 +11,7 @@ using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Batches
 {
-    public class LinearBatch<T> : VertexBatch<T>
+    internal class LinearBatch<T> : VertexBatch<T>
         where T : struct, IEquatable<T>, IVertex
     {
         private readonly PrimitiveType type;
