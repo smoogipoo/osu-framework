@@ -6,6 +6,7 @@
 using System;
 using System.IO;
 using osu.Framework.Extensions.EnumExtensions;
+using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osuTK;
 using osuTK.Graphics.ES30;
@@ -158,7 +159,7 @@ namespace osu.Framework.Graphics.Textures
 
             if (upload.Bounds.IsEmpty && upload.Data.Length > 0)
             {
-                upload.Bounds = GetTextureRect().AABB;
+                upload.Bounds = new RectangleI(0, 0, Width, Height);
 
                 if (upload.Bounds.Width * upload.Bounds.Height > upload.Data.Length)
                 {
