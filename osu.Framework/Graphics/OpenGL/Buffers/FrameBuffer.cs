@@ -157,8 +157,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             public FrameBufferTexture(OpenGLRenderer renderer, Vector2 size, All filteringMode = All.Linear)
                 : base(renderer,
                     Math.Clamp((int)Math.Ceiling(size.X), 1, renderer.MaxTextureSize),
-                    Math.Clamp((int)Math.Ceiling(size.Y), 1, renderer.MaxTextureSize)
-                    , true,
+                    Math.Clamp((int)Math.Ceiling(size.Y), 1, renderer.MaxTextureSize),
+                    true,
                     filteringMode)
             {
                 this.renderer = renderer;
