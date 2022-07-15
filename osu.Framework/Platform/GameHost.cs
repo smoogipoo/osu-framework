@@ -54,7 +54,7 @@ namespace osu.Framework.Platform
     {
         public IWindow Window { get; private set; }
 
-        internal IRenderer Renderer { get; private set; }
+        public IRenderer Renderer { get; private set; }
 
         /// <summary>
         /// Whether "unlimited" frame limiter should be allowed to exceed sane limits.
