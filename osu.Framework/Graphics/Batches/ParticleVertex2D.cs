@@ -5,7 +5,6 @@
 
 using System;
 using System.Runtime.InteropServices;
-using osu.Framework.Graphics.Batches;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;

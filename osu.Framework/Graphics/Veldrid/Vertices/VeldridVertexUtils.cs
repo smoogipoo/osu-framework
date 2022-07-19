@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Batches;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Veldrid.Vertices

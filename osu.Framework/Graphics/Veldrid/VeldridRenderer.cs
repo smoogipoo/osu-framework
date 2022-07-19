@@ -9,8 +9,6 @@ using System.Linq;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL;
-using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
@@ -351,7 +349,7 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.RasterizerState.ScissorTestEnabled = enabled;
         }
 
-        public bool BindVertexBuffer(DeviceBuffer buffer)
+        public bool BindVertexBuffer(DeviceBuffer vertex, VertexLayoutDescription layout)
         {
             // int bufferIndex = target - BufferTarget.ArrayBuffer;
             // if (lastBoundBuffers[bufferIndex] == buffer)
@@ -365,7 +363,7 @@ namespace osu.Framework.Graphics.Veldrid
             return false;
         }
 
-        public bool BindIndexBuffer(DeviceBuffer buffer, IndexFormat indexFormat)
+        public bool BindIndexBuffer(DeviceBuffer index, IndexFormat indexFormat)
         {
             // int bufferIndex = target - BufferTarget.ArrayBuffer;
             // if (lastBoundBuffers[bufferIndex] == buffer)

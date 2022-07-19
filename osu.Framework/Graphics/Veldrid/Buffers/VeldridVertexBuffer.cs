@@ -7,7 +7,7 @@ using System;
 using System.Buffers;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Batches;
-using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Veldrid.Vertices;
 using osu.Framework.Statistics;
 using SixLabors.ImageSharp.Memory;
 using Veldrid;
@@ -18,7 +18,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     public abstract class VeldridVertexBuffer<T> : IVertexBuffer<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
-        protected static readonly int STRIDE = VertexUtils<DepthWrappingVertex<T>>.STRIDE;
+        protected static readonly int STRIDE = VeldridVertexUtils<DepthWrappingVertex<T>>.STRIDE;
 
         private readonly VeldridRenderer renderer;
         private readonly BufferUsage usage;
@@ -101,11 +101,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             if (buffer == null)
                 Initialise();
 
-            renderer.BindVertexBuffer(buffer);
-
-            // todo: need a Veldrid replica for VertexUtils.
-            // if (renderer.BindVertexBuffer(buffer))
-                // VertexUtils<DepthWrappingVertex<T>>.Bind();
+            renderer.BindVertexBuffer(buffer, VeldridVertexUtils<DepthWrappingVertex<T>>.Layout);
         }
 
         public virtual void Unbind()
