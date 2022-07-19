@@ -7,13 +7,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using osu.Framework.Development;
+using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL;
-using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid.Batches;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Lists;
 using osu.Framework.Statistics;
@@ -107,11 +108,17 @@ namespace osu.Framework.Graphics.Veldrid
 
         public CommandList Commands { get; private set; } = null!;
 
+        internal VeldridIndexData SharedLinearIndex { get; }
+        internal VeldridIndexData SharedQuadIndex { get; }
+
         private ResourceLayout uniformLayout = null!;
 
         private VeldridTextureSamplerSet defaultTextureSet = null!;
 
         private VeldridTextureSamplerSet? boundTextureSet;
+
+        private DeviceBuffer? boundVertexBuffer;
+        // private VertexLayoutDescription? boundVertexLayout;
 
         internal static readonly ResourceLayoutDescription UNIFORM_LAYOUT = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("m_Uniforms", ResourceKind.UniformBuffer, ShaderStages.Fragment | ShaderStages.Vertex));
@@ -131,6 +138,9 @@ namespace osu.Framework.Graphics.Veldrid
         {
             whitePixel = new Lazy<TextureWhitePixel>(() =>
                 new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
+
+            SharedLinearIndex = new VeldridIndexData(this);
+            SharedQuadIndex = new VeldridIndexData(this);
         }
 
         void IRenderer.Initialise()
@@ -349,19 +359,23 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.RasterizerState.ScissorTestEnabled = enabled;
         }
 
-        public bool BindBuffer(BufferTarget target, int buffer)
+        public void BindVertexBuffer(DeviceBuffer vertex, VertexLayoutDescription layout)
         {
-            // int bufferIndex = target - BufferTarget.ArrayBuffer;
-            // if (lastBoundBuffers[bufferIndex] == buffer)
-            // return false;
+            if (vertex == boundVertexBuffer)
+                return;
 
-            // lastBoundBuffers[bufferIndex] = buffer;
-            // GL.BindBuffer(target, buffer);
+            Commands.SetVertexBuffer(0, vertex);
 
-            // FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+            // if (currentShader.VertexLayout.Elements == null || currentShader.VertexLayout.Elements.Length == 0)
+            //     pipeline.ShaderSet.VertexLayouts = new[] { layout };
 
-            return false;
+            FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+
+            boundVertexBuffer = vertex;
+            // boundVertexLayout = layout;
         }
+
+        public void BindIndexBuffer(DeviceBuffer index, IndexFormat format) => Commands.SetIndexBuffer(index, format);
 
         public bool BindTexture(Graphics.Textures.Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
@@ -457,6 +471,17 @@ namespace osu.Framework.Graphics.Veldrid
 
             description.Elements[^1] = TEXTURE_LAYOUT.Elements.Single(e => e.Kind == ResourceKind.Sampler);
             return texture_layouts[textureCount] = Factory.CreateResourceLayout(description);
+        }
+
+        public void DrawVertices(PrimitiveTopology type, int indexStart, int indicesCount)
+        {
+            pipeline.PrimitiveTopology = type;
+
+            Commands.SetPipeline(getPipelineInstance());
+            // Commands.SetGraphicsResourceSet(UNIFORM_RESOURCE_SLOT, currentShader.UniformResourceSet);
+            Commands.SetGraphicsResourceSet(TEXTURE_RESOURCE_SLOT, boundTextureSet);
+
+            Commands.DrawIndexed((uint)indicesCount, 1, (uint)indexStart, 0, 0);
         }
 
         public void SetBlend(BlendingParameters blendingParameters)
@@ -852,11 +877,11 @@ namespace osu.Framework.Graphics.Veldrid
         public IFrameBuffer CreateFrameBuffer(RenderbufferInternalFormat[]? renderBufferFormats = null, All filteringMode = All.Linear)
             => throw new NotImplementedException();
 
-        public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : struct, IEquatable<TVertex>, IVertex
-            => throw new NotImplementedException();
+        public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : unmanaged, IEquatable<TVertex>, IVertex
+            => new VeldridLinearBatch<TVertex>(this, size, maxBuffers, primitiveType.ToPrimitiveTopology());
 
-        public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex
-            => throw new NotImplementedException();
+        public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : unmanaged, IEquatable<TVertex>, IVertex
+            => new VeldridQuadBatch<TVertex>(this, size, maxBuffers);
 
         public Graphics.Textures.Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None,
                                                        WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
@@ -921,7 +946,9 @@ namespace osu.Framework.Graphics.Veldrid
             // }
         }
 
-        void IRenderer.RegisterVertexBufferUse(IVertexBuffer buffer) => vertexBuffersInUse.Add(buffer);
+        void IRenderer.RegisterVertexBufferUse(IVertexBuffer buffer) => RegisterVertexBufferUse(buffer);
+
+        internal void RegisterVertexBufferUse(IVertexBuffer buffer) => vertexBuffersInUse.Add(buffer);
 
         void IRenderer.SetActiveBatch(IVertexBatch batch)
         {

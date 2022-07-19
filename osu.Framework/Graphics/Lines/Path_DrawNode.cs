@@ -10,7 +10,7 @@ using osu.Framework.Graphics.OpenGL;
 using osuTK;
 using System;
 using System.Collections.Generic;
-using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Batches;
 using osuTK.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Rendering;

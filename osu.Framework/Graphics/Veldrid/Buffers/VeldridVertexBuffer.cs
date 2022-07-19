@@ -5,29 +5,30 @@
 
 using System;
 using System.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
-using osuTK.Graphics.ES30;
-using osu.Framework.Statistics;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Batches;
+using osu.Framework.Graphics.Veldrid.Vertices;
+using osu.Framework.Statistics;
 using SixLabors.ImageSharp.Memory;
+using Veldrid;
+using BufferUsage = Veldrid.BufferUsage;
 
-namespace osu.Framework.Graphics.OpenGL.Buffers
+namespace osu.Framework.Graphics.Veldrid.Buffers
 {
-    public abstract class VertexBuffer<T> : IVertexBuffer<T>
+    public abstract class VeldridVertexBuffer<T> : IVertexBuffer<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
-        protected static readonly int STRIDE = OpenGLVertexUtils<DepthWrappingVertex<T>>.STRIDE;
+        protected static readonly int STRIDE = VeldridVertexUtils<DepthWrappingVertex<T>>.STRIDE;
 
-        private readonly OpenGLRenderer renderer;
-        private readonly BufferUsageHint usage;
+        private readonly VeldridRenderer renderer;
+        private readonly BufferUsage usage;
 
         private Memory<DepthWrappingVertex<T>> vertexMemory;
         private IMemoryOwner<DepthWrappingVertex<T>> memoryOwner;
 
-        private int vboId = -1;
+        private DeviceBuffer buffer;
 
-        protected VertexBuffer(OpenGLRenderer renderer, int amountVertices, BufferUsageHint usage)
+        protected VeldridVertexBuffer(VeldridRenderer renderer, int amountVertices, BufferUsage usage)
         {
             this.renderer = renderer;
             this.usage = usage;
@@ -35,6 +36,12 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             Size = amountVertices;
         }
 
+        /// <summary>
+        /// Sets the vertex at a specific index of this <see cref="VeldridVertexBuffer{T}"/>.
+        /// </summary>
+        /// <param name="vertexIndex">The index of the vertex.</param>
+        /// <param name="vertex">The vertex.</param>
+        /// <returns>Whether the vertex changed.</returns>
         public bool SetVertex(int vertexIndex, T vertex)
         {
             ref var currentVertex = ref getMemory().Span[vertexIndex];
@@ -47,33 +54,30 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             return isNewVertex;
         }
 
+        /// <summary>
+        /// Gets the number of vertices in this <see cref="VeldridVertexBuffer{T}"/>.
+        /// </summary>
         public int Size { get; }
 
         /// <summary>
-        /// Initialises this <see cref="VertexBuffer{T}"/>. Guaranteed to be run on the draw thread.
+        /// Initialises this <see cref="VeldridVertexBuffer{T}"/>. Guaranteed to be run on the draw thread.
         /// </summary>
         protected virtual void Initialise()
         {
             ThreadSafety.EnsureDrawThread();
 
-            GL.GenBuffers(1, out vboId);
-
-            if (renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
-                OpenGLVertexUtils<DepthWrappingVertex<T>>.Bind();
-
-            int size = Size * STRIDE;
-
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)size, IntPtr.Zero, usage);
+            var description = new BufferDescription((uint)(Size * STRIDE), BufferUsage.VertexBuffer | usage);
+            buffer = renderer.Factory.CreateBuffer(description);
         }
 
-        ~VertexBuffer()
+        ~VeldridVertexBuffer()
         {
             renderer.ScheduleDisposal(v => v.Dispose(false), this);
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            renderer.ScheduleDisposal(v => v.Dispose(true), this);
             GC.SuppressFinalize(this);
         }
 
@@ -89,16 +93,15 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             IsDisposed = true;
         }
 
-        public virtual void Bind(bool forRendering)
+        public virtual void Bind()
         {
             if (IsDisposed)
                 throw new ObjectDisposedException(ToString(), "Can not bind disposed vertex buffers.");
 
-            if (vboId == -1)
+            if (buffer == null)
                 Initialise();
 
-            if (renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
-                OpenGLVertexUtils<DepthWrappingVertex<T>>.Bind();
+            renderer.BindVertexBuffer(buffer, VeldridVertexUtils<DepthWrappingVertex<T>>.Layout);
         }
 
         public virtual void Unbind()
@@ -109,7 +112,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         protected virtual int ToElementIndex(int vertexIndex) => vertexIndex;
 
-        protected abstract PrimitiveType Type { get; }
+        protected abstract PrimitiveTopology Type { get; }
 
         public void Draw()
         {
@@ -118,10 +121,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void DrawRange(int startIndex, int endIndex)
         {
-            Bind(true);
+            Bind();
 
             int countVertices = endIndex - startIndex;
-            GL.DrawElements(Type, ToElements(countVertices), DrawElementsType.UnsignedShort, (IntPtr)(ToElementIndex(startIndex) * sizeof(ushort)));
+            renderer.DrawVertices(Type, ToElementIndex(startIndex) * sizeof(ushort), ToElements(countVertices));
 
             Unbind();
         }
@@ -133,12 +136,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public void UpdateRange(int startIndex, int endIndex)
         {
-            Bind(false);
-
             int countVertices = endIndex - startIndex;
-            GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(startIndex * STRIDE), (IntPtr)(countVertices * STRIDE), ref getMemory().Span[startIndex]);
-
-            Unbind();
+            renderer.Commands.UpdateBuffer(buffer, (uint)(startIndex * STRIDE), ref getMemory().Span[startIndex], (uint)(countVertices * STRIDE));
 
             FrameStatistics.Add(StatisticsCounterType.VerticesUpl, countVertices);
         }
@@ -164,15 +163,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public bool InUse => LastUseResetId > 0;
 
-        void IVertexBuffer.Free()
+        public void Free()
         {
-            if (vboId != -1)
-            {
-                Unbind();
-
-                GL.DeleteBuffer(vboId);
-                vboId = -1;
-            }
+            buffer?.Dispose();
+            buffer = null;
 
             memoryOwner?.Dispose();
             memoryOwner = null;

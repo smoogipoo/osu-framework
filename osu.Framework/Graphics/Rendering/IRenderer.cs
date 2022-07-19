@@ -2,9 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Buffers;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
@@ -163,14 +163,6 @@ namespace osu.Framework.Graphics.Rendering
         void PopScissorState();
 
         /// <summary>
-        /// Binds a vertex buffer.
-        /// </summary>
-        /// <param name="target">The target to bind the buffer to.</param>
-        /// <param name="buffer">The buffer to bind.</param>
-        /// <returns>Whether <paramref name="buffer"/> was newly-bound.</returns>
-        bool BindBuffer(BufferTarget target, int buffer);
-
-        /// <summary>
         /// Binds a texture.
         /// </summary>
         /// <param name="texture">The texture to bind.</param>
@@ -292,14 +284,14 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="size">Number of quads.</param>
         /// <param name="maxBuffers">Maximum number of vertex buffers.</param>
         /// <param name="primitiveType">The type of primitive the vertices are drawn as.</param>
-        IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : struct, IEquatable<TVertex>, IVertex;
+        IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveType primitiveType) where TVertex : unmanaged, IEquatable<TVertex>, IVertex;
 
         /// <summary>
         /// Creates a new quad vertex batch, accepting vertices and drawing as quads.
         /// </summary>
         /// <param name="size">Number of quads.</param>
         /// <param name="maxBuffers">Maximum number of vertex buffers.</param>
-        IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : struct, IEquatable<TVertex>, IVertex;
+        IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) where TVertex : unmanaged, IEquatable<TVertex>, IVertex;
 
         /// <summary>
         /// Creates a new texture.

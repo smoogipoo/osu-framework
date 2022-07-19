@@ -2,12 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Graphics.OpenGL.Vertices;
+using osu.Framework.Graphics.Batches;
 
 namespace osu.Framework.Graphics.Rendering.Dummy
 {
     internal class DummyVertexBatch<T> : IVertexBatch<T>
-        where T : struct, IEquatable<T>, IVertex
+        where T : unmanaged, IEquatable<T>, IVertex
     {
         public void Dispose()
         {

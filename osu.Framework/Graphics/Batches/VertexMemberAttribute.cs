@@ -6,7 +6,7 @@
 using System;
 using osuTK.Graphics.ES30;
 
-namespace osu.Framework.Graphics.OpenGL.Vertices
+namespace osu.Framework.Graphics.Batches
 {
     [AttributeUsage(AttributeTargets.Field)]
     public class VertexMemberAttribute : Attribute
@@ -28,11 +28,6 @@ namespace osu.Framework.Graphics.OpenGL.Vertices
         /// a range of [-1, 1] (signed) or [0, 1] (unsigned) when it is passed to the shader.
         /// </summary>
         public bool Normalized { get; private set; }
-
-        /// <summary>
-        /// The offset of this attribute member in the struct. This is computed internally by the framework.
-        /// </summary>
-        internal IntPtr Offset;
 
         public VertexMemberAttribute(int count, VertexAttribPointerType type)
         {
