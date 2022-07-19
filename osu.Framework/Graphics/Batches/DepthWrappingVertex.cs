@@ -5,9 +5,10 @@
 
 using System;
 using System.Runtime.InteropServices;
+using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 
-namespace osu.Framework.Graphics.OpenGL.Vertices
+namespace osu.Framework.Graphics.Batches
 {
     [StructLayout(LayoutKind.Sequential)]
     internal struct DepthWrappingVertex<TVertex> : IVertex, IEquatable<DepthWrappingVertex<TVertex>>

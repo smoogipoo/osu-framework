@@ -9,6 +9,7 @@ using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK.Graphics.ES30;
 using osu.Framework.Statistics;
 using osu.Framework.Development;
+using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.Rendering;
 using SixLabors.ImageSharp.Memory;
 

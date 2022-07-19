@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using osu.Framework.Graphics.Batches;
 using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Vertices

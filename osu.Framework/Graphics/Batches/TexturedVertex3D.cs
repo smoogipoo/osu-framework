@@ -1,15 +1,16 @@
-﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 #nullable disable
 
 using System;
 using System.Runtime.InteropServices;
+using osu.Framework.Graphics.OpenGL.Vertices;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
 
-namespace osu.Framework.Graphics.OpenGL.Vertices
+namespace osu.Framework.Graphics.Batches
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct TexturedVertex3D : IEquatable<TexturedVertex3D>, IVertex
