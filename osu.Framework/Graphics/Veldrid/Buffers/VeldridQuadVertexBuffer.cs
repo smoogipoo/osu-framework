@@ -12,31 +12,6 @@ using BufferUsage = Veldrid.BufferUsage;
 
 namespace osu.Framework.Graphics.Veldrid.Buffers
 {
-    internal static class VeldridQuadIndexData
-    {
-        private static int maxAmountIndices;
-
-        public static int MaxAmountIndices
-        {
-            get => maxAmountIndices;
-            set
-            {
-                if (value == maxAmountIndices)
-                    return;
-
-                maxAmountIndices = value;
-
-                indexBuffer?.Dispose();
-                indexBuffer = null;
-            }
-        }
-
-        private static DeviceBuffer indexBuffer;
-
-        // todo: uhhhhhhhhhh....
-        public static DeviceBuffer IndexBuffer => indexBuffer ??= Vd.Factory.CreateBuffer(new BufferDescription((uint)(MaxAmountIndices * sizeof(ushort)), BufferUsage.IndexBuffer));
-    }
-
     public class VeldridQuadVertexBuffer<T> : VeldridVertexBuffer<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
@@ -62,9 +37,9 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         {
             base.Initialise();
 
-            if (amountIndices > VeldridQuadIndexData.MaxAmountIndices)
+            if (amountIndices > renderer.SharedQuadIndex.Capacity)
             {
-                VeldridQuadIndexData.MaxAmountIndices = amountIndices;
+                renderer.SharedQuadIndex.Capacity = amountIndices;
 
                 ushort[] indices = new ushort[amountIndices];
 
@@ -78,14 +53,14 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
                     indices[j + 5] = (ushort)(i + 1);
                 }
 
-                renderer.Commands.UpdateBuffer(VeldridQuadIndexData.IndexBuffer, 0, indices);
+                renderer.Commands.UpdateBuffer(renderer.SharedQuadIndex.Buffer, 0, indices);
             }
         }
 
         public override void Bind()
         {
             base.Bind();
-            renderer.BindIndexBuffer(VeldridQuadIndexData.IndexBuffer, IndexFormat.UInt16);
+            renderer.BindIndexBuffer(renderer.SharedQuadIndex.Buffer, IndexFormat.UInt16);
         }
 
         protected override int ToElements(int vertices) => 3 * vertices / 2;

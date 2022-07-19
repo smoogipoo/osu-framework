@@ -14,6 +14,7 @@ using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid.Batches;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Lists;
 using osu.Framework.Statistics;
@@ -107,6 +108,9 @@ namespace osu.Framework.Graphics.Veldrid
 
         public CommandList Commands { get; private set; } = null!;
 
+        internal VeldridIndexData SharedLinearIndex { get; }
+        internal VeldridIndexData SharedQuadIndex { get; }
+
         private ResourceLayout uniformLayout = null!;
 
         private VeldridTextureSamplerSet defaultTextureSet = null!;
@@ -131,6 +135,9 @@ namespace osu.Framework.Graphics.Veldrid
         {
             whitePixel = new Lazy<TextureWhitePixel>(() =>
                 new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
+
+            SharedLinearIndex = new VeldridIndexData(this);
+            SharedQuadIndex = new VeldridIndexData(this);
         }
 
         void IRenderer.Initialise()
