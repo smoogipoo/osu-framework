@@ -18,7 +18,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     public abstract class VertexBuffer<T> : IVertexBuffer, IDisposable
         where T : struct, IEquatable<T>, IVertex
     {
-        protected static readonly int STRIDE = VertexUtils<DepthWrappingVertex<T>>.STRIDE;
+        protected static readonly int STRIDE = OpenGLVertexUtils<DepthWrappingVertex<T>>.STRIDE;
 
         private readonly IRenderer renderer;
         private readonly BufferUsageHint usage;
@@ -69,7 +69,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             GL.GenBuffers(1, out vboId);
 
             if (renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
-                VertexUtils<DepthWrappingVertex<T>>.Bind();
+                OpenGLVertexUtils<DepthWrappingVertex<T>>.Bind();
 
             int size = Size * STRIDE;
 
@@ -108,7 +108,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 Initialise();
 
             if (renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
-                VertexUtils<DepthWrappingVertex<T>>.Bind();
+                OpenGLVertexUtils<DepthWrappingVertex<T>>.Bind();
         }
 
         public virtual void Unbind()

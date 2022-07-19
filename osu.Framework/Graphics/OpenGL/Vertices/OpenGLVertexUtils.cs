@@ -16,9 +16,9 @@ using osuTK.Graphics.ES30;
 namespace osu.Framework.Graphics.OpenGL.Vertices
 {
     /// <summary>
-    /// Helper method that provides functionality to enable and bind vertex attributes.
+    /// Utility class providing functionality to enable and bind vertices on OpenGL.
     /// </summary>
-    public static class VertexUtils<T>
+    public static class OpenGLVertexUtils<T>
         where T : struct, IVertex
     {
         /// <summary>
@@ -26,10 +26,10 @@ namespace osu.Framework.Graphics.OpenGL.Vertices
         /// </summary>
         public static readonly int STRIDE = Marshal.SizeOf(default(T));
 
-        private static readonly List<VertexMemberAttribute> attributes = new List<VertexMemberAttribute>();
+        private static readonly List<(VertexMemberAttribute, IntPtr)> attributes = new List<(VertexMemberAttribute, IntPtr)>();
         private static int amountEnabledAttributes;
 
-        static VertexUtils()
+        static OpenGLVertexUtils()
         {
             addAttributesRecursive(typeof(T), 0);
         }
@@ -52,9 +52,9 @@ namespace osu.Framework.Graphics.OpenGL.Vertices
                     Debug.Assert(attrib != null);
 
                     // Because this is an un-seen vertex, the attribute locations are unknown, but they're needed for marshalling
-                    attrib.Offset = new IntPtr(fieldOffset);
+                    var offset = new IntPtr(fieldOffset);
 
-                    attributes.Add(attrib);
+                    attributes.Add((attrib, offset));
                 }
             }
         }
@@ -65,8 +65,11 @@ namespace osu.Framework.Graphics.OpenGL.Vertices
         public static void Bind()
         {
             enableAttributes(attributes.Count);
-            for (int i = 0; i < attributes.Count; i++)
-                GL.VertexAttribPointer(i, attributes[i].Count, attributes[i].Type, attributes[i].Normalized, STRIDE, attributes[i].Offset);
+
+            int i = 0;
+
+            foreach (var (attrib, offset) in attributes)
+                GL.VertexAttribPointer(i++, attrib.Count, attrib.Type, attrib.Normalized, STRIDE, offset);
         }
 
         private static void enableAttributes(int amount)

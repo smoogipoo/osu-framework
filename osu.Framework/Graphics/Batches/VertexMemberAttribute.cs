@@ -29,11 +29,6 @@ namespace osu.Framework.Graphics.Batches
         /// </summary>
         public bool Normalized { get; private set; }
 
-        /// <summary>
-        /// The offset of this attribute member in the struct. This is computed internally by the framework.
-        /// </summary>
-        internal IntPtr Offset;
-
         public VertexMemberAttribute(int count, VertexAttribPointerType type)
         {
             Count = count;
