@@ -117,6 +117,9 @@ namespace osu.Framework.Graphics.Veldrid
 
         private VeldridTextureSamplerSet? boundTextureSet;
 
+        private DeviceBuffer? boundVertexBuffer;
+        // private VertexLayoutDescription? boundVertexLayout;
+
         internal static readonly ResourceLayoutDescription UNIFORM_LAYOUT = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("m_Uniforms", ResourceKind.UniformBuffer, ShaderStages.Fragment | ShaderStages.Vertex));
 
@@ -356,31 +359,23 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.RasterizerState.ScissorTestEnabled = enabled;
         }
 
-        public bool BindVertexBuffer(DeviceBuffer vertex, VertexLayoutDescription layout)
+        public void BindVertexBuffer(DeviceBuffer vertex, VertexLayoutDescription layout)
         {
-            // int bufferIndex = target - BufferTarget.ArrayBuffer;
-            // if (lastBoundBuffers[bufferIndex] == buffer)
-            // return false;
+            if (vertex == boundVertexBuffer)
+                return;
 
-            // lastBoundBuffers[bufferIndex] = buffer;
-            // GL.BindBuffer(target, buffer);
+            Commands.SetVertexBuffer(0, vertex);
 
-            // FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+            // if (currentShader.VertexLayout.Elements == null || currentShader.VertexLayout.Elements.Length == 0)
+            //     pipeline.ShaderSet.VertexLayouts = new[] { layout };
 
-            return false;
+            FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+
+            boundVertexBuffer = vertex;
+            // boundVertexLayout = layout;
         }
 
-        public bool BindIndexBuffer(DeviceBuffer index, IndexFormat indexFormat)
-        {
-            // int bufferIndex = target - BufferTarget.ArrayBuffer;
-            // if (lastBoundBuffers[bufferIndex] == buffer)
-                // return false;
-
-            // lastBoundBuffers[bufferIndex] = buffer;
-            // GL.BindBuffer(target, buffer);
-
-            return true;
-        }
+        public void BindIndexBuffer(DeviceBuffer index, IndexFormat format) => Commands.SetIndexBuffer(index, format);
 
         public bool BindTexture(Graphics.Textures.Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
