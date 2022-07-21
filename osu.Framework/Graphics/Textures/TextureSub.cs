@@ -59,7 +59,7 @@ namespace osu.Framework.Graphics.Textures
                 actualBounds.Height = rect.Height * ScaleAdjust;
             }
 
-            return actualBounds;
+            return actualBounds / parent.ScaleAdjust;
         }
 
         protected override RectangleF TextureBounds(RectangleF? textureRect = null) => parent.GetTextureRect(boundsInParent(textureRect));
