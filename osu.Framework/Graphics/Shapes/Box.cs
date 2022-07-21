@@ -8,6 +8,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
+using osuTK;
 
 namespace osu.Framework.Graphics.Shapes
 {
@@ -16,6 +17,11 @@ namespace osu.Framework.Graphics.Shapes
     /// </summary>
     public class Box : Sprite
     {
+        public Box()
+        {
+            Size = Vector2.One;
+        }
+
         [BackgroundDependencyLoader]
         private void load(GameHost host)
         {
