@@ -51,13 +51,12 @@ namespace osu.Framework.Graphics.Textures
         {
             RectangleF actualBounds = bounds;
 
-            if (textureRect.HasValue)
+            if (textureRect is RectangleF rect)
             {
-                RectangleF localBounds = textureRect.Value;
-                actualBounds.X += localBounds.X;
-                actualBounds.Y += localBounds.Y;
-                actualBounds.Width = localBounds.Width;
-                actualBounds.Height = localBounds.Height;
+                actualBounds.X += rect.X * ScaleAdjust;
+                actualBounds.Y += rect.Y * ScaleAdjust;
+                actualBounds.Width = rect.Width * ScaleAdjust;
+                actualBounds.Height = rect.Height * ScaleAdjust;
             }
 
             return actualBounds;
