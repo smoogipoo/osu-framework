@@ -55,7 +55,4 @@
          See https://github.com/NuGet/Home/issues/4514 and https://github.com/dotnet/sdk/issues/765 . -->
     <PackageReference Include="OpenTabletDriver" Version="0.6.0.4" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Graphics\Vertices" />
-  </ItemGroup>
 </Project>
