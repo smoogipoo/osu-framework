@@ -217,9 +217,15 @@ namespace osu.Framework.Graphics.Textures
                 Opacity = Opacity.Mixed;
         }
 
-        protected virtual RectangleF TextureBounds(RectangleF? textureRect = null)
+        /// <summary>
+        /// Computes the UV coordinates of a sub-area of this texture.
+        /// </summary>
+        /// <param name="area">A display-space area of this texture to compute the UV coordinates of.<br/>
+        /// The full area is used if not provided: (0, 0, <see cref="DisplayWidth"/>, <see cref="DisplayHeight"/>).</param>
+        /// <returns>The UV coordinates of <paramref name="area"/> in this texture.</returns>
+        public virtual RectangleF GetTextureRect(RectangleF? area = null)
         {
-            RectangleF texRect = textureRect ?? new RectangleF(0, 0, DisplayWidth, DisplayHeight);
+            RectangleF texRect = area ?? new RectangleF(0, 0, DisplayWidth, DisplayHeight);
 
             texRect.X *= ScaleAdjust / Width;
             texRect.Y *= ScaleAdjust / Height;
@@ -228,8 +234,6 @@ namespace osu.Framework.Graphics.Textures
 
             return texRect;
         }
-
-        public RectangleF GetTextureRect(RectangleF? textureRect = null) => TextureBounds(textureRect);
 
         public override string ToString() => $@"{AssetName} ({Width}, {Height})";
 

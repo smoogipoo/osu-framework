@@ -11,6 +11,13 @@ namespace osu.Framework.Graphics.Textures
         private readonly Texture parent;
         private readonly RectangleI bounds;
 
+        /// <summary>
+        /// Creates a new <see cref="TextureSub"/>.
+        /// </summary>
+        /// <param name="parent">The parenting <see cref="Texture"/>.</param>
+        /// <param name="bounds">The texture-space area in <paramref name="parent"/> which bounds this texture.</param>
+        /// <param name="wrapModeS">The horizontal wrap mode.</param>
+        /// <param name="wrapModeT">The vertical warp mode.</param>
         public TextureSub(Texture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
             : base(parent, wrapModeS, wrapModeT)
         {
@@ -47,21 +54,26 @@ namespace osu.Framework.Graphics.Textures
             parent.SetData(upload, wrapModeS, wrapModeT, opacity);
         }
 
-        private RectangleF boundsInParent(RectangleF? textureRect)
+        private RectangleF boundsInParent(RectangleF? area)
         {
+            // Bounds are already in texture space.
             RectangleF actualBounds = bounds;
 
-            if (textureRect is RectangleF rect)
+            if (area is RectangleF rect)
             {
-                actualBounds.X += rect.X * ScaleAdjust;
-                actualBounds.Y += rect.Y * ScaleAdjust;
-                actualBounds.Width = rect.Width * ScaleAdjust;
-                actualBounds.Height = rect.Height * ScaleAdjust;
+                // The incoming area is in display space, so it needs to be converted into texture space.
+                rect *= ScaleAdjust;
+
+                actualBounds.X += rect.X;
+                actualBounds.Y += rect.Y;
+                actualBounds.Width = rect.Width;
+                actualBounds.Height = rect.Height;
             }
 
+            // Convert the texture space area into the parent's display space.
             return actualBounds / parent.ScaleAdjust;
         }
 
-        protected override RectangleF TextureBounds(RectangleF? textureRect = null) => parent.GetTextureRect(boundsInParent(textureRect));
+        public override RectangleF GetTextureRect(RectangleF? area = null) => parent.GetTextureRect(boundsInParent(area));
     }
 }
