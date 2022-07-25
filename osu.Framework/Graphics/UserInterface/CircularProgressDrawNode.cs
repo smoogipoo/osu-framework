@@ -151,13 +151,14 @@ namespace osu.Framework.Graphics.UserInterface
             if (texture?.Available != true)
                 return;
 
-            Shader.Bind();
+            var shader = GetShader(renderer);
+            shader.Bind();
 
             renderer.BindTexture(texture);
 
             updateVertexBuffer(renderer);
 
-            Shader.Unbind();
+            shader.Unbind();
         }
 
         protected override void Dispose(bool isDisposing)

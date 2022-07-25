@@ -83,14 +83,15 @@ namespace osu.Framework.Graphics.Sprites
             if (Texture?.Available != true)
                 return;
 
-            Shader.Bind();
+            var shader = GetShader(renderer);
+            shader.Bind();
 
             Blit(renderer);
 
-            Shader.Unbind();
+            shader.Unbind();
         }
 
-        protected override bool RequiresRoundedShader => base.RequiresRoundedShader || InflationAmount != Vector2.Zero;
+        protected override bool RequiresRoundedShader(IRenderer renderer) => base.RequiresRoundedShader(renderer) || InflationAmount != Vector2.Zero;
 
         protected override void DrawOpaqueInterior(IRenderer renderer)
         {

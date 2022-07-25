@@ -10,8 +10,6 @@ namespace osu.Framework.Graphics
 {
     public abstract class TexturedShaderDrawNode : DrawNode
     {
-        protected IShader Shader => RequiresRoundedShader ? RoundedTextureShader : TextureShader;
-
         protected IShader TextureShader { get; private set; }
         protected IShader RoundedTextureShader { get; private set; }
 
@@ -30,20 +28,8 @@ namespace osu.Framework.Graphics
             RoundedTextureShader = Source.RoundedTextureShader;
         }
 
-        public override void Draw(IRenderer renderer)
-        {
-            base.Draw(renderer);
+        protected IShader GetShader(IRenderer renderer) => RequiresRoundedShader(renderer) ? RoundedTextureShader : TextureShader;
 
-            RequiresRoundedShader = renderer.IsMaskingActive;
-        }
-
-        protected override void DrawOpaqueInterior(IRenderer renderer)
-        {
-            base.DrawOpaqueInterior(renderer);
-
-            RequiresRoundedShader = renderer.IsMaskingActive;
-        }
-
-        protected virtual bool RequiresRoundedShader { get; private set; }
+        protected virtual bool RequiresRoundedShader(IRenderer renderer) => renderer.IsMaskingActive;
     }
 }
