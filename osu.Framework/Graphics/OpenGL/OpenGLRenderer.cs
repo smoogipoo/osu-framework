@@ -765,6 +765,10 @@ namespace osu.Framework.Graphics.OpenGL
                 disposalAction.Invoke(target);
         }
 
+        /// <summary>
+        /// Enqueues a texture to be uploaded in the next frame.
+        /// </summary>
+        /// <param name="texture">The texture to be uploaded.</param>
         public void EnqueueTextureUpload(INativeTexture texture)
         {
             if (texture.IsQueuedForUpload)
@@ -776,6 +780,8 @@ namespace osu.Framework.Graphics.OpenGL
                 textureUploadQueue.Enqueue(texture);
             }
         }
+
+        void IRenderer.EnqueueTextureUpload(INativeTexture texture) => EnqueueTextureUpload(texture);
 
         public IFrameBuffer CreateFrameBuffer(RenderbufferInternalFormat[]? renderBufferFormats = null, All filteringMode = All.Linear)
             => new FrameBuffer(this, renderBufferFormats, filteringMode);

@@ -268,7 +268,7 @@ namespace osu.Framework.Graphics.Rendering
         /// Enqueues a texture to be uploaded in the next frame.
         /// </summary>
         /// <param name="texture">The texture to be uploaded.</param>
-        void EnqueueTextureUpload(INativeTexture texture);
+        internal void EnqueueTextureUpload(INativeTexture texture);
 
         /// <summary>
         /// Creates a new <see cref="IFrameBuffer"/>.

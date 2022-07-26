@@ -24,7 +24,7 @@ namespace osu.Framework.Graphics.Textures
             count.Increment();
         }
 
-        protected sealed override INativeTexture NativeTexture
+        internal sealed override INativeTexture NativeTexture
         {
             get
             {

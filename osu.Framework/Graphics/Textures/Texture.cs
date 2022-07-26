@@ -16,7 +16,7 @@ namespace osu.Framework.Graphics.Textures
 {
     public class Texture : IDisposable
     {
-        protected virtual INativeTexture NativeTexture { get; }
+        internal virtual INativeTexture NativeTexture { get; }
 
         public string Filename;
         public string AssetName;

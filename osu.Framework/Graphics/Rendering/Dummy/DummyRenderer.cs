@@ -139,7 +139,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         {
         }
 
-        public void EnqueueTextureUpload(INativeTexture texture)
+        void IRenderer.EnqueueTextureUpload(INativeTexture texture)
         {
         }
 

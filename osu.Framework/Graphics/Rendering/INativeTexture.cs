@@ -8,7 +8,7 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Rendering
 {
-    public interface INativeTexture : IDisposable
+    internal interface INativeTexture : IDisposable
     {
         /// <summary>
         /// An identifier for this texture, to show up in the <see cref="TextureVisualiser"/>.

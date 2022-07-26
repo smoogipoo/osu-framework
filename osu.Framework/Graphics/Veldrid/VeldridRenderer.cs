@@ -862,7 +862,7 @@ namespace osu.Framework.Graphics.Veldrid
                 disposalAction.Invoke(target);
         }
 
-        public void EnqueueTextureUpload(INativeTexture texture)
+        void IRenderer.EnqueueTextureUpload(INativeTexture texture)
         {
             if (texture.IsQueuedForUpload)
                 return;
