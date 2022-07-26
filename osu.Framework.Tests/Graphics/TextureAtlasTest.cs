@@ -4,8 +4,8 @@
 #nullable disable
 
 using NUnit.Framework;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Tests.Graphics
@@ -41,7 +41,7 @@ namespace osu.Framework.Tests.Graphics
 
         private void testWithSize(int width, int height)
         {
-            TextureAtlas atlas = new TextureAtlas(new OpenGLRenderer(), 1024, 1024);
+            TextureAtlas atlas = new TextureAtlas(new DummyRenderer(), 1024, 1024);
             Texture texture = atlas.Add(width, height);
 
             if (texture != null)
@@ -67,7 +67,7 @@ namespace osu.Framework.Tests.Graphics
         {
             const int atlas_size = 1024;
 
-            var atlas = new TextureAtlas(new OpenGLRenderer(), atlas_size, atlas_size);
+            var atlas = new TextureAtlas(new DummyRenderer(), atlas_size, atlas_size);
 
             Texture texture = atlas.Add(64, 64);
 
@@ -81,7 +81,7 @@ namespace osu.Framework.Tests.Graphics
         {
             const int atlas_size = 1024;
 
-            var atlas = new TextureAtlas(new OpenGLRenderer(), atlas_size, atlas_size);
+            var atlas = new TextureAtlas(new DummyRenderer(), atlas_size, atlas_size);
 
             Texture texture = atlas.Add(atlas_size - 2 * TextureAtlas.PADDING, 64);
 
