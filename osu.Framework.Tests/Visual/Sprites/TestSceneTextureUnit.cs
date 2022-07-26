@@ -127,12 +127,12 @@ namespace osu.Framework.Tests.Visual.Sprites
                     renderer.BindTexture(blueTex, TextureUnit.Texture3);
 
                     int unitId = unit - TextureUnit.Texture0;
-                    Shader.GetUniform<int>("m_Sampler").UpdateValue(ref unitId);
+                    GetShader(renderer).GetUniform<int>("m_Sampler").UpdateValue(ref unitId);
 
                     base.Draw(renderer);
 
                     unitId = 0;
-                    Shader.GetUniform<int>("m_Sampler").UpdateValue(ref unitId);
+                    GetShader(renderer).GetUniform<int>("m_Sampler").UpdateValue(ref unitId);
                 }
 
                 protected internal override bool CanDrawOpaqueInterior => false;
