@@ -24,9 +24,11 @@ namespace osu.Framework.Graphics.Textures
 
             private readonly RectangleI atlasBounds;
 
+#pragma warning disable IDE0052
             // Keep a reference to the parent for the texture visualiser.
             // ReSharper disable once NotAccessedField.Local
             private readonly Texture parent;
+#pragma warning restore IDE0052
 
             private static readonly Rgba32 initialisation_colour = default;
 
