@@ -10,7 +10,7 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Batches
 {
-    public class QuadBatch<T> : VertexBatch<T>
+    internal class QuadBatch<T> : VertexBatch<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly OpenGLRenderer renderer;

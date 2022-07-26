@@ -22,7 +22,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         public static int MaxAmountIndices;
     }
 
-    public class QuadVertexBuffer<T> : VertexBuffer<T>
+    internal class QuadVertexBuffer<T> : VertexBuffer<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly OpenGLRenderer renderer;

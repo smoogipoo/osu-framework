@@ -27,7 +27,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace osu.Framework.Graphics.OpenGL
 {
-    public class OpenGLRenderer : IRenderer
+    internal class OpenGLRenderer : IRenderer
     {
         /// <summary>
         /// The interval (in frames) before checking whether VBOs should be freed.

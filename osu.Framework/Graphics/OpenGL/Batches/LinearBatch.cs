@@ -10,7 +10,7 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Batches
 {
-    public class LinearBatch<T> : VertexBatch<T>
+    internal class LinearBatch<T> : VertexBatch<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
         private readonly OpenGLRenderer renderer;

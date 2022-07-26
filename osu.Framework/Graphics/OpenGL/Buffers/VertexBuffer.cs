@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
-    public abstract class VertexBuffer<T> : IVertexBuffer<T>
+    internal abstract class VertexBuffer<T> : IVertexBuffer<T>
         where T : unmanaged, IEquatable<T>, IVertex
     {
         protected static readonly int STRIDE = OpenGLVertexUtils<DepthWrappingVertex<T>>.STRIDE;
