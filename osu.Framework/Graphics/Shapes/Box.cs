@@ -19,6 +19,7 @@ namespace osu.Framework.Graphics.Shapes
     {
         public Box()
         {
+            // Texture is late bound but would otherwise set an initial (1, 1) size for relative size.
             Size = Vector2.One;
         }
 

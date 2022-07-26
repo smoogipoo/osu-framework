@@ -17,6 +17,12 @@ namespace osu.Framework.Graphics.Shapes
     /// </summary>
     public class Triangle : Sprite
     {
+        public Triangle()
+        {
+            // Texture is late bound but would otherwise set an initial (1, 1) size for relative size.
+            Size = Vector2.One;
+        }
+
         [BackgroundDependencyLoader]
         private void load(GameHost host)
         {
