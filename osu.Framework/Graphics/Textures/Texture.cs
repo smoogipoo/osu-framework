@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.IO;
 using osu.Framework.Extensions.EnumExtensions;
@@ -18,13 +16,13 @@ namespace osu.Framework.Graphics.Textures
     {
         internal virtual INativeTexture NativeTexture { get; }
 
-        public string Filename;
-        public string AssetName;
+        public string Filename = string.Empty;
+        public string AssetName = string.Empty;
 
         /// <summary>
         /// A lookup key used by <see cref="TextureStore"/>s.
         /// </summary>
-        internal string LookupKey;
+        internal string LookupKey = string.Empty;
 
         /// <summary>
         /// At what multiple of our expected resolution is our underlying texture?
@@ -99,7 +97,7 @@ namespace osu.Framework.Graphics.Textures
         /// <param name="stream">The data stream containing the texture data.</param>
         /// <param name="atlas">The atlas to add the texture to.</param>
         /// <returns>The created texture.</returns>
-        public static Texture FromStream(IRenderer renderer, Stream stream, TextureAtlas atlas = null)
+        public static Texture? FromStream(IRenderer renderer, Stream? stream, TextureAtlas? atlas = null)
         {
             if (stream == null || stream.Length == 0)
                 return null;
@@ -170,7 +168,7 @@ namespace osu.Framework.Graphics.Textures
 
             UpdateOpacity(upload, ref opacity);
 
-            NativeTexture?.SetData(upload);
+            NativeTexture.SetData(upload);
         }
 
         protected static Opacity ComputeOpacity(ITextureUpload upload)

@@ -1,11 +1,10 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using osu.Framework.Extensions.ObjectExtensions;
 using osuTK.Graphics.ES30;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Primitives;
@@ -25,7 +24,7 @@ namespace osu.Framework.Graphics.Textures
         internal const int WHITE_PIXEL_SIZE = 1;
 
         private readonly List<RectangleI> subTextureBounds = new List<RectangleI>();
-        private Texture atlasTexture;
+        private Texture? atlasTexture;
 
         private readonly IRenderer renderer;
         private readonly int atlasWidth;
@@ -43,7 +42,7 @@ namespace osu.Framework.Graphics.Textures
                 if (atlasTexture == null)
                     Reset();
 
-                return new TextureWhitePixel(atlasTexture);
+                return new TextureWhitePixel(atlasTexture.AsNonNull());
             }
         }
 
@@ -89,9 +88,10 @@ namespace osu.Framework.Graphics.Textures
         /// <param name="wrapModeS">The horizontal wrap mode of the texture.</param>
         /// <param name="wrapModeT">The vertical wrap mode of the texture.</param>
         /// <returns>A texture, or null if the requested size exceeds the atlas' bounds.</returns>
-        internal Texture Add(int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
+        internal Texture? Add(int width, int height, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None)
         {
-            if (!canFitEmptyTextureAtlas(width, height)) return null;
+            if (!canFitEmptyTextureAtlas(width, height))
+                return null;
 
             lock (textureRetrievalLock)
             {
@@ -99,7 +99,8 @@ namespace osu.Framework.Graphics.Textures
                 RectangleI bounds = new RectangleI(position.X, position.Y, width, height);
                 subTextureBounds.Add(bounds);
 
-                return new TextureAtlasSubTexture(atlasTexture, bounds, wrapModeS, wrapModeT);
+                // atlasTexture can't be null after findPosition().
+                return new TextureAtlasSubTexture(atlasTexture.AsNonNull(), bounds, wrapModeS, wrapModeT);
             }
         }
 
