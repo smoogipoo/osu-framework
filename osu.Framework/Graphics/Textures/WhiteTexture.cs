@@ -10,6 +10,7 @@ namespace osu.Framework.Graphics.Textures
         public WhiteTexture(Texture texture)
             : base(texture, new RectangleI(0, 0, 1, 1), texture.WrapModeS, texture.WrapModeT)
         {
+            Opacity = Opacity.Opaque;
         }
 
         public override RectangleF GetTextureRect(RectangleF? area = null)
