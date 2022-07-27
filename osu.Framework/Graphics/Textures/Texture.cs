@@ -105,7 +105,7 @@ namespace osu.Framework.Graphics.Textures
             try
             {
                 var data = new TextureUpload(stream);
-                Texture tex = atlas == null ? renderer.CreateTexture(data.Width, data.Height) : atlas.Add(data.Width, data.Height);
+                Texture tex = atlas?.Add(data.Width, data.Height) ?? renderer.CreateTexture(data.Width, data.Height);
                 tex.SetData(data);
                 return tex;
             }
