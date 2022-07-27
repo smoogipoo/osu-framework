@@ -87,7 +87,7 @@ namespace osu.Framework.Graphics.Textures
                 cropRectangle *= scale;
             }
 
-            return new TextureSub(this, cropRectangle, wrapModeS, wrapModeT);
+            return new TextureRegion(this, cropRectangle, wrapModeS, wrapModeT);
         }
 
         /// <summary>

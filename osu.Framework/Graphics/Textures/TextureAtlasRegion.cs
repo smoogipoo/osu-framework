@@ -5,9 +5,9 @@ using osu.Framework.Graphics.Primitives;
 
 namespace osu.Framework.Graphics.Textures
 {
-    internal class TextureAtlasSubTexture : TextureSub
+    internal class TextureAtlasRegion : TextureRegion
     {
-        public TextureAtlasSubTexture(Texture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
+        public TextureAtlasRegion(Texture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
             : base(parent, bounds, wrapModeS, wrapModeT)
         {
         }

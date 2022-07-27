@@ -386,7 +386,7 @@ namespace osu.Framework.Graphics.Veldrid
             }
 
             bool didBind = texture.Bind(unit, wrapModeS ?? texture.WrapModeS, wrapModeT ?? texture.WrapModeT);
-            AtlasTextureIsBound = texture is TextureAtlasSubTexture;
+            AtlasTextureIsBound = texture is TextureAtlasRegion;
 
             return didBind;
         }

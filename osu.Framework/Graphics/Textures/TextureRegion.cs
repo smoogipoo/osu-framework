@@ -6,19 +6,22 @@ using osu.Framework.Graphics.Primitives;
 
 namespace osu.Framework.Graphics.Textures
 {
-    public class TextureSub : Texture
+    /// <summary>
+    /// A sub-region of a <see cref="Texture"/>.
+    /// </summary>
+    public class TextureRegion : Texture
     {
         private readonly Texture parent;
         private readonly RectangleI bounds;
 
         /// <summary>
-        /// Creates a new <see cref="TextureSub"/>.
+        /// Creates a new sub-region of a <see cref="Texture"/>.
         /// </summary>
-        /// <param name="parent">The parenting <see cref="Texture"/>.</param>
+        /// <param name="parent">The <see cref="Texture"/> to create a sub-region of.</param>
         /// <param name="bounds">The texture-space area in <paramref name="parent"/> which bounds this texture.</param>
-        /// <param name="wrapModeS">The horizontal wrap mode.</param>
-        /// <param name="wrapModeT">The vertical warp mode.</param>
-        public TextureSub(Texture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
+        /// <param name="wrapModeS">The horizontal wrap mode for this region.</param>
+        /// <param name="wrapModeT">The vertical warp mode for this region.</param>
+        public TextureRegion(Texture parent, RectangleI bounds, WrapMode wrapModeS, WrapMode wrapModeT)
             : base(parent, wrapModeS, wrapModeT)
         {
             this.parent = parent;
