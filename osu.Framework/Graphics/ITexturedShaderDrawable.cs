@@ -3,7 +3,7 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics
 {

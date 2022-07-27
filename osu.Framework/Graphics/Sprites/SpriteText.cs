@@ -10,6 +10,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Development;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.IO.Stores;

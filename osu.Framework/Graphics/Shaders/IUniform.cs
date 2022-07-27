@@ -3,6 +3,8 @@
 
 #nullable disable
 
+using osu.Framework.Graphics.Rendering;
+
 namespace osu.Framework.Graphics.Shaders
 {
     /// <summary>
@@ -12,7 +14,7 @@ namespace osu.Framework.Graphics.Shaders
     {
         void Update();
 
-        Shader Owner { get; }
+        IShader Owner { get; }
         int Location { get; }
         string Name { get; }
     }

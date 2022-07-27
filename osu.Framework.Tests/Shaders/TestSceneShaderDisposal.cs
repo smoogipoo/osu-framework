@@ -4,8 +4,8 @@
 #nullable disable
 
 using System;
-using System.Collections.Generic;
 using NUnit.Framework;
+using osu.Framework.Graphics.OpenGL.Shaders;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Shaders;
@@ -19,7 +19,7 @@ namespace osu.Framework.Tests.Shaders
     public class TestSceneShaderDisposal : FrameworkTestScene
     {
         private ShaderManager manager;
-        private Shader shader;
+        private OpenGLShader shader;
 
         private WeakReference<IShader> shaderRef;
 
@@ -29,7 +29,7 @@ namespace osu.Framework.Tests.Shaders
             AddStep("setup manager", () =>
             {
                 manager = new TestShaderManager(new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources/Shaders"));
-                shader = (Shader)manager.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
+                shader = (OpenGLShader)manager.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
                 shaderRef = new WeakReference<IShader>(shader);
 
                 shader.EnsureShaderCompiled();
@@ -64,13 +64,17 @@ namespace osu.Framework.Tests.Shaders
             {
             }
 
-            internal override Shader CreateShader(string name, List<ShaderPart> parts) => new TestShader(Renderer, name, parts);
+            internal override IShader CreateShader(string name, params IShaderPart[] parts)
+                => new TestShader(Renderer, name, parts);
 
-            private class TestShader : Shader
+            private class TestShader : OpenGLShader
             {
-                internal TestShader(IRenderer renderer, string name, List<ShaderPart> parts)
+                private readonly IRenderer renderer;
+
+                internal TestShader(IRenderer renderer, string name, IShaderPart[] parts)
                     : base(renderer, name, parts)
                 {
+                    this.renderer = renderer;
                 }
 
                 private protected override int CreateProgram() => 1337;
@@ -79,7 +83,7 @@ namespace osu.Framework.Tests.Shaders
 
                 private protected override void SetupUniforms()
                 {
-                    Uniforms.Add("test", new Uniform<int>(this, "test", 1));
+                    Uniforms.Add("test", new Uniform<int>(this, renderer, "test", 1));
                 }
 
                 private protected override string GetProgramLog() => string.Empty;

@@ -11,6 +11,7 @@ using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
+using ShaderType = osu.Framework.Graphics.Shaders.ShaderType;
 
 namespace osu.Framework.Graphics.Rendering.Dummy
 {
@@ -127,7 +128,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         {
         }
 
-        public void UseProgram(Shader? shader)
+        public void UseProgram(IShader? shader)
         {
         }
 
@@ -156,6 +157,12 @@ namespace osu.Framework.Graphics.Rendering.Dummy
 
         public Texture CreateVideoTexture(int width, int height)
             => new Texture(new DummyNativeTexture { Width = width, Height = height }, WrapMode.None, WrapMode.None);
+
+        IShaderPart IRenderer.CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderType type)
+            => new DummyShaderPart();
+
+        IShader IRenderer.CreateShader(string name, params IShaderPart[] parts)
+            => new DummyShader(this);
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {

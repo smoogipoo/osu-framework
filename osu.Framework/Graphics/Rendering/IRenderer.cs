@@ -12,6 +12,7 @@ using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
+using ShaderType = osu.Framework.Graphics.Shaders.ShaderType;
 
 namespace osu.Framework.Graphics.Rendering
 {
@@ -249,7 +250,7 @@ namespace osu.Framework.Graphics.Rendering
         /// Binds a shader.
         /// </summary>
         /// <param name="shader">The shader to bind.</param>
-        void UseProgram(Shader? shader);
+        void UseProgram(IShader? shader);
 
         /// <summary>
         /// Schedules an expensive operation to a queue from which a maximum of one operation is performed per frame.
@@ -296,12 +297,17 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Creates a new texture.
         /// </summary>
-        Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default);
+        Texture CreateTexture(int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None,
+                              Rgba32 initialisationColour = default);
 
         /// <summary>
         /// Creates a new video texture.
         /// </summary>
         Texture CreateVideoTexture(int width, int height);
+
+        internal IShaderPart CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderType type);
+
+        internal IShader CreateShader(string name, params IShaderPart[] parts);
 
         /// <summary>
         /// Sets the value of a uniform.

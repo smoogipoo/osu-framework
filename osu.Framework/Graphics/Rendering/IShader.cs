@@ -1,13 +1,12 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
+using osu.Framework.Graphics.Shaders;
 
-namespace osu.Framework.Graphics.Shaders
+namespace osu.Framework.Graphics.Rendering
 {
-    public interface IShader
+    public interface IShader : IDisposable
     {
         /// <summary>
         /// Binds this shader to be used for rendering.
@@ -23,6 +22,11 @@ namespace osu.Framework.Graphics.Shaders
         /// Whether this shader is ready for use.
         /// </summary>
         bool IsLoaded { get; }
+
+        /// <summary>
+        /// Whether this shader is currently bound.
+        /// </summary>
+        bool IsBound { get; }
 
         /// <summary>
         /// Retrieves a uniform from the shader.

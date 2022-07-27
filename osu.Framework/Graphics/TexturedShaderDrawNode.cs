@@ -4,7 +4,6 @@
 #nullable disable
 
 using osu.Framework.Graphics.Rendering;
-using osu.Framework.Graphics.Shaders;
 
 namespace osu.Framework.Graphics
 {

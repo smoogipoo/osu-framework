@@ -3,19 +3,17 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.IO.Stores;
-using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.Shaders
 {
-    public class ShaderManager : IDisposable
+    public class ShaderManager
     {
         private const string shader_prefix = @"sh_";
 
-        private readonly ConcurrentDictionary<string, ShaderPart> partCache = new ConcurrentDictionary<string, ShaderPart>();
-        private readonly ConcurrentDictionary<(string, string), Shader> shaderCache = new ConcurrentDictionary<(string, string), Shader>();
+        private readonly ConcurrentDictionary<string, IShaderPart> partCache = new ConcurrentDictionary<string, IShaderPart>();
+        private readonly ConcurrentDictionary<(string, string), IShader> shaderCache = new ConcurrentDictionary<(string, string), IShader>();
 
         protected readonly IRenderer Renderer;
         private readonly IResourceStore<byte[]> store;
@@ -41,35 +39,31 @@ namespace osu.Framework.Graphics.Shaders
         /// </summary>
         /// <param name="vertex">The vertex shader name.</param>
         /// <param name="fragment">The fragment shader name.</param>
-        /// <param name="continuousCompilation"></param>
-        public IShader Load(string vertex, string fragment, bool continuousCompilation = false)
+        public IShader Load(string vertex, string fragment)
         {
             var tuple = (vertex, fragment);
 
-            if (shaderCache.TryGetValue(tuple, out Shader? shader))
+            if (shaderCache.TryGetValue(tuple, out IShader? shader))
                 return shader;
 
-            List<ShaderPart> parts = new List<ShaderPart>
-            {
-                createShaderPart(vertex, ShaderType.VertexShader),
-                createShaderPart(fragment, ShaderType.FragmentShader)
-            };
-
-            return shaderCache[tuple] = CreateShader($"{vertex}/{fragment}", parts);
+            return shaderCache[tuple] = CreateShader(
+                $"{vertex}/{fragment}",
+                createShaderPart(vertex, ShaderType.Vertex),
+                createShaderPart(fragment, ShaderType.Fragment));
         }
 
-        internal virtual Shader CreateShader(string name, List<ShaderPart> parts) => new Shader(Renderer, name, parts);
+        internal virtual IShader CreateShader(string name, params IShaderPart[] parts) => Renderer.CreateShader(name, parts);
 
-        private ShaderPart createShaderPart(string name, ShaderType type, bool bypassCache = false)
+        private IShaderPart createShaderPart(string name, ShaderType type, bool bypassCache = false)
         {
             name = ensureValidName(name, type);
 
-            if (!bypassCache && partCache.TryGetValue(name, out ShaderPart? part))
+            if (!bypassCache && partCache.TryGetValue(name, out IShaderPart? part))
                 return part;
 
             byte[]? rawData = LoadRaw(name);
 
-            part = new ShaderPart(Renderer, name, rawData, type, this);
+            part = Renderer.CreateShaderPart(this, name, rawData, type);
 
             //cache even on failure so we don't try and fail every time.
             partCache[name] = part;
@@ -92,10 +86,10 @@ namespace osu.Framework.Graphics.Shaders
         {
             switch (type)
             {
-                case ShaderType.FragmentShader:
+                case ShaderType.Fragment:
                     return @".fs";
 
-                case ShaderType.VertexShader:
+                case ShaderType.Vertex:
                     return @".vs";
             }
 

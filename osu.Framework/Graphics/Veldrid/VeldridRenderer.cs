@@ -26,7 +26,7 @@ using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
 using PixelFormat = Veldrid.PixelFormat;
-using Shader = osu.Framework.Graphics.Shaders.Shader;
+using ShaderType = osu.Framework.Graphics.Shaders.ShaderType;
 using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid
@@ -86,7 +86,7 @@ namespace osu.Framework.Graphics.Veldrid
         private readonly Stack<RectangleI> scissorRectStack = new Stack<RectangleI>();
         private readonly Stack<DepthInfo> depthStack = new Stack<DepthInfo>();
         private readonly Stack<Vector2I> scissorOffsetStack = new Stack<Vector2I>();
-        private readonly Stack<Shader> shaderStack = new Stack<Shader>();
+        private readonly Stack<IShader> shaderStack = new Stack<IShader>();
         private readonly Stack<bool> scissorStateStack = new Stack<bool>();
         private readonly Stack<Framebuffer> frameBufferStack = new Stack<Framebuffer>();
         private readonly int[] lastBoundBuffers = new int[2];
@@ -94,7 +94,7 @@ namespace osu.Framework.Graphics.Veldrid
         private BlendingParameters lastBlendingParameters;
         private IVertexBatch? lastActiveBatch;
         private MaskingInfo currentMaskingInfo;
-        private Shader? currentShader;
+        private IShader? currentShader;
         private bool currentScissorState;
         private bool isInitialised;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
@@ -815,7 +815,7 @@ namespace osu.Framework.Graphics.Veldrid
             GlobalPropertyManager.Set(GlobalProperty.GammaCorrection, UsingBackbuffer);
         }
 
-        public void UseProgram(Shader? shader)
+        public void UseProgram(IShader? shader)
         {
             ThreadSafety.EnsureDrawThread();
 
@@ -888,6 +888,12 @@ namespace osu.Framework.Graphics.Veldrid
             => createTexture(new VeldridTexture(this, width, height, manualMipmaps, filteringMode, initialisationColour), wrapModeS, wrapModeT);
 
         public Graphics.Textures.Texture CreateVideoTexture(int width, int height)
+            => throw new NotImplementedException();
+
+        IShaderPart IRenderer.CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderType type)
+            => throw new NotImplementedException();
+
+        IShader IRenderer.CreateShader(string name, params IShaderPart[] parts)
             => throw new NotImplementedException();
 
         private Graphics.Textures.Texture createTexture(VeldridTexture texture, WrapMode wrapModeS, WrapMode wrapModeT)

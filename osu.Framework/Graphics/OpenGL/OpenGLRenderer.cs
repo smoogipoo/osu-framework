@@ -10,6 +10,7 @@ using osu.Framework.Development;
 using osu.Framework.Graphics.Batches;
 using osu.Framework.Graphics.OpenGL.Batches;
 using osu.Framework.Graphics.OpenGL.Buffers;
+using osu.Framework.Graphics.OpenGL.Shaders;
 using osu.Framework.Graphics.OpenGL.Textures;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
@@ -24,6 +25,7 @@ using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
 using SixLabors.ImageSharp.PixelFormats;
+using ShaderType = osu.Framework.Graphics.Shaders.ShaderType;
 
 namespace osu.Framework.Graphics.OpenGL
 {
@@ -81,7 +83,7 @@ namespace osu.Framework.Graphics.OpenGL
         private readonly Stack<RectangleI> scissorRectStack = new Stack<RectangleI>();
         private readonly Stack<DepthInfo> depthStack = new Stack<DepthInfo>();
         private readonly Stack<Vector2I> scissorOffsetStack = new Stack<Vector2I>();
-        private readonly Stack<Shader> shaderStack = new Stack<Shader>();
+        private readonly Stack<IShader> shaderStack = new Stack<IShader>();
         private readonly Stack<bool> scissorStateStack = new Stack<bool>();
         private readonly Stack<int> frameBufferStack = new Stack<int>();
         private readonly bool[] lastBoundTextureIsAtlas = new bool[16];
@@ -93,7 +95,7 @@ namespace osu.Framework.Graphics.OpenGL
         private TextureUnit lastActiveTextureUnit;
         private MaskingInfo currentMaskingInfo;
         private ClearInfo currentClearInfo;
-        private Shader? currentShader;
+        private IShader? currentShader;
         private bool? lastBlendingEnabledState;
         private bool currentScissorState;
         private bool isInitialised;
@@ -723,7 +725,7 @@ namespace osu.Framework.Graphics.OpenGL
             GlobalPropertyManager.Set(GlobalProperty.GammaCorrection, UsingBackbuffer);
         }
 
-        public void UseProgram(Shader? shader)
+        public void UseProgram(IShader? shader)
         {
             ThreadSafety.EnsureDrawThread();
 
@@ -747,7 +749,7 @@ namespace osu.Framework.Graphics.OpenGL
 
             flushCurrentBatch();
 
-            GL.UseProgram(shader);
+            GL.UseProgram((OpenGLShader)shader);
             currentShader = shader;
         }
 
@@ -798,6 +800,12 @@ namespace osu.Framework.Graphics.OpenGL
 
         public Texture CreateVideoTexture(int width, int height)
             => CreateTexture(new VideoTextureGL(this, width, height), WrapMode.None, WrapMode.None);
+
+        IShaderPart IRenderer.CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderType type)
+            => new OpenGLShaderPart(this, name, rawData, type, manager);
+
+        IShader IRenderer.CreateShader(string name, params IShaderPart[] parts)
+            => new OpenGLShader(this, name, parts);
 
         internal Texture CreateTexture(TextureGL texture, WrapMode wrapModeS, WrapMode wrapModeT)
         {
