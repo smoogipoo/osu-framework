@@ -13,7 +13,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         }
 
         public string Identifier => string.Empty;
-        public int MaxSize => 1;
+        public int MaxSize => 4096; // Sane default for testing purposes.
         public int Width { get; set; } = 1;
         public int Height { get; set; } = 1;
         public bool Available => true;
