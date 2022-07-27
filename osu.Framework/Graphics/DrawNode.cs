@@ -5,7 +5,6 @@
 
 using System;
 using System.Threading;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics

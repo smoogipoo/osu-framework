@@ -4,7 +4,6 @@
 #nullable disable
 
 using System.Collections.Generic;
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Primitives;
 using osuTK;
 using osu.Framework.Graphics.Colour;

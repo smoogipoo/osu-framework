@@ -3,7 +3,6 @@
 
 #nullable disable
 
-using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 

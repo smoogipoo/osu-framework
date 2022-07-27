@@ -6,7 +6,7 @@ using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Primitives;
 using osuTK;
 
-namespace osu.Framework.Graphics.OpenGL
+namespace osu.Framework.Graphics.Rendering
 {
     public struct MaskingInfo : IEquatable<MaskingInfo>
     {
