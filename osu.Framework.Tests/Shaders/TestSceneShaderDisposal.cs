@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.IO.Stores;
@@ -63,12 +64,12 @@ namespace osu.Framework.Tests.Shaders
             {
             }
 
-            internal override Shader CreateShader(string name, List<ShaderPart> parts) => new TestShader(name, parts);
+            internal override Shader CreateShader(string name, List<ShaderPart> parts) => new TestShader(Renderer, name, parts);
 
             private class TestShader : Shader
             {
-                internal TestShader(string name, List<ShaderPart> parts)
-                    : base(new DummyRenderer(), name, parts)
+                internal TestShader(IRenderer renderer, string name, List<ShaderPart> parts)
+                    : base(renderer, name, parts)
                 {
                 }
 

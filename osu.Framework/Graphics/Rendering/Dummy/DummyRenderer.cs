@@ -131,13 +131,9 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         {
         }
 
-        public void ScheduleExpensiveOperation(ScheduledDelegate operation)
-        {
-        }
+        public void ScheduleExpensiveOperation(ScheduledDelegate operation) => operation.RunTask();
 
-        public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
-        {
-        }
+        public void ScheduleDisposal<T>(Action<T> disposalAction, T target) => disposalAction(target);
 
         void IRenderer.EnqueueTextureUpload(INativeTexture texture)
         {

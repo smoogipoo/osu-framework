@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Shaders
         private readonly ConcurrentDictionary<string, ShaderPart> partCache = new ConcurrentDictionary<string, ShaderPart>();
         private readonly ConcurrentDictionary<(string, string), Shader> shaderCache = new ConcurrentDictionary<(string, string), Shader>();
 
-        private readonly IRenderer renderer;
+        protected readonly IRenderer Renderer;
         private readonly IResourceStore<byte[]> store;
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace osu.Framework.Graphics.Shaders
         /// </summary>
         public ShaderManager(IRenderer renderer, IResourceStore<byte[]> store)
         {
-            this.renderer = renderer;
+            Renderer = renderer;
             this.store = store;
         }
 
@@ -58,7 +58,7 @@ namespace osu.Framework.Graphics.Shaders
             return shaderCache[tuple] = CreateShader($"{vertex}/{fragment}", parts);
         }
 
-        internal virtual Shader CreateShader(string name, List<ShaderPart> parts) => new Shader(renderer, name, parts);
+        internal virtual Shader CreateShader(string name, List<ShaderPart> parts) => new Shader(Renderer, name, parts);
 
         private ShaderPart createShaderPart(string name, ShaderType type, bool bypassCache = false)
         {
@@ -69,7 +69,7 @@ namespace osu.Framework.Graphics.Shaders
 
             byte[]? rawData = LoadRaw(name);
 
-            part = new ShaderPart(renderer, name, rawData, type, this);
+            part = new ShaderPart(Renderer, name, rawData, type, this);
 
             //cache even on failure so we don't try and fail every time.
             partCache[name] = part;
@@ -120,7 +120,7 @@ namespace osu.Framework.Graphics.Shaders
 
                 store.Dispose();
 
-                renderer.ScheduleDisposal(s =>
+                Renderer.ScheduleDisposal(s =>
                 {
                     foreach (var shader in s.shaderCache.Values)
                         shader.Dispose();
