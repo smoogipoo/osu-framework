@@ -4,6 +4,7 @@
 #nullable disable
 
 using NUnit.Framework;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Textures;
@@ -63,7 +64,7 @@ namespace osu.Framework.Tests.Graphics
         }
 
         [Test]
-        public void TestAtlasFirstRowAddRespectsWhitePixelSize()
+        public void TestAtlasFirstRowAddRespectsWhiteTextureSize()
         {
             const int atlas_size = 1024;
 
@@ -77,7 +78,7 @@ namespace osu.Framework.Tests.Graphics
         }
 
         [Test]
-        public void TestAtlasSecondRowAddRespectsWhitePixelSize()
+        public void TestAtlasSecondRowAddRespectsWhiteTextureSize()
         {
             const int atlas_size = 1024;
 

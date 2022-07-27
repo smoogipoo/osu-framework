@@ -127,7 +127,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// The texture for a white pixel.
         /// </summary>
-        Texture WhitePixel { get; }
+        Texture WhiteTexture { get; }
 
         /// <summary>
         /// Performs a once-off initialisation of this <see cref="IRenderer"/>.

@@ -35,14 +35,14 @@ namespace osu.Framework.Graphics.Textures
 
         private Vector2I currentPosition;
 
-        internal TextureWhitePixel WhitePixel
+        internal WhiteTexture WhiteTexture
         {
             get
             {
                 if (atlasTexture == null)
                     Reset();
 
-                return new TextureWhitePixel(atlasTexture.AsNonNull());
+                return new WhiteTexture(atlasTexture.AsNonNull());
             }
         }
 
@@ -74,7 +74,7 @@ namespace osu.Framework.Graphics.Textures
             subTextureBounds.Add(bounds);
 
             using (var whiteTex = new TextureAtlasRegion(atlasTexture, bounds, WrapMode.Repeat, WrapMode.Repeat))
-                // Generate white padding as if WhitePixel was wrapped, even though it isn't
+                // Generate white padding as if the white texture was wrapped, even though it isn't
                 whiteTex.SetData(new TextureUpload(new Image<Rgba32>(SixLabors.ImageSharp.Configuration.Default, whiteTex.Width, whiteTex.Height, new Rgba32(Vector4.One))));
 
             currentPosition = new Vector2I(PADDING + WHITE_PIXEL_SIZE, PADDING);

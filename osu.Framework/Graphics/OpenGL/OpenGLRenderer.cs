@@ -55,9 +55,9 @@ namespace osu.Framework.Graphics.OpenGL
         public bool UsingBackbuffer => frameBufferStack.Count > 0 && frameBufferStack.Peek() == BackbufferFramebuffer;
 
         // in case no other textures are used in the project, create a new atlas as a fallback source for the white pixel area (used to draw boxes etc.)
-        private readonly Lazy<TextureWhitePixel> whitePixel;
+        private readonly Lazy<WhiteTexture> whiteTexture;
 
-        public Texture WhitePixel => whitePixel.Value;
+        public Texture WhiteTexture => whiteTexture.Value;
 
         protected virtual int BackbufferFramebuffer => 0;
 
@@ -101,8 +101,8 @@ namespace osu.Framework.Graphics.OpenGL
 
         public OpenGLRenderer()
         {
-            whitePixel = new Lazy<TextureWhitePixel>(() =>
-                new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
+            whiteTexture = new Lazy<WhiteTexture>(() =>
+                new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhiteTexture);
         }
 
         void IRenderer.Initialise()
@@ -327,7 +327,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         public bool BindTexture(Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
-            if (texture is TextureWhitePixel && atlasTextureIsBound(unit))
+            if (texture is WhiteTexture && atlasTextureIsBound(unit))
             {
                 // We can use the special white space from any atlas texture.
                 return true;

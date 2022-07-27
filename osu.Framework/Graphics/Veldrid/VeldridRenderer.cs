@@ -60,9 +60,9 @@ namespace osu.Framework.Graphics.Veldrid
         public bool AtlasTextureIsBound { get; private set; }
 
         // in case no other textures are used in the project, create a new atlas as a fallback source for the white pixel area (used to draw boxes etc.)
-        private readonly Lazy<TextureWhitePixel> whitePixel;
+        private readonly Lazy<WhiteTexture> whiteTexture;
 
-        public Graphics.Textures.Texture WhitePixel => whitePixel.Value;
+        public Graphics.Textures.Texture WhiteTexture => whiteTexture.Value;
 
         protected Framebuffer BackbufferFramebuffer { get; private set; } = null!;
 
@@ -136,8 +136,8 @@ namespace osu.Framework.Graphics.Veldrid
 
         public VeldridRenderer()
         {
-            whitePixel = new Lazy<TextureWhitePixel>(() =>
-                new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
+            whiteTexture = new Lazy<WhiteTexture>(() =>
+                new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhiteTexture);
 
             SharedLinearIndex = new VeldridIndexData(this);
             SharedQuadIndex = new VeldridIndexData(this);
@@ -379,7 +379,7 @@ namespace osu.Framework.Graphics.Veldrid
 
         public bool BindTexture(Graphics.Textures.Texture texture, TextureUnit unit = TextureUnit.Texture0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
-            if (texture is TextureWhitePixel && AtlasTextureIsBound)
+            if (texture is WhiteTexture && AtlasTextureIsBound)
             {
                 // We can use the special white space from any atlas texture.
                 return true;

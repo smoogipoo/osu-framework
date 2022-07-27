@@ -5,9 +5,9 @@ using osu.Framework.Graphics.Primitives;
 
 namespace osu.Framework.Graphics.Textures
 {
-    internal class TextureWhitePixel : TextureRegion
+    internal class WhiteTexture : TextureRegion
     {
-        public TextureWhitePixel(Texture texture)
+        public WhiteTexture(Texture texture)
             : base(texture, new RectangleI(0, 0, 1, 1), texture.WrapModeS, texture.WrapModeT)
         {
         }

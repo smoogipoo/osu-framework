@@ -212,7 +212,7 @@ namespace osu.Framework.Graphics.Sprites
 
         protected virtual Quad ComputeConservativeScreenSpaceDrawQuad()
         {
-            if (Texture == null || Texture is TextureWhitePixel)
+            if (Texture == null || Texture is WhiteTexture)
             {
                 if (EdgeSmoothness == Vector2.Zero)
                     return ScreenSpaceDrawQuad;

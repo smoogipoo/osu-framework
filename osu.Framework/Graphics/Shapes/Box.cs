@@ -26,7 +26,7 @@ namespace osu.Framework.Graphics.Shapes
         [BackgroundDependencyLoader]
         private void load(GameHost host)
         {
-            base.Texture = host.Renderer.WhitePixel;
+            base.Texture = host.Renderer.WhiteTexture;
         }
 
         public override Texture Texture

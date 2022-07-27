@@ -263,7 +263,7 @@ namespace osu.Framework.Graphics.Lines
 
         protected Texture Texture
         {
-            get => texture ?? host.Renderer.WhitePixel;
+            get => texture ?? host.Renderer.WhiteTexture;
             set
             {
                 if (texture == value)

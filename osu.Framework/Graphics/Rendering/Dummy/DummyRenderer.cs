@@ -38,7 +38,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         public bool IsMaskingActive => false;
         public float BackbufferDrawDepth => 0;
         public bool UsingBackbuffer => false;
-        public Texture WhitePixel { get; } = new Texture(new DummyNativeTexture(), WrapMode.None, WrapMode.None);
+        public Texture WhiteTexture { get; } = new Texture(new DummyNativeTexture(), WrapMode.None, WrapMode.None);
 
         public DummyRenderer()
         {

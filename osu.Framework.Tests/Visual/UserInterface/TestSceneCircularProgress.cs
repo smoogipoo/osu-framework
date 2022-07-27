@@ -155,7 +155,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
             switch (textureMode)
             {
                 case 0:
-                    clock.Texture = host.Renderer.WhitePixel;
+                    clock.Texture = host.Renderer.WhiteTexture;
                     break;
 
                 case 1:

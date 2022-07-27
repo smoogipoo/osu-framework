@@ -37,7 +37,7 @@ namespace osu.Framework.Graphics.Audio
         private void load(ShaderManager shaders, GameHost host)
         {
             shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE_ROUNDED);
-            texture = host.Renderer.WhitePixel;
+            texture = host.Renderer.WhiteTexture;
         }
 
         private float resolution = 1;

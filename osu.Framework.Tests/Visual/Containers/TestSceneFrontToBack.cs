@@ -52,7 +52,7 @@ namespace osu.Framework.Tests.Visual.Containers
             AddStep("add sprites with repeat", () => addMoreDrawables(repeatedTexture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
             AddStep("add sprites with edge clamp", () => addMoreDrawables(edgeClampedTexture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
             AddStep("add sprites with border clamp", () => addMoreDrawables(borderClampedTexture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
-            AddStep("add boxes", () => addMoreDrawables(host.Renderer.WhitePixel, new RectangleF(0, 0, 1, 1)));
+            AddStep("add boxes", () => addMoreDrawables(host.Renderer.WhiteTexture, new RectangleF(0, 0, 1, 1)));
             AddToggleStep("disable front to back", val =>
             {
                 debugConfig.SetValue(DebugSetting.BypassFrontToBackPass, val);

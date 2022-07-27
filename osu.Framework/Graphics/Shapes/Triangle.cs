@@ -26,7 +26,7 @@ namespace osu.Framework.Graphics.Shapes
         [BackgroundDependencyLoader]
         private void load(GameHost host)
         {
-            Texture ??= host.Renderer.WhitePixel;
+            Texture ??= host.Renderer.WhiteTexture;
         }
 
         public override RectangleF BoundingBox => toTriangle(ToParentSpace(LayoutRectangle)).AABBFloat;
