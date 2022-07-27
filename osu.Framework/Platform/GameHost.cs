@@ -320,9 +320,9 @@ namespace osu.Framework.Platform
             {
                 Converters = new List<JsonConverter> { new Vector2Converter() }
             };
-
-            Renderer = new OpenGLRenderer();
         }
+
+        protected virtual IRenderer CreateRenderer() => new OpenGLRenderer();
 
         /// <summary>
         /// Performs a GC collection and frees all framework caches.
@@ -659,6 +659,8 @@ namespace osu.Framework.Platform
 
             if (ExecutionState != ExecutionState.Idle)
                 throw new InvalidOperationException("A game that has already been run cannot be restarted.");
+
+            Renderer = CreateRenderer();
 
             try
             {

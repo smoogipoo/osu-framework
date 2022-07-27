@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using Foundation;
 using osu.Framework.Configuration;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Video;
 using osu.Framework.Input;
@@ -33,6 +34,8 @@ namespace osu.Framework.iOS
         {
             this.gameView = gameView;
         }
+
+        protected override IRenderer CreateRenderer() => new IOSOpenGLRenderer(gameView);
 
         protected override void SetupForRun()
         {
@@ -93,7 +96,7 @@ namespace osu.Framework.iOS
             => new IOSTextureLoaderStore(underlyingStore);
 
         public override VideoDecoder CreateVideoDecoder(Stream stream)
-            => new IOSVideoDecoder(stream);
+            => new IOSVideoDecoder(Renderer, stream);
 
         public override IEnumerable<KeyBinding> PlatformKeyBindings => MacOSGameHost.KeyBindings;
     }
