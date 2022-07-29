@@ -5,9 +5,9 @@
 
 using System;
 using NUnit.Framework;
+using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.OpenGL.Shaders;
 using osu.Framework.Graphics.Rendering;
-using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.IO.Stores;
 using osu.Framework.Testing;
@@ -60,7 +60,7 @@ namespace osu.Framework.Tests.Shaders
         private class TestShaderManager : ShaderManager
         {
             public TestShaderManager(IResourceStore<byte[]> store)
-                : base(new DummyRenderer(), store)
+                : base(new OpenGLRenderer(), store)
             {
             }
 
