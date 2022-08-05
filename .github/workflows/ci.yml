@@ -60,6 +60,7 @@ jobs:
     runs-on: ${{matrix.os.fullname}}
     env:
       OSU_EXECUTION_MODE: ${{matrix.threadingMode}}
+      OSU_TESTS_LOCAL_HTTPBIN: 1
     strategy:
        fail-fast: false
        matrix:
@@ -69,6 +70,13 @@ jobs:
             - { prettyname: Linux, fullname: ubuntu-latest }
           threadingMode: ['SingleThread', 'MultiThreaded']
     timeout-minutes: 60
+
+    services:
+      httpbin:
+        image: kennethreitz/httpbin
+        ports:
+          - 80:80
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
