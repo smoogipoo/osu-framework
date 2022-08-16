@@ -6,6 +6,7 @@
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -72,6 +73,17 @@ namespace osu.Framework.Platform.Windows
             const int time_per_attempt = 100;
             int attempts = 0;
 
+            IDirectDraw7 dDraw7 = null;
+
+            try
+            {
+                DirectDrawCreate(IntPtr.Zero, out dDraw7, IntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to create DirectDraw7.");
+            }
+
             queueNextAttempt();
 
             void queueNextAttempt() => Task.Delay(time_per_attempt, cancellationSource.Token).ContinueWith(_ => ScheduleEvent(() =>
@@ -88,6 +100,20 @@ namespace osu.Framework.Platform.Windows
                     var capability = notificationState == QueryUserNotificationState.QUNS_RUNNING_D3D_FULL_SCREEN
                         ? Windows.FullscreenCapability.Capable
                         : Windows.FullscreenCapability.Incapable;
+
+                    // If still incapable, perform a second test via IDirectDraw7::TestCooperativeLevel
+                    int cooperativeLevel;
+
+                    try
+                    {
+                        cooperativeLevel = dDraw7?.TestCooperativeLevel().ToInt32() ?? 0;
+                    }
+                    catch (COMException ex)
+                    {
+                        cooperativeLevel = ex.HResult;
+                    }
+
+                    Logger.Log($"D3D cooperative level: 0x{cooperativeLevel:X8}");
 
                     if (capability == Windows.FullscreenCapability.Incapable && attempts < max_attempts)
                     {
@@ -338,6 +364,9 @@ namespace osu.Framework.Platform.Windows
         [DllImport("shell32.dll")]
         private static extern int SHQueryUserNotificationState(out QueryUserNotificationState state);
 
+        [DllImport("ddraw.dll", CallingConvention = CallingConvention.StdCall), SuppressUnmanagedCodeSecurity]
+        public static extern void DirectDrawCreate(IntPtr guid, [Out, MarshalAs(UnmanagedType.Interface)] out IDirectDraw7 dd, IntPtr pUnkOuter);
+
         private enum QueryUserNotificationState
         {
             QUNS_NOT_PRESENT = 1,
@@ -346,6 +375,12 @@ namespace osu.Framework.Platform.Windows
             QUNS_PRESENTATION_MODE = 4,
             QUNS_ACCEPTS_NOTIFICATIONS = 5,
             QUNS_QUIET_TIME = 6
+        }
+
+        [ComImport, Guid("15E65EC0-3B9C-11D2-B92F-00609797EA5B"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown), SuppressUnmanagedCodeSecurity]
+        public interface IDirectDraw7
+        {
+            IntPtr TestCooperativeLevel();
         }
     }
 }
