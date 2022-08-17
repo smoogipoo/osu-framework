@@ -12,16 +12,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install .NET 5.0.x
+      - name: Install .NET 6.0.x
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: "5.0.x"
+          dotnet-version: "6.0.x"
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: csharp
           queries: security-and-quality
       - name: Compile
-        run: dotnet build -c Release -warnaserror build/Desktop.proj
+        run: dotnet build -c Release -warnaserror osu-framework.Desktop.slnf
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
