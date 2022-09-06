@@ -39,7 +39,7 @@ namespace osu.Framework.Graphics
         /// <param name="flags">The <see cref="Invalidation"/> flags to invalidate with.</param>
         /// <returns>Whether an invalidation was performed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Invalidate(InvalidationSource source, Invalidation flags)
+        public bool Invalidate(in InvalidationSource source, in Invalidation flags)
         {
             // Guaranteed by preconditions at the call site.
             Debug.Assert(source is InvalidationSource.Self or InvalidationSource.Parent or InvalidationSource.Child);
@@ -64,7 +64,7 @@ namespace osu.Framework.Graphics
         /// <param name="validation">The <see cref="Invalidation"/> flags to validate with.</param>
         /// <returns>Whether any <see cref="InvalidationSource"/> was validated.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Validate(Invalidation validation)
+        public bool Validate(in Invalidation validation)
         {
             return validate(selfInvalidation, validation, out selfInvalidation)
                    | validate(parentInvalidation, validation, out parentInvalidation)
@@ -72,7 +72,7 @@ namespace osu.Framework.Graphics
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool invalidate(Invalidation target, Invalidation flags, out Invalidation result)
+        private bool invalidate(in Invalidation target, in Invalidation flags, out Invalidation result)
         {
             // Remove all non-layout flags, as they should always propagate and are thus not to be stored.
             result = target | (flags & Invalidation.Layout);
@@ -80,7 +80,7 @@ namespace osu.Framework.Graphics
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool validate(Invalidation target, Invalidation flags, out Invalidation result)
+        private bool validate(in Invalidation target, in Invalidation flags, out Invalidation result)
         {
             result = target & ~flags;
             return (target & flags) != 0;
