@@ -64,7 +64,9 @@ namespace osu.Framework
 
         protected LocalisationManager Localisation { get; private set; }
 
+        private readonly Container contentContainer;
         private readonly Container content;
+        private BufferedContainer renderScaleContainer;
 
         private readonly Container overlayContent;
 
@@ -108,11 +110,17 @@ namespace osu.Framework
 
             AddRangeInternal(new Drawable[]
             {
-                content = new Container
+                contentContainer = new Container
                 {
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
                     RelativeSizeAxes = Axes.Both,
+                    Child = content = new Container
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        RelativeSizeAxes = Axes.Both,
+                    }
                 },
                 overlayContent = new DrawSizePreservingFillContainer
                 {
@@ -226,7 +234,35 @@ namespace osu.Framework
                     logOverlay?.Hide();
                 }
             }, true);
+
+            // Must be added after the shader manager above.
+            contentContainer.Add(renderScaleContainer = new BufferedContainer
+            {
+                RelativeSizeAxes = Axes.Both,
+                FrameBufferScale = new Vector2(0.5f)
+            });
+
+            renderScaleBindable = config.GetBindable<float>(FrameworkSetting.RenderScale);
+            renderScaleBindable.BindValueChanged(scale => Scheduler.AddOnce(updateRenderScale, scale), true);
         }
+
+        private void updateRenderScale(ValueChangedEvent<float> scale)
+        {
+            if (scale.NewValue == 1.0f)
+            {
+                content.Parent.RemoveInternal(content, false);
+                contentContainer.Add(content);
+            }
+            else
+            {
+                content.Parent.RemoveInternal(content, false);
+                renderScaleContainer.Add(content);
+            }
+
+            renderScaleContainer.FrameBufferScale = new Vector2(scale.NewValue);
+        }
+
+        private IBindable<float> renderScaleBindable;
 
         /// <summary>
         /// Add a font to be globally accessible to the game.
