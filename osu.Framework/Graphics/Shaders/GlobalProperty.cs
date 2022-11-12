@@ -11,20 +11,10 @@ namespace osu.Framework.Graphics.Shaders
     internal enum GlobalProperty
     {
         ProjMatrix,
-        MaskingRect,
-        ToMaskingSpace,
-        CornerRadius,
-        CornerExponent,
-        BorderThickness,
-        BorderColour,
-        MaskingBlendRange,
-        AlphaExponent,
-        EdgeOffset,
-        DiscardInner,
-        InnerCornerRadius,
         GammaCorrection,
         WrapModeS,
         WrapModeT,
         BackbufferDraw,
+        MaskingBlockSampler,
     }
 }
