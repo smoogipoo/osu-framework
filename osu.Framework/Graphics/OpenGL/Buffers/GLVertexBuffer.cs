@@ -19,7 +19,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         protected readonly GLRenderer Renderer;
         private readonly BufferUsageHint usage;
 
-        private IntPtr bufferPtr;
+        private unsafe DepthWrappingVertex<T>* bufferPtr;
         private int vboId = -1;
 
         private static readonly DepthWrappingVertex<T>[] upload_buffer = new DepthWrappingVertex<T>[1024];
@@ -42,6 +42,18 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         /// <returns>Whether the vertex changed.</returns>
         public bool SetVertex(int vertexIndex, T vertex)
         {
+            unsafe
+            {
+                DepthWrappingVertex<T> vtx = bufferPtr[vertexIndex];
+
+                if (vtx.Vertex.Equals(vertex) && vtx.BackbufferDrawDepth == Renderer.BackbufferDrawDepth)
+                {
+                    Flush();
+                    uploadStart = vertexIndex + 1;
+                    return false;
+                }
+            }
+
             if (uploadCount == upload_buffer.Length)
                 Flush();
 
@@ -79,13 +91,13 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                 osuTK.Graphics.OpenGL4.BufferTarget.ArrayBuffer,
                 size,
                 IntPtr.Zero,
-                osuTK.Graphics.OpenGL4.BufferStorageFlags.MapWriteBit | osuTK.Graphics.OpenGL4.BufferStorageFlags.MapPersistentBit | osuTK.Graphics.OpenGL4.BufferStorageFlags.MapCoherentBit);
+                osuTK.Graphics.OpenGL4.BufferStorageFlags.MapWriteBit | osuTK.Graphics.OpenGL4.BufferStorageFlags.MapReadBit | osuTK.Graphics.OpenGL4.BufferStorageFlags.MapPersistentBit);
 
-            bufferPtr = GL.MapBufferRange(
+            bufferPtr = (DepthWrappingVertex<T>*)GL.MapBufferRange(
                 BufferTarget.ArrayBuffer,
                 IntPtr.Zero,
                 size,
-                BufferAccessMask.MapWriteBit | BufferAccessMask.MapPersistentBit | BufferAccessMask.MapUnsynchronizedBit | BufferAccessMask.MapCoherentBit);
+                BufferAccessMask.MapWriteBit | BufferAccessMask.MapReadBit | BufferAccessMask.MapPersistentBit).ToPointer();
         }
 
         ~GLVertexBuffer()
@@ -152,7 +164,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public unsafe void Flush()
         {
-            upload_buffer.AsSpan()[..uploadCount].CopyTo(new Span<DepthWrappingVertex<T>>(bufferPtr.ToPointer(), Size)[uploadStart..]);
+            if (uploadCount == 0)
+                return;
+
+            upload_buffer.AsSpan()[..uploadCount].CopyTo(new Span<DepthWrappingVertex<T>>(bufferPtr, Size)[uploadStart..]);
             uploadStart += uploadCount;
             uploadCount = 0;
         }
