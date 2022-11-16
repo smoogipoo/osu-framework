@@ -114,11 +114,7 @@ namespace osu.Framework.Graphics.OpenGL.Batches
             if (currentVertexIndex == 0)
                 return 0;
 
-            GLVertexBuffer<T> vertexBuffer = currentVertexBuffer;
-            if (changeBeginIndex >= 0)
-                vertexBuffer.UpdateRange(changeBeginIndex, changeEndIndex);
-
-            vertexBuffer.DrawRange(0, currentVertexIndex);
+            currentVertexBuffer.DrawRange(0, currentVertexIndex);
 
             int count = currentVertexIndex;
 
