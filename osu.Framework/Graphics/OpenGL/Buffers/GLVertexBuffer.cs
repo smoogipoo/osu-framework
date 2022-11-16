@@ -4,10 +4,10 @@
 #nullable disable
 
 using System;
-using osuTK.Graphics.ES30;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
+using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
@@ -73,8 +73,17 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             int size = Size * STRIDE;
 
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)size, IntPtr.Zero, usage);
-            bufferPtr = (DepthWrappingVertex<T>*)GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, size, BufferAccessMask.MapReadBit | BufferAccessMask.MapWriteBit | BufferAccessMask.MapFlushExplicitBit).ToPointer();
+            osuTK.Graphics.OpenGL4.GL.BufferStorage(
+                osuTK.Graphics.OpenGL4.BufferTarget.ArrayBuffer,
+                size,
+                IntPtr.Zero,
+                osuTK.Graphics.OpenGL4.BufferStorageFlags.MapWriteBit | osuTK.Graphics.OpenGL4.BufferStorageFlags.MapPersistentBit);
+
+            bufferPtr = (DepthWrappingVertex<T>*)GL.MapBufferRange(
+                BufferTarget.ArrayBuffer,
+                IntPtr.Zero,
+                size,
+                BufferAccessMask.MapWriteBit | BufferAccessMask.MapPersistentBit | BufferAccessMask.MapUnsynchronizedBit).ToPointer();
         }
 
         ~GLVertexBuffer()
@@ -142,7 +151,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         public void UpdateRange(int startIndex, int endIndex)
         {
             Bind(false);
-            GL.FlushMappedBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, Size * STRIDE);
             Unbind();
         }
 
