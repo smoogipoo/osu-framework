@@ -7,5 +7,6 @@ namespace osu.Framework.Graphics.Textures
     {
         Linear,
         Nearest,
+        Mipmap,
     }
 }

@@ -31,8 +31,9 @@ namespace osu.Framework.Graphics.Textures
 
             private static readonly Rgba32 initialisation_colour = default;
 
-            public BackingAtlasTexture(IRenderer renderer, int width, int height, bool manualMipmaps, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, int padding = 0)
-                : this(renderer.CreateTexture(width, height, manualMipmaps, filteringMode, initialisationColour: initialisation_colour))
+            public BackingAtlasTexture(IRenderer renderer, int width, int height, bool manualMipmaps, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                                       TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear, int padding = 0)
+                : this(renderer.CreateTexture(width, height, manualMipmaps, minFilteringMode, magFilteringMode, initialisationColour: initialisation_colour))
             {
                 this.padding = padding;
                 atlasBounds = new RectangleI(0, 0, Width, Height);

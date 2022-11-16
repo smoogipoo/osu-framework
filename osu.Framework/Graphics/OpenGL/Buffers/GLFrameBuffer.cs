@@ -127,7 +127,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         private class FrameBufferTexture : GLTexture
         {
             public FrameBufferTexture(GLRenderer renderer, All filteringMode = All.Linear)
-                : base(renderer, 1, 1, true, filteringMode)
+                : base(renderer, 1, 1, true, filteringMode, filteringMode)
             {
                 BypassTextureUploadQueueing = true;
 

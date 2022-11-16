@@ -29,7 +29,8 @@ namespace osu.Framework.Graphics.Textures
         private readonly List<ITextureStore> nestedStores = new List<ITextureStore>();
 
         private readonly IRenderer renderer;
-        private readonly TextureFilteringMode filteringMode;
+        private readonly TextureFilteringMode minFilteringMode;
+        private readonly TextureFilteringMode magFilteringMode;
         private readonly bool manualMipmaps;
 
         protected TextureAtlas Atlas;
@@ -42,13 +43,15 @@ namespace osu.Framework.Graphics.Textures
         /// </summary>
         public readonly float ScaleAdjust;
 
-        public TextureStore(IRenderer renderer, IResourceStore<TextureUpload> store = null, bool useAtlas = true, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, bool manualMipmaps = false, float scaleAdjust = 2)
+        public TextureStore(IRenderer renderer, IResourceStore<TextureUpload> store = null, bool useAtlas = true, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                            TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear, bool manualMipmaps = false, float scaleAdjust = 2)
         {
             if (store != null)
                 AddTextureSource(store);
 
             this.renderer = renderer;
-            this.filteringMode = filteringMode;
+            this.minFilteringMode = minFilteringMode;
+            this.magFilteringMode = magFilteringMode;
             this.manualMipmaps = manualMipmaps;
 
             ScaleAdjust = scaleAdjust;
@@ -56,7 +59,7 @@ namespace osu.Framework.Graphics.Textures
             if (useAtlas)
             {
                 int size = Math.Min(max_atlas_size, renderer.MaxTextureSize);
-                Atlas = new TextureAtlas(renderer, size, size, filteringMode: filteringMode, manualMipmaps: manualMipmaps);
+                Atlas = new TextureAtlas(renderer, size, size, minFilteringMode: minFilteringMode, magFilteringMode: magFilteringMode, manualMipmaps: manualMipmaps);
             }
         }
 
@@ -114,7 +117,7 @@ namespace osu.Framework.Graphics.Textures
                 }
             }
 
-            tex ??= renderer.CreateTexture(upload.Width, upload.Height, manualMipmaps, filteringMode, wrapModeS, wrapModeT);
+            tex ??= renderer.CreateTexture(upload.Width, upload.Height, manualMipmaps, minFilteringMode, magFilteringMode, wrapModeS, wrapModeT);
             tex.ScaleAdjust = ScaleAdjust;
             tex.SetData(upload);
 

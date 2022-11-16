@@ -285,24 +285,30 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected override IShader CreateShader(string name, params IShaderPart[] parts) => new GLShader(this, name, parts.Cast<GLShaderPart>().ToArray());
 
-        public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
+        private All glFilteringMode(TextureFilteringMode filteringMode)
         {
-            All glFilteringMode;
-            RenderbufferInternalFormat[]? glFormats = null;
-
             switch (filteringMode)
             {
                 case TextureFilteringMode.Linear:
-                    glFilteringMode = All.Linear;
-                    break;
+                    return All.Linear;
 
                 case TextureFilteringMode.Nearest:
-                    glFilteringMode = All.Nearest;
-                    break;
+                    return All.Nearest;
+
+                case TextureFilteringMode.Mipmap:
+                    return All.LinearMipmapLinear;
 
                 default:
                     throw new ArgumentException($"Unsupported filtering mode: {filteringMode}", nameof(filteringMode));
             }
+        }
+
+        public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
+        {
+            if (filteringMode == TextureFilteringMode.Mipmap)
+                throw new ArgumentException($"Unsupported frame buffer filtering mode: {filteringMode}", nameof(filteringMode));
+
+            RenderbufferInternalFormat[]? glFormats = null;
 
             if (renderBufferFormats != null)
             {
@@ -334,29 +340,12 @@ namespace osu.Framework.Graphics.OpenGL
                 }
             }
 
-            return new GLFrameBuffer(this, glFormats, glFilteringMode);
+            return new GLFrameBuffer(this, glFormats, glFilteringMode(filteringMode));
         }
 
-        protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, Rgba32 initialisationColour = default)
-        {
-            All glFilteringMode;
-
-            switch (filteringMode)
-            {
-                case TextureFilteringMode.Linear:
-                    glFilteringMode = All.Linear;
-                    break;
-
-                case TextureFilteringMode.Nearest:
-                    glFilteringMode = All.Nearest;
-                    break;
-
-                default:
-                    throw new ArgumentException($"Unsupported filtering mode: {filteringMode}", nameof(filteringMode));
-            }
-
-            return new GLTexture(this, width, height, manualMipmaps, glFilteringMode, initialisationColour);
-        }
+        protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                                                              TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear, Rgba32 initialisationColour = default)
+            => new GLTexture(this, width, height, manualMipmaps, glFilteringMode(minFilteringMode), glFilteringMode(magFilteringMode), initialisationColour);
 
         protected override INativeTexture CreateNativeVideoTexture(int width, int height) => new GLVideoTexture(this, width, height);
 

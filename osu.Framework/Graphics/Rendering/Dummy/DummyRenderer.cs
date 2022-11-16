@@ -152,7 +152,8 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         public IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
             => new DummyFrameBuffer(this);
 
-        public Texture CreateTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, WrapMode wrapModeS = WrapMode.None,
+        public Texture CreateTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                                     TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear, WrapMode wrapModeS = WrapMode.None,
                                      WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default)
             => new Texture(new DummyNativeTexture(this) { Width = width, Height = height }, wrapModeS, wrapModeT);
 

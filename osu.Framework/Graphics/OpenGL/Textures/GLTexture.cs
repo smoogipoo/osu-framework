@@ -50,7 +50,8 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         private int internalHeight;
         private bool manualMipmaps;
 
-        private readonly All filteringMode;
+        private readonly All minFilteringMode;
+        private readonly All magFilteringMode;
         private readonly Rgba32 initialisationColour;
 
         /// <summary>
@@ -60,16 +61,24 @@ namespace osu.Framework.Graphics.OpenGL.Textures
         /// <param name="width">The width of the texture.</param>
         /// <param name="height">The height of the texture.</param>
         /// <param name="manualMipmaps">Whether manual mipmaps will be uploaded to the texture. If false, the texture will compute mipmaps automatically.</param>
-        /// <param name="filteringMode">The filtering mode.</param>
+        /// <param name="minFilteringMode">The filtering mode when zooming out of the texture (minification).</param>
+        /// <param name="magFilteringMode">The filtering mode when zooming into the texture (magnification).</param>
         /// <param name="initialisationColour">The colour to initialise texture levels with (in the case of sub region initial uploads).</param>
-        public GLTexture(GLRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, Rgba32 initialisationColour = default)
+        public GLTexture(GLRenderer renderer, int width, int height, bool manualMipmaps = false, All minFilteringMode = All.Linear, All magFilteringMode = All.Linear, Rgba32 initialisationColour = default)
         {
             Renderer = renderer;
             Width = width;
             Height = height;
             this.manualMipmaps = manualMipmaps;
-            this.filteringMode = filteringMode;
+            this.minFilteringMode = minFilteringMode;
+            this.magFilteringMode = magFilteringMode;
             this.initialisationColour = initialisationColour;
+        }
+
+        [Obsolete("Use constructor with minFilterMode and magFilterMode instead")] // can be removed 20230601
+        public GLTexture(GLRenderer renderer, int width, int height, bool manualMipmaps = false, All filteringMode = All.Linear, Rgba32 initialisationColour = default)
+            : this(renderer, width, height, manualMipmaps, filteringMode, filteringMode, initialisationColour)
+        {
         }
 
         #region Disposal
@@ -261,9 +270,13 @@ namespace osu.Framework.Graphics.OpenGL.Textures
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinLod, 0);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLod, IRenderer.MAX_MIPMAP_LEVELS);
 
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                        (int)(manualMipmaps ? filteringMode : filteringMode == All.Linear ? All.LinearMipmapLinear : All.Nearest));
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)filteringMode);
+                    All actualMinFilteringMode = minFilteringMode;
+                    if (!manualMipmaps && minFilteringMode == All.Linear) {
+                        actualMinFilteringMode = All.LinearMipmapLinear;
+                    }
+
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)actualMinFilteringMode);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)magFilteringMode);
 
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);

@@ -146,7 +146,7 @@ namespace osu.Framework
             Resources.AddStore(new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources"));
 
             Textures = new TextureStore(Host.Renderer, Host.CreateTextureLoaderStore(new NamespacedResourceStore<byte[]>(Resources, @"Textures")),
-                filteringMode: DefaultTextureFilteringMode);
+                minFilteringMode: DefaultTextureFilteringMode, magFilteringMode: DefaultTextureFilteringMode);
 
             Textures.AddTextureSource(Host.CreateTextureLoaderStore(new OnlineStore()));
             dependencies.Cache(Textures);

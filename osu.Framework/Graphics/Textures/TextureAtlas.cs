@@ -48,16 +48,19 @@ namespace osu.Framework.Graphics.Textures
         }
 
         private readonly bool manualMipmaps;
-        private readonly TextureFilteringMode filteringMode;
+        private readonly TextureFilteringMode minFilteringMode;
+        private readonly TextureFilteringMode magFilteringMode;
         private readonly object textureRetrievalLock = new object();
 
-        public TextureAtlas(IRenderer renderer, int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
+        public TextureAtlas(IRenderer renderer, int width, int height, bool manualMipmaps = false, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                            TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear)
         {
             this.renderer = renderer;
             atlasWidth = width;
             atlasHeight = height;
             this.manualMipmaps = manualMipmaps;
-            this.filteringMode = filteringMode;
+            this.minFilteringMode = minFilteringMode;
+            this.magFilteringMode = magFilteringMode;
         }
 
         private int exceedCount;
@@ -77,7 +80,7 @@ namespace osu.Framework.Graphics.Textures
 
                 // We pass PADDING/2 as opposed to PADDING such that the padded region of each individual texture
                 // occupies half of the padded space.
-                atlasTexture = new BackingAtlasTexture(renderer, atlasWidth, atlasHeight, manualMipmaps, filteringMode, PADDING / 2);
+                atlasTexture = new BackingAtlasTexture(renderer, atlasWidth, atlasHeight, manualMipmaps, minFilteringMode, magFilteringMode, PADDING / 2);
 
                 RectangleI bounds = new RectangleI(0, 0, WHITE_PIXEL_SIZE, WHITE_PIXEL_SIZE);
                 subTextureBounds.Add(bounds);

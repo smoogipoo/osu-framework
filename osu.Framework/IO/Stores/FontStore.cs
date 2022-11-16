@@ -12,6 +12,7 @@ using JetBrains.Annotations;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Platform;
 using osu.Framework.Text;
+using System;
 
 namespace osu.Framework.IO.Stores
 {
@@ -47,15 +48,17 @@ namespace osu.Framework.IO.Stores
         /// <param name="renderer">The renderer to create textures with.</param>
         /// <param name="store">The texture source.</param>
         /// <param name="scaleAdjust">The raw pixel height of the font. Can be used to apply a global scale or metric to font usages.</param>
-        /// <param name="minFilterMode">The texture minification filtering mode to use.</param>
-        public FontStore(IRenderer renderer, IResourceStore<TextureUpload> store = null, float scaleAdjust = 100, TextureFilteringMode minFilterMode = TextureFilteringMode.Linear)
-            : this(renderer, store, scaleAdjust, true, filteringMode: minFilterMode)
+        /// <param name="minFilteringMode">The texture minification filtering mode to use.</param>
+        /// <param name="magFilteringMode">The texture magnification filtering mode to use.</param>
+        public FontStore(IRenderer renderer, IResourceStore<TextureUpload> store = null, float scaleAdjust = 100, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                         TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear)
+            : this(renderer, store, scaleAdjust, true, minFilteringMode: minFilteringMode, magFilteringMode: magFilteringMode)
         {
         }
 
         internal FontStore(IRenderer renderer, IResourceStore<TextureUpload> store = null, float scaleAdjust = 100, bool useAtlas = false, Storage cacheStorage = null,
-                           TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
-            : base(renderer, store, scaleAdjust: scaleAdjust, useAtlas: useAtlas, filteringMode: filteringMode)
+                           TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear, TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear)
+            : base(renderer, store, scaleAdjust: scaleAdjust, useAtlas: useAtlas, minFilteringMode: minFilteringMode, magFilteringMode: magFilteringMode)
         {
             this.cacheStorage = cacheStorage;
         }

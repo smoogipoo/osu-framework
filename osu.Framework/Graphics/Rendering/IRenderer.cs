@@ -298,7 +298,8 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Creates a new texture.
         /// </summary>
-        Texture CreateTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, WrapMode wrapModeS = WrapMode.None,
+        Texture CreateTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode minFilteringMode = TextureFilteringMode.Linear,
+                              TextureFilteringMode magFilteringMode = TextureFilteringMode.Linear, WrapMode wrapModeS = WrapMode.None,
                               WrapMode wrapModeT = WrapMode.None, Rgba32 initialisationColour = default);
 
         /// <summary>
