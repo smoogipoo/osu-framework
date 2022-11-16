@@ -86,7 +86,11 @@ namespace osu.Framework.Graphics.OpenGL.Batches
 
             // currentIndex will change after Draw() above, so this cannot be in an else-condition
             while (currentBufferIndex >= VertexBuffers.Count)
-                VertexBuffers.Add(CreateVertexBuffer(renderer));
+            {
+                var vbo = CreateVertexBuffer(renderer);
+                vbo.Init();
+                VertexBuffers.Add(vbo);
+            }
 
             if (currentVertexBuffer.SetVertex(currentVertexIndex, v))
             {

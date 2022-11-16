@@ -4,14 +4,10 @@
 #nullable disable
 
 using System;
-using System.Buffers;
 using osuTK.Graphics.ES30;
-using osu.Framework.Statistics;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
-using osu.Framework.Platform;
-using SixLabors.ImageSharp.Memory;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
@@ -23,9 +19,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         protected readonly GLRenderer Renderer;
         private readonly BufferUsageHint usage;
 
-        private Memory<DepthWrappingVertex<T>> vertexMemory;
-        private IMemoryOwner<DepthWrappingVertex<T>> memoryOwner;
-        private NativeMemoryTracker.NativeMemoryLease memoryLease;
+        private IntPtr bufferPtr;
 
         private int vboId = -1;
 
@@ -45,20 +39,27 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         /// <returns>Whether the vertex changed.</returns>
         public bool SetVertex(int vertexIndex, T vertex)
         {
-            ref var currentVertex = ref getMemory().Span[vertexIndex];
+            unsafe
+            {
+                Bind(false);
 
-            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != Renderer.BackbufferDrawDepth;
+                ref var currentVertex = ref new Span<DepthWrappingVertex<T>>(bufferPtr.ToPointer(), Size)[vertexIndex];
 
-            currentVertex.Vertex = vertex;
-            currentVertex.BackbufferDrawDepth = Renderer.BackbufferDrawDepth;
+                bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != Renderer.BackbufferDrawDepth;
 
-            return isNewVertex;
+                currentVertex.Vertex = vertex;
+                currentVertex.BackbufferDrawDepth = Renderer.BackbufferDrawDepth;
+
+                return isNewVertex;
+            }
         }
 
         /// <summary>
         /// Gets the number of vertices in this <see cref="GLVertexBuffer{T}"/>.
         /// </summary>
         public int Size { get; }
+
+        public void Init() => Initialise();
 
         /// <summary>
         /// Initialises this <see cref="GLVertexBuffer{T}"/>. Guaranteed to be run on the draw thread.
@@ -74,8 +75,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             int size = Size * STRIDE;
 
-            memoryLease = NativeMemoryTracker.AddMemory(this, Size * STRIDE);
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)size, IntPtr.Zero, usage);
+            bufferPtr = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, size, BufferAccessMask.MapReadBit | BufferAccessMask.MapWriteBit | BufferAccessMask.MapFlushExplicitBit);
         }
 
         ~GLVertexBuffer()
@@ -105,9 +106,6 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         {
             if (IsDisposed)
                 throw new ObjectDisposedException(ToString(), "Can not bind disposed vertex buffers.");
-
-            if (vboId == -1)
-                Initialise();
 
             if (Renderer.BindBuffer(BufferTarget.ArrayBuffer, vboId))
                 GLVertexUtils<DepthWrappingVertex<T>>.Bind();
@@ -146,30 +144,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         public void UpdateRange(int startIndex, int endIndex)
         {
             Bind(false);
-
-            int countVertices = endIndex - startIndex;
-            GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(startIndex * STRIDE), (IntPtr)(countVertices * STRIDE), ref getMemory().Span[startIndex]);
-
+            GL.FlushMappedBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, Size * STRIDE);
             Unbind();
-
-            FrameStatistics.Add(StatisticsCounterType.VerticesUpl, countVertices);
-        }
-
-        private ref Memory<DepthWrappingVertex<T>> getMemory()
-        {
-            ThreadSafety.EnsureDrawThread();
-
-            if (!InUse)
-            {
-                memoryOwner = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate<DepthWrappingVertex<T>>(Size, AllocationOptions.Clean);
-                vertexMemory = memoryOwner.Memory;
-
-                Renderer.RegisterVertexBufferUse(this);
-            }
-
-            LastUseResetId = Renderer.ResetId;
-
-            return ref vertexMemory;
         }
 
         public ulong LastUseResetId { get; private set; }
@@ -181,17 +157,9 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             if (vboId != -1)
             {
                 Unbind();
-
-                memoryLease?.Dispose();
-                memoryLease = null;
-
                 GL.DeleteBuffer(vboId);
                 vboId = -1;
             }
-
-            memoryOwner?.Dispose();
-            memoryOwner = null;
-            vertexMemory = Memory<DepthWrappingVertex<T>>.Empty;
 
             LastUseResetId = 0;
         }
