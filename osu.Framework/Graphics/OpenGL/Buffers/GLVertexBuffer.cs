@@ -19,7 +19,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         protected readonly GLRenderer Renderer;
         private readonly BufferUsageHint usage;
 
-        private IntPtr bufferPtr;
+        private unsafe DepthWrappingVertex<T>* bufferPtr;
 
         private int vboId = -1;
 
@@ -43,14 +43,12 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             {
                 Bind(false);
 
-                ref var currentVertex = ref new Span<DepthWrappingVertex<T>>(bufferPtr.ToPointer(), Size)[vertexIndex];
+                DepthWrappingVertex<T>* vtx = &bufferPtr[vertexIndex];
 
-                bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != Renderer.BackbufferDrawDepth;
+                vtx->Vertex = vertex;
+                vtx->BackbufferDrawDepth = Renderer.BackbufferDrawDepth;
 
-                currentVertex.Vertex = vertex;
-                currentVertex.BackbufferDrawDepth = Renderer.BackbufferDrawDepth;
-
-                return isNewVertex;
+                return true;
             }
         }
 
@@ -64,7 +62,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         /// <summary>
         /// Initialises this <see cref="GLVertexBuffer{T}"/>. Guaranteed to be run on the draw thread.
         /// </summary>
-        protected virtual void Initialise()
+        protected virtual unsafe void Initialise()
         {
             ThreadSafety.EnsureDrawThread();
 
@@ -76,7 +74,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             int size = Size * STRIDE;
 
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)size, IntPtr.Zero, usage);
-            bufferPtr = GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, size, BufferAccessMask.MapReadBit | BufferAccessMask.MapWriteBit | BufferAccessMask.MapFlushExplicitBit);
+            bufferPtr = (DepthWrappingVertex<T>*)GL.MapBufferRange(BufferTarget.ArrayBuffer, IntPtr.Zero, size, BufferAccessMask.MapReadBit | BufferAccessMask.MapWriteBit | BufferAccessMask.MapFlushExplicitBit).ToPointer();
         }
 
         ~GLVertexBuffer()
