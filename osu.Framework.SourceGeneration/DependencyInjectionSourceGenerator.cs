@@ -125,7 +125,7 @@ namespace osu.Framework.SourceGeneration
             foreach (var candidate in distinctCandidates)
             {
                 string suffix = AddUniqueNameSuffix ? $"_{Guid.NewGuid()}" : string.Empty;
-                string filename = $"g_{candidate.ClassSyntax.Identifier.ValueText}_Dependencies{suffix}.cs";
+                string filename = $"g_{candidate.Symbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat).Replace('<', '{').Replace('>', '}')}_Dependencies.cs";
 
                 context.AddSource(filename, new DependenciesFileEmitter(candidate, items.compilation, allClasses).Emit());
             }
