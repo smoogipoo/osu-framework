@@ -104,7 +104,7 @@ namespace osu.Framework.SourceGeneration
         }
     }
 
-    public class GeneratorClassCandidate
+    public class GeneratorClassCandidate : IEquatable<GeneratorClassCandidate>
     {
         public readonly ClassDeclarationSyntax ClassSyntax;
         public readonly ITypeSymbol Symbol;
@@ -118,6 +118,30 @@ namespace osu.Framework.SourceGeneration
         {
             ClassSyntax = classSyntax;
             Symbol = symbol;
+        }
+
+        public bool Equals(GeneratorClassCandidate? other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+
+            return Symbol.Equals(other.Symbol, SymbolEqualityComparer.Default);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+
+            return Equals((GeneratorClassCandidate)obj);
+        }
+
+        public override int GetHashCode()
+        {
+#pragma warning disable RS1024
+            return Symbol.GetHashCode();
+#pragma warning restore RS1024
         }
     }
 
