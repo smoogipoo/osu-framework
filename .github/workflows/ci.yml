@@ -142,4 +142,4 @@ jobs:
       # cannot accept .sln(f) files as arguments.
       # Build just the iOS framework project for now.
       - name: Build
-        run: msbuild osu.Framework.iOS/osu.Framework.iOS.csproj /restore /p:Configuration=Debug
+        run: msbuild SampleGame.iOS/SampleGame.iOS.csproj /restore /p:Configuration=Debug
