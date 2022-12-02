@@ -9,7 +9,7 @@ namespace osu.Framework.Platform
     /// <summary>
     /// The graphics backend represented by the <see cref="IRenderer"/>.
     /// </summary>
-    public enum GraphicsBackend
+    public enum GraphicsSurfaceType
     {
         [Description("OpenGL")]
         OpenGL,

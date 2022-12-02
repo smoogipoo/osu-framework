@@ -23,8 +23,6 @@ namespace osu.Framework.Graphics.OpenGL
 {
     internal class GLRenderer : Renderer
     {
-        public override GraphicsBackend BackendType => GraphicsBackend.OpenGL;
-
         private IOpenGLWindowGraphics openGLGraphics = null!;
 
         public override bool VerticalSync
@@ -49,9 +47,9 @@ namespace osu.Framework.Graphics.OpenGL
 
         private bool? lastBlendingEnabledState;
 
-        protected override void Initialise(IWindowGraphics graphics)
+        protected override void Initialise(IWindow window)
         {
-            openGLGraphics = graphics as IOpenGLWindowGraphics ?? throw new ArgumentException($"Window must implement {nameof(IOpenGLWindowGraphics)}.");
+            openGLGraphics = window.GraphicsSurface as IOpenGLWindowGraphics ?? throw new ArgumentException($"Window must implement {nameof(IOpenGLWindowGraphics)}.");
             openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
 
             string version = GL.GetString(StringName.Version);

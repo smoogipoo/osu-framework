@@ -13,7 +13,7 @@ using SDL2;
 
 namespace osu.Framework.Platform.SDL2
 {
-    public class SDL2WindowGraphics : IWindowGraphics, IOpenGLWindowGraphics, IMetalWindowGraphics
+    public class SDL2GraphicsSurface : IGraphicsSurface, IOpenGLWindowGraphics, IMetalWindowGraphics
     {
         private readonly SDL2DesktopWindow window;
 
@@ -22,21 +22,21 @@ namespace osu.Framework.Platform.SDL2
         public IntPtr WindowHandle => window.WindowHandle;
         public IntPtr DisplayHandle => window.DisplayHandle;
 
-        public GraphicsBackend BackendType { get; }
+        public GraphicsSurfaceType Type { get; }
 
-        public SDL2WindowGraphics(SDL2DesktopWindow window, GraphicsBackend backend)
+        public SDL2GraphicsSurface(SDL2DesktopWindow window, GraphicsSurfaceType surfaceType)
         {
             this.window = window;
 
-            BackendType = backend;
+            Type = surfaceType;
 
-            if (backend == GraphicsBackend.OpenGL)
+            if (surfaceType == GraphicsSurfaceType.OpenGL)
                 SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_STENCIL_SIZE, 8);
         }
 
         public void Initialise()
         {
-            if (BackendType == GraphicsBackend.OpenGL)
+            if (Type == GraphicsSurfaceType.OpenGL)
                 initialiseOpenGL();
         }
 
@@ -44,27 +44,27 @@ namespace osu.Framework.Platform.SDL2
         {
             int width, height;
 
-            switch (BackendType)
+            switch (Type)
             {
-                case GraphicsBackend.OpenGL:
+                case GraphicsSurfaceType.OpenGL:
                     SDL.SDL_GL_GetDrawableSize(window.SDLWindowHandle, out width, out height);
                     break;
 
-                case GraphicsBackend.Vulkan:
+                case GraphicsSurfaceType.Vulkan:
                     SDL.SDL_Vulkan_GetDrawableSize(window.SDLWindowHandle, out width, out height);
                     break;
 
-                case GraphicsBackend.Metal:
+                case GraphicsSurfaceType.Metal:
                     SDL.SDL_Metal_GetDrawableSize(window.SDLWindowHandle, out width, out height);
                     break;
 
-                case GraphicsBackend.Direct3D11:
+                case GraphicsSurfaceType.Direct3D11:
                     // todo: SDL has no "drawable size" method for D3D11, return window size for now.
                     SDL.SDL_GetWindowSize(window.SDLWindowHandle, out width, out height);
                     break;
 
                 default:
-                    throw new InvalidOperationException($"Unexpected graphics backend: {BackendType}.");
+                    throw new InvalidOperationException($"Unexpected graphics backend: {Type}.");
             }
 
             return new Size(width, height);
