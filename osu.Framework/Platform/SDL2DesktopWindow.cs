@@ -175,8 +175,7 @@ namespace osu.Framework.Platform
                 Logger.Log($@"SDL {category.ReadableName()} log [{priority.ReadableName()}]: {message}");
             }, IntPtr.Zero);
 
-            graphicsSurface = CreateGraphics(surfaceType);
-
+            graphicsSurface = new SDL2GraphicsSurface(this, surfaceType);
             SupportedWindowModes = new BindableList<WindowMode>(DefaultSupportedWindowModes);
 
             CursorStateBindable.ValueChanged += evt =>
@@ -444,8 +443,6 @@ namespace osu.Framework.Platform
         private void handleQuitEvent(SDL.SDL_QuitEvent evtQuit) => ExitRequested?.Invoke();
 
         #endregion
-
-        protected virtual SDL2GraphicsSurface CreateGraphics(GraphicsSurfaceType surfaceType) => new SDL2GraphicsSurface(this, surfaceType);
 
         public void SetIconFromStream(Stream stream)
         {
