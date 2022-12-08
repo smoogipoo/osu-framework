@@ -12,7 +12,7 @@ using osuTK.Platform;
 
 namespace osu.Framework.Platform
 {
-    public class OsuTKGraphicsSurface : IGraphicsSurface, IOpenGLWindowGraphics
+    public class OsuTKGraphicsSurface : IGraphicsSurface, IOpenGLGraphicsSurface
     {
         private readonly IGameWindow window;
 

@@ -13,7 +13,7 @@ using SDL2;
 
 namespace osu.Framework.Platform.SDL2
 {
-    public class SDL2GraphicsSurface : IGraphicsSurface, IOpenGLWindowGraphics, IMetalWindowGraphics
+    public class SDL2GraphicsSurface : IGraphicsSurface, IOpenGLGraphicsSurface, IMetalGraphicsSurface
     {
         private readonly SDL2DesktopWindow window;
 
@@ -27,11 +27,22 @@ namespace osu.Framework.Platform.SDL2
         public SDL2GraphicsSurface(SDL2DesktopWindow window, GraphicsSurfaceType surfaceType)
         {
             this.window = window;
-
             Type = surfaceType;
 
-            if (surfaceType == GraphicsSurfaceType.OpenGL)
-                SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_STENCIL_SIZE, 8);
+            switch (surfaceType)
+            {
+                case GraphicsSurfaceType.OpenGL:
+                    SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_STENCIL_SIZE, 8);
+                    break;
+
+                case GraphicsSurfaceType.Vulkan:
+                case GraphicsSurfaceType.Metal:
+                case GraphicsSurfaceType.Direct3D11:
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unexpected graphics surface: {Type}.", nameof(surfaceType));
+            }
         }
 
         public void Initialise()
@@ -47,6 +58,7 @@ namespace osu.Framework.Platform.SDL2
             switch (Type)
             {
                 case GraphicsSurfaceType.OpenGL:
+                default:
                     SDL.SDL_GL_GetDrawableSize(window.SDLWindowHandle, out width, out height);
                     break;
 
@@ -62,9 +74,6 @@ namespace osu.Framework.Platform.SDL2
                     // todo: SDL has no "drawable size" method for D3D11, return window size for now.
                     SDL.SDL_GetWindowSize(window.SDLWindowHandle, out width, out height);
                     break;
-
-                default:
-                    throw new InvalidOperationException($"Unexpected graphics backend: {Type}.");
             }
 
             return new Size(width, height);
@@ -140,27 +149,27 @@ namespace osu.Framework.Platform.SDL2
             return ret;
         }
 
-        bool IOpenGLWindowGraphics.VerticalSync
+        bool IOpenGLGraphicsSurface.VerticalSync
         {
             get => SDL.SDL_GL_GetSwapInterval() != 0;
             set => SDL.SDL_GL_SetSwapInterval(value ? 1 : 0);
         }
 
-        IntPtr IOpenGLWindowGraphics.WindowContext => context;
-        IntPtr IOpenGLWindowGraphics.CurrentContext => SDL.SDL_GL_GetCurrentContext();
+        IntPtr IOpenGLGraphicsSurface.WindowContext => context;
+        IntPtr IOpenGLGraphicsSurface.CurrentContext => SDL.SDL_GL_GetCurrentContext();
 
-        void IOpenGLWindowGraphics.SwapBuffers() => SDL.SDL_GL_SwapWindow(window.SDLWindowHandle);
-        void IOpenGLWindowGraphics.CreateContext() => SDL.SDL_GL_CreateContext(window.SDLWindowHandle);
-        void IOpenGLWindowGraphics.DeleteContext(IntPtr context) => SDL.SDL_GL_DeleteContext(context);
-        void IOpenGLWindowGraphics.MakeCurrent(IntPtr context) => SDL.SDL_GL_MakeCurrent(window.SDLWindowHandle, context);
-        void IOpenGLWindowGraphics.ClearCurrent() => SDL.SDL_GL_MakeCurrent(window.SDLWindowHandle, IntPtr.Zero);
-        IntPtr IOpenGLWindowGraphics.GetProcAddress(string symbol) => getProcAddress(symbol);
+        void IOpenGLGraphicsSurface.SwapBuffers() => SDL.SDL_GL_SwapWindow(window.SDLWindowHandle);
+        void IOpenGLGraphicsSurface.CreateContext() => SDL.SDL_GL_CreateContext(window.SDLWindowHandle);
+        void IOpenGLGraphicsSurface.DeleteContext(IntPtr context) => SDL.SDL_GL_DeleteContext(context);
+        void IOpenGLGraphicsSurface.MakeCurrent(IntPtr context) => SDL.SDL_GL_MakeCurrent(window.SDLWindowHandle, context);
+        void IOpenGLGraphicsSurface.ClearCurrent() => SDL.SDL_GL_MakeCurrent(window.SDLWindowHandle, IntPtr.Zero);
+        IntPtr IOpenGLGraphicsSurface.GetProcAddress(string symbol) => getProcAddress(symbol);
 
         #endregion
 
         #region Metal-specific implementation
 
-        IntPtr IMetalWindowGraphics.CreateMetalView() => SDL.SDL_Metal_CreateView(window.SDLWindowHandle);
+        IntPtr IMetalGraphicsSurface.CreateMetalView() => SDL.SDL_Metal_CreateView(window.SDLWindowHandle);
 
         #endregion
     }

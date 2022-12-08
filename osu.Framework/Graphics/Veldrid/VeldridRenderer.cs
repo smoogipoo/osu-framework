@@ -82,7 +82,7 @@ namespace osu.Framework.Graphics.Veldrid
                     break;
 
                 case RuntimeInfo.Platform.macOS:
-                    var metalGraphics = window.GraphicsSurface as IMetalWindowGraphics ?? throw new InvalidOperationException($"Window graphics API must implement {nameof(IMetalWindowGraphics)}.");
+                    var metalGraphics = (IMetalGraphicsSurface)window.GraphicsSurface;
                     swapchain.Source = SwapchainSource.CreateNSView(metalGraphics.CreateMetalView());
                     break;
 
@@ -95,7 +95,7 @@ namespace osu.Framework.Graphics.Veldrid
             switch (window.GraphicsSurface.Type)
             {
                 case GraphicsSurfaceType.OpenGL:
-                    var openGLGraphics = window.GraphicsSurface as IOpenGLWindowGraphics ?? throw new InvalidOperationException($"Window graphics API must implement {nameof(IOpenGLWindowGraphics)}");
+                    var openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
 
                     Device = GraphicsDevice.CreateOpenGL(options, new OpenGLPlatformInfo(
                         openGLContextHandle: openGLGraphics.WindowContext,
@@ -163,7 +163,7 @@ namespace osu.Framework.Graphics.Veldrid
         {
             if (window.GraphicsSurface.Type == GraphicsSurfaceType.OpenGL)
             {
-                var openGLGraphics = (IOpenGLWindowGraphics)window.GraphicsSurface;
+                var openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
                 openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
             }
         }
@@ -172,7 +172,7 @@ namespace osu.Framework.Graphics.Veldrid
         {
             if (window.GraphicsSurface.Type == GraphicsSurfaceType.OpenGL)
             {
-                var openGLGraphics = (IOpenGLWindowGraphics)window.GraphicsSurface;
+                var openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
                 openGLGraphics.ClearCurrent();
             }
         }

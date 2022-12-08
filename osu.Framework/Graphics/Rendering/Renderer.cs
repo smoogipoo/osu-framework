@@ -133,6 +133,17 @@ namespace osu.Framework.Graphics.Rendering
 
         void IRenderer.Initialise(IWindow window)
         {
+            switch (window.GraphicsSurface.Type)
+            {
+                case GraphicsSurfaceType.OpenGL:
+                    Trace.Assert(window.GraphicsSurface is IOpenGLGraphicsSurface, $"Window must implement {nameof(IOpenGLGraphicsSurface)}.");
+                    break;
+
+                case GraphicsSurfaceType.Metal:
+                    Trace.Assert(window.GraphicsSurface is IMetalGraphicsSurface, $"Window graphics API must implement {nameof(IMetalGraphicsSurface)}.");
+                    break;
+            }
+
             Initialise(window);
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);

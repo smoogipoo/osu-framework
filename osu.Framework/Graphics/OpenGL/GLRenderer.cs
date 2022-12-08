@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.OpenGL
 {
     internal class GLRenderer : Renderer
     {
-        private IOpenGLWindowGraphics openGLGraphics = null!;
+        private IOpenGLGraphicsSurface openGLGraphics = null!;
 
         public override bool VerticalSync
         {
@@ -49,7 +49,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected override void Initialise(IWindow window)
         {
-            openGLGraphics = window.GraphicsSurface as IOpenGLWindowGraphics ?? throw new ArgumentException($"Window must implement {nameof(IOpenGLWindowGraphics)}.");
+            openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
             openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
 
             string version = GL.GetString(StringName.Version);
