@@ -171,7 +171,7 @@ namespace osu.Framework.Platform
         /// <summary>
         /// Creates the game window for the host. Should be implemented per-platform if required.
         /// </summary>
-        protected virtual IWindow CreateWindow(GraphicsSurfaceType surfaceType) => null;
+        protected virtual IWindow CreateWindow(GraphicsSurfaceType preferredSurface) => null;
 
         [CanBeNull]
         public virtual Clipboard GetClipboard() => null;
