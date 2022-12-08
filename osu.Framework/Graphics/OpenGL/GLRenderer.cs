@@ -49,6 +49,9 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected override void Initialise(IWindow window)
         {
+            if (window.GraphicsSurface.Type != GraphicsSurfaceType.OpenGL)
+                throw new InvalidOperationException($"{nameof(GLRenderer)} only supports OpenGL graphics surfaces.");
+
             openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
             openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
 
@@ -178,7 +181,8 @@ namespace osu.Framework.Graphics.OpenGL
             return true;
         }
 
-        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer) => GL.BindFramebuffer(FramebufferTarget.Framebuffer, ((GLFrameBuffer?)frameBuffer)?.FrameBuffer ?? BackbufferFramebuffer);
+        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer) =>
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, ((GLFrameBuffer?)frameBuffer)?.FrameBuffer ?? BackbufferFramebuffer);
 
         /// <summary>
         /// Deletes a frame buffer.
@@ -364,7 +368,8 @@ namespace osu.Framework.Graphics.OpenGL
             return new GLFrameBuffer(this, glFormats, glFilteringMode);
         }
 
-        protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, Rgba32 initialisationColour = default)
+        protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
+                                                              Rgba32 initialisationColour = default)
         {
             All glFilteringMode;
 
