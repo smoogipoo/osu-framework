@@ -21,8 +21,6 @@ namespace osu.Framework.Graphics.Veldrid
 {
     internal class VeldridRenderer : Renderer
     {
-        private IWindow window = null!;
-
         public override bool VerticalSync
         {
             get => Device.SyncToVerticalBlank;
@@ -35,6 +33,8 @@ namespace osu.Framework.Graphics.Veldrid
 
         public CommandList Commands { get; private set; } = null!;
 
+        private IGraphicsSurface graphicsSurface = null!;
+
         private GraphicsPipelineDescription pipeline = new GraphicsPipelineDescription
         {
             RasterizerState = RasterizerStateDescription.CullNone,
@@ -42,15 +42,13 @@ namespace osu.Framework.Graphics.Veldrid
             ShaderSet = { VertexLayouts = new VertexLayoutDescription[1] }
         };
 
-        protected override void Initialise(IWindow window)
+        protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             // Veldrid must either be initialised on the main/"input" thread, or in a separate thread away from the draw thread at least.
             // Otherwise the window may not render anything on some platforms (macOS at least).
             Debug.Assert(!ThreadSafety.IsDrawThread, "Veldrid cannot be initialised on the draw thread.");
 
-            this.window = window;
-
-            var size = window.GraphicsSurface.GetDrawableSize();
+            this.graphicsSurface = graphicsSurface;
 
             var options = new GraphicsDeviceOptions
             {
@@ -63,6 +61,8 @@ namespace osu.Framework.Graphics.Veldrid
                 PreferStandardClipSpaceYDirection = true,
                 ResourceBindingModel = ResourceBindingModel.Improved,
             };
+
+            var size = graphicsSurface.GetDrawableSize();
 
             var swapchain = new SwapchainDescription
             {
@@ -78,11 +78,11 @@ namespace osu.Framework.Graphics.Veldrid
             switch (RuntimeInfo.OS)
             {
                 case RuntimeInfo.Platform.Windows:
-                    swapchain.Source = SwapchainSource.CreateWin32(window.GraphicsSurface.WindowHandle, IntPtr.Zero);
+                    swapchain.Source = SwapchainSource.CreateWin32(graphicsSurface.WindowHandle, IntPtr.Zero);
                     break;
 
                 case RuntimeInfo.Platform.macOS:
-                    var metalGraphics = (IMetalGraphicsSurface)window.GraphicsSurface;
+                    var metalGraphics = (IMetalGraphicsSurface)graphicsSurface;
                     swapchain.Source = SwapchainSource.CreateNSView(metalGraphics.CreateMetalView());
                     break;
 
@@ -92,10 +92,10 @@ namespace osu.Framework.Graphics.Veldrid
                     break;
             }
 
-            switch (window.GraphicsSurface.Type)
+            switch (graphicsSurface.Type)
             {
                 case GraphicsSurfaceType.OpenGL:
-                    var openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
+                    var openGLGraphics = (IOpenGLGraphicsSurface)graphicsSurface;
 
                     Device = GraphicsDevice.CreateOpenGL(options, new OpenGLPlatformInfo(
                         openGLContextHandle: openGLGraphics.WindowContext,
@@ -161,18 +161,18 @@ namespace osu.Framework.Graphics.Veldrid
 
         protected internal override void MakeCurrent()
         {
-            if (window.GraphicsSurface.Type == GraphicsSurfaceType.OpenGL)
+            if (graphicsSurface.Type == GraphicsSurfaceType.OpenGL)
             {
-                var openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
+                var openGLGraphics = (IOpenGLGraphicsSurface)graphicsSurface;
                 openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
             }
         }
 
         protected internal override void ClearCurrent()
         {
-            if (window.GraphicsSurface.Type == GraphicsSurfaceType.OpenGL)
+            if (graphicsSurface.Type == GraphicsSurfaceType.OpenGL)
             {
-                var openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
+                var openGLGraphics = (IOpenGLGraphicsSurface)graphicsSurface;
                 openGLGraphics.ClearCurrent();
             }
         }

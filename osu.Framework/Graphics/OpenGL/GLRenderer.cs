@@ -23,12 +23,12 @@ namespace osu.Framework.Graphics.OpenGL
 {
     internal class GLRenderer : Renderer
     {
-        private IOpenGLGraphicsSurface openGLGraphics = null!;
+        private IOpenGLGraphicsSurface openGLSurface = null!;
 
         public override bool VerticalSync
         {
-            get => openGLGraphics.VerticalSync;
-            set => openGLGraphics.VerticalSync = value;
+            get => openGLSurface.VerticalSync;
+            set => openGLSurface.VerticalSync = value;
         }
 
         /// <summary>
@@ -47,13 +47,13 @@ namespace osu.Framework.Graphics.OpenGL
 
         private bool? lastBlendingEnabledState;
 
-        protected override void Initialise(IWindow window)
+        protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
-            if (window.GraphicsSurface.Type != GraphicsSurfaceType.OpenGL)
+            if (graphicsSurface.Type != GraphicsSurfaceType.OpenGL)
                 throw new InvalidOperationException($"{nameof(GLRenderer)} only supports OpenGL graphics surfaces.");
 
-            openGLGraphics = (IOpenGLGraphicsSurface)window.GraphicsSurface;
-            openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
+            openGLSurface = (IOpenGLGraphicsSurface)graphicsSurface;
+            openGLSurface.MakeCurrent(openGLSurface.WindowContext);
 
             string version = GL.GetString(StringName.Version);
             IsEmbedded = version.Contains("OpenGL ES"); // As defined by https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetString.xml
@@ -71,7 +71,7 @@ namespace osu.Framework.Graphics.OpenGL
                         GL Vendor:                  {GL.GetString(StringName.Vendor)}
                         GL Extensions:              {GL.GetString(StringName.Extensions)}");
 
-            openGLGraphics.ClearCurrent();
+            openGLSurface.ClearCurrent();
         }
 
         protected internal override void BeginFrame(Vector2 windowSize)
@@ -84,9 +84,9 @@ namespace osu.Framework.Graphics.OpenGL
             base.BeginFrame(windowSize);
         }
 
-        protected internal override void MakeCurrent() => openGLGraphics.MakeCurrent(openGLGraphics.WindowContext);
-        protected internal override void ClearCurrent() => openGLGraphics.ClearCurrent();
-        protected internal override void SwapBuffers() => openGLGraphics.SwapBuffers();
+        protected internal override void MakeCurrent() => openGLSurface.MakeCurrent(openGLSurface.WindowContext);
+        protected internal override void ClearCurrent() => openGLSurface.ClearCurrent();
+        protected internal override void SwapBuffers() => openGLSurface.SwapBuffers();
         protected internal override void WaitUntilIdle() => GL.Finish();
 
         public bool BindBuffer(BufferTarget target, int buffer)

@@ -137,7 +137,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Performs a once-off initialisation of this <see cref="IRenderer"/>.
         /// </summary>
-        protected internal void Initialise(IWindow window);
+        protected internal void Initialise(IGraphicsSurface graphicsSurface);
 
         /// <summary>
         /// Resets any states to prepare for drawing a new frame.

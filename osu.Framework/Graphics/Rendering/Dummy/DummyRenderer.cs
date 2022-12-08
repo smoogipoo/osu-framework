@@ -48,7 +48,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
             WhitePixel = new Texture(new DummyNativeTexture(this), WrapMode.None, WrapMode.None);
         }
 
-        void IRenderer.Initialise(IWindow window)
+        void IRenderer.Initialise(IGraphicsSurface graphicsSurface)
         {
             IsInitialised = true;
         }

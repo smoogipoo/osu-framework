@@ -131,20 +131,20 @@ namespace osu.Framework.Graphics.Rendering
                 new TextureAtlas(this, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, TextureAtlas.WHITE_PIXEL_SIZE + TextureAtlas.PADDING, true).WhitePixel);
         }
 
-        void IRenderer.Initialise(IWindow window)
+        void IRenderer.Initialise(IGraphicsSurface graphicsSurface)
         {
-            switch (window.GraphicsSurface.Type)
+            switch (graphicsSurface.Type)
             {
                 case GraphicsSurfaceType.OpenGL:
-                    Trace.Assert(window.GraphicsSurface is IOpenGLGraphicsSurface, $"Window must implement {nameof(IOpenGLGraphicsSurface)}.");
+                    Trace.Assert(graphicsSurface is IOpenGLGraphicsSurface, $"Window must implement {nameof(IOpenGLGraphicsSurface)}.");
                     break;
 
                 case GraphicsSurfaceType.Metal:
-                    Trace.Assert(window.GraphicsSurface is IMetalGraphicsSurface, $"Window graphics API must implement {nameof(IMetalGraphicsSurface)}.");
+                    Trace.Assert(graphicsSurface is IMetalGraphicsSurface, $"Window graphics API must implement {nameof(IMetalGraphicsSurface)}.");
                     break;
             }
 
-            Initialise(window);
+            Initialise(graphicsSurface);
 
             defaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
             resetScheduler.AddDelayed(disposalQueue.CheckPendingDisposals, 0, true);
@@ -289,7 +289,7 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Performs a once-off initialisation of this <see cref="Renderer"/>.
         /// </summary>
-        protected abstract void Initialise(IWindow window);
+        protected abstract void Initialise(IGraphicsSurface graphicsSurface);
 
         /// <summary>
         /// Swaps the back buffer with the front buffer to display the new frame.

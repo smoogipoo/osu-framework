@@ -24,9 +24,9 @@ namespace osu.Framework.Platform.Windows
             this.host = host;
         }
 
-        protected override void Initialise(IWindow window)
+        protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
-            base.Initialise(window);
+            base.Initialise(graphicsSurface);
 
             WindowsWindow windowsWindow = (WindowsWindow)host.Window;
 
