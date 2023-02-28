@@ -82,11 +82,6 @@ namespace osu.Framework.Tests.Shaders
 
                 private protected override bool CompileInternal() => true;
 
-                private protected override void SetupUniforms()
-                {
-                    Uniforms.Add("test", new Uniform<int>(renderer, this, "test", 1));
-                }
-
                 private protected override string GetProgramLog() => string.Empty;
 
                 private protected override void DeleteProgram(int id)

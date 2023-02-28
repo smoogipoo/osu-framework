@@ -30,8 +30,6 @@ namespace osu.Framework.Graphics.Video
             var shader = TextureShader;
             shader.BindUniformBlock("m_yuvData", yuvDataBuffer);
 
-            shader.GetUniform<int>("m_TextureY").Value = 0;
-
             base.Draw(renderer);
         }
 
