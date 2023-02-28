@@ -31,6 +31,7 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
         IReadOnlyDictionary<string, IUniform> IShader.Uniforms => Uniforms;
 
         private readonly Dictionary<string, GLUniformBlock> uniformBlocks = new Dictionary<string, GLUniformBlock>();
+        private readonly List<Uniform<int>> textureUniforms = new List<Uniform<int>>();
 
         /// <summary>
         /// Holds all the <see cref="Uniforms"/> values for faster access than iterating on <see cref="Dictionary{TKey,TValue}.Values"/>.
@@ -99,6 +100,9 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
             EnsureShaderCompiled();
 
             renderer.BindShader(this);
+
+            for (int i = 0; i < textureUniforms.Count; i++)
+                textureUniforms[i].Value = i;
 
             foreach (var uniform in uniformsValues)
                 uniform?.Update();
@@ -241,7 +245,7 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
 
                         case ActiveUniformType.Sampler2D:
                             uniform = createUniform<int>(uniformName);
-                            ((Uniform<int>)uniform).Value = textureIndex++;
+                            textureUniforms.Add((Uniform<int>)uniform);
                             break;
 
                         default:
