@@ -195,7 +195,7 @@ namespace osu.Framework.Graphics.Veldrid
 
         private Vector2 currentSize;
 
-        protected internal override void BeginFrame(Vector2 windowSize)
+        protected internal override void BeginFrame(Vector2 windowSize, int bufferIndex)
         {
             if (windowSize != currentSize)
             {
@@ -210,7 +210,7 @@ namespace osu.Framework.Graphics.Veldrid
             Commands.Begin();
             BufferUpdateCommands.Begin();
 
-            base.BeginFrame(windowSize);
+            base.BeginFrame(windowSize, bufferIndex);
         }
 
         protected internal override void FinishFrame()
@@ -303,7 +303,7 @@ namespace osu.Framework.Graphics.Veldrid
             for (uint yi = (uint)y; yi < height; yi++)
                 Device.UpdateTexture(staging, (IntPtr)(data.ToInt64() + yi * rowLengthInBytes), (uint)rowLengthInBytes, (uint)x, yi, 0, (uint)width, 1, 1, (uint)level, 0);
 
-            Commands.CopyTexture(staging, texture);
+            BufferUpdateCommands.CopyTexture(staging, texture);
         }
 
         protected override void SetShaderImplementation(IShader shader)
@@ -389,6 +389,8 @@ namespace osu.Framework.Graphics.Veldrid
         public void DrawVertices(PrimitiveTopology type, int indexStart, int indicesCount)
         {
             var veldridShader = (VeldridShader)Shader!;
+
+            veldridShader.BindUniformBlock("g_GlobalUniforms", GlobalUniformBuffer);
 
             pipeline.PrimitiveTopology = type;
             Array.Resize(ref pipeline.ResourceLayouts, veldridShader.LayoutCount);

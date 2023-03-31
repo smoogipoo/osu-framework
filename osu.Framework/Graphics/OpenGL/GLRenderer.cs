@@ -106,7 +106,7 @@ namespace osu.Framework.Graphics.OpenGL
             return extensionsBuilder.ToString().TrimEnd();
         }
 
-        protected internal override void BeginFrame(Vector2 windowSize)
+        protected internal override void BeginFrame(Vector2 windowSize, int bufferIndex)
         {
             lastBlendingEnabledState = null;
             lastBoundBuffers.AsSpan().Clear();
@@ -117,7 +117,7 @@ namespace osu.Framework.Graphics.OpenGL
 
             GL.UseProgram(0);
 
-            base.BeginFrame(windowSize);
+            base.BeginFrame(windowSize, bufferIndex);
         }
 
         protected internal override void WaitUntilNextFrameReady()

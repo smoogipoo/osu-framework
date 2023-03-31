@@ -28,7 +28,7 @@ namespace osu.Framework.Threading
 
             if (window != null)
             {
-                host.Renderer.BeginFrame(new Vector2(window.ClientSize.Width, window.ClientSize.Height));
+                host.Renderer.BeginFrame(new Vector2(window.ClientSize.Width, window.ClientSize.Height), 0);
                 host.Renderer.FinishFrame();
             }
         }

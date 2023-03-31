@@ -59,7 +59,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
             IsInitialised = true;
         }
 
-        void IRenderer.BeginFrame(Vector2 windowSize)
+        void IRenderer.BeginFrame(Vector2 windowSize, int bufferIndex)
         {
         }
 

@@ -128,7 +128,9 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Lazy<TextureWhitePixel> whitePixel;
         private readonly LockedWeakList<Texture> allTextures = new LockedWeakList<Texture>();
 
-        private IUniformBuffer<GlobalUniformData>? globalUniformBuffer;
+        private readonly IUniformBuffer<GlobalUniformData>?[] globalUniformBuffers = new IUniformBuffer<GlobalUniformData>?[IRenderer.MAX_DRAW_NODES];
+
+        protected IUniformBuffer<GlobalUniformData>? GlobalUniformBuffer { get; private set; }
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
         private IVertexBatch? currentActiveBatch;
         private MaskingInfo currentMaskingInfo;
@@ -181,13 +183,16 @@ namespace osu.Framework.Graphics.Rendering
         /// Resets any states to prepare for drawing a new frame.
         /// </summary>
         /// <param name="windowSize">The full window size.</param>
-        protected internal virtual void BeginFrame(Vector2 windowSize)
+        protected internal virtual void BeginFrame(Vector2 windowSize, int bufferIndex)
         {
             foreach (var source in flush_source_statistics)
                 source.Value = 0;
 
-            globalUniformBuffer ??= ((IRenderer)this).CreateUniformBuffer<GlobalUniformData>();
-            globalUniformBuffer.Data = globalUniformBuffer.Data with
+            for (int i = 0; i < globalUniformBuffers.Length; i++)
+                globalUniformBuffers[i] ??= ((IRenderer)this).CreateUniformBuffer<GlobalUniformData>();
+
+            GlobalUniformBuffer = globalUniformBuffers[bufferIndex]!;
+            GlobalUniformBuffer.Data = GlobalUniformBuffer.Data with
             {
                 IsDepthRangeZeroToOne = IsDepthRangeZeroToOne,
                 IsClipSpaceYInverted = IsClipSpaceYInverted,
@@ -589,7 +594,7 @@ namespace osu.Framework.Graphics.Rendering
 
             FlushCurrentBatch(FlushBatchSource.SetProjection);
 
-            globalUniformBuffer!.Data = globalUniformBuffer.Data with { ProjMatrix = matrix };
+            GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { ProjMatrix = matrix };
             ProjectionMatrix = matrix;
         }
 
@@ -618,7 +623,7 @@ namespace osu.Framework.Graphics.Rendering
 
             FlushCurrentBatch(FlushBatchSource.SetMasking);
 
-            globalUniformBuffer!.Data = globalUniformBuffer.Data with
+            GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with
             {
                 IsMasking = IsMaskingActive,
                 MaskingRect = new Vector4(
@@ -652,14 +657,14 @@ namespace osu.Framework.Graphics.Rendering
                         maskingInfo.BorderColour.BottomRight.Linear.G,
                         maskingInfo.BorderColour.BottomRight.Linear.B,
                         maskingInfo.BorderColour.BottomRight.Linear.A)
-                    : globalUniformBuffer.Data.BorderColour,
+                    : GlobalUniformBuffer.Data.BorderColour,
                 MaskingBlendRange = maskingInfo.BlendRange,
                 AlphaExponent = maskingInfo.AlphaExponent,
                 EdgeOffset = maskingInfo.EdgeOffset,
                 DiscardInner = maskingInfo.Hollow,
                 InnerCornerRadius = maskingInfo.Hollow
                     ? maskingInfo.HollowCornerRadius
-                    : globalUniformBuffer.Data.InnerCornerRadius
+                    : GlobalUniformBuffer.Data.InnerCornerRadius
             };
 
             if (isPushing)
@@ -855,14 +860,14 @@ namespace osu.Framework.Graphics.Rendering
             if (wrapModeS != CurrentWrapModeS)
             {
                 // Will flush the current batch internally.
-                globalUniformBuffer!.Data = globalUniformBuffer.Data with { WrapModeS = (int)wrapModeS };
+                GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { WrapModeS = (int)wrapModeS };
                 CurrentWrapModeS = wrapModeS;
             }
 
             if (wrapModeT != CurrentWrapModeT)
             {
                 // Will flush the current batch internally.
-                globalUniformBuffer!.Data = globalUniformBuffer.Data with { WrapModeT = (int)wrapModeT };
+                GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { WrapModeT = (int)wrapModeT };
                 CurrentWrapModeT = wrapModeT;
             }
 
@@ -940,7 +945,7 @@ namespace osu.Framework.Graphics.Rendering
 
             SetFrameBufferImplementation(frameBuffer);
 
-            globalUniformBuffer!.Data = globalUniformBuffer.Data with
+            GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with
             {
                 BackbufferDraw = UsingBackbuffer,
                 GammaCorrection = GammaCorrection,
@@ -1099,7 +1104,7 @@ namespace osu.Framework.Graphics.Rendering
         }
 
         IVertexBatch<TexturedVertex2D> IRenderer.DefaultQuadBatch => DefaultQuadBatch;
-        void IRenderer.BeginFrame(Vector2 windowSize) => BeginFrame(windowSize);
+        void IRenderer.BeginFrame(Vector2 windowSize, int bufferIndex) => BeginFrame(windowSize, bufferIndex);
         void IRenderer.FinishFrame() => FinishFrame();
         void IRenderer.SwapBuffers() => SwapBuffers();
         void IRenderer.WaitUntilIdle() => WaitUntilIdle();
@@ -1111,7 +1116,7 @@ namespace osu.Framework.Graphics.Rendering
         void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => PushQuadBatch(quadBatch);
         void IRenderer.PopQuadBatch() => PopQuadBatch();
         IShaderPart IRenderer.CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderPartType partType) => CreateShaderPart(manager, name, rawData, partType);
-        IShader IRenderer.CreateShader(string name, IShaderPart[] parts) => CreateShader(name, parts, globalUniformBuffer!);
+        IShader IRenderer.CreateShader(string name, IShaderPart[] parts) => CreateShader(name, parts, GlobalUniformBuffer!);
 
         IVertexBatch<TVertex> IRenderer.CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
         {

@@ -229,7 +229,7 @@ namespace osu.Framework.Platform
         {
             threadRunner.AddThread(thread);
 
-            thread.IsActive.BindTo(IsActive);
+            // thread.IsActive.BindTo(IsActive);
             thread.UnhandledException = unhandledExceptionHandler;
 
             if (thread.Monitor != null)
@@ -495,7 +495,7 @@ namespace osu.Framework.Platform
             try
             {
                 using (drawMonitor.BeginCollecting(PerformanceCollectionType.DrawReset))
-                    Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
+                    Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height), buffer.Index);
 
                 if (!bypassFrontToBackPass.Value)
                 {
