@@ -1,6 +1,23 @@
 // This file is automatically included in every shader.
 
-layout(std140, set = -1, binding = 0) uniform g_GlobalUniforms
+struct MaskingInfo
+{
+    mat3 ToMaskingSpace;
+
+    bool IsMasking;
+    highp float CornerRadius;
+    highp float CornerExponent;
+    highp vec4 MaskingRect;
+    highp float BorderThickness;
+    lowp mat4 BorderColour;
+    mediump float MaskingBlendRange;
+    lowp float AlphaExponent;
+    highp vec2 EdgeOffset;
+    bool DiscardInner;
+    highp float InnerCornerRadius;
+};
+
+layout(std140, set = -2, binding = 0) uniform g_GlobalUniforms
 {
     // Whether the backbuffer is currently being drawn to.
     bool g_BackbufferDraw;
@@ -37,3 +54,15 @@ layout(std140, set = -1, binding = 0) uniform g_GlobalUniforms
     int g_WrapModeS;
     int g_WrapModeT;
 };
+
+layout(std140, set = -1, binding = 0) readonly buffer g_MaskingBuffer
+{
+    MaskingInfo Data[];
+} MaskingBuffer;
+
+MaskingInfo GetMaskingInfo(int index)
+{
+    return MaskingBuffer.Data[index];
+}
+
+MaskingInfo g_MaskingInfo;

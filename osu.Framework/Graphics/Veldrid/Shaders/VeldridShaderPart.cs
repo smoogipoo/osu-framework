@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
@@ -13,8 +14,9 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 {
     internal class VeldridShaderPart : IShaderPart
     {
-        public static readonly Regex SHADER_INPUT_PATTERN = new Regex(@"^\s*layout\s*\(\s*location\s*=\s*(-?\d+)\s*\)\s*(in\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+(\w+)\s*;)", RegexOptions.Multiline);
-        private static readonly Regex uniform_pattern = new Regex(@"^(\s*layout\s*\(.*)set\s*=\s*(-?\d)(.*\)\s*uniform)", RegexOptions.Multiline);
+        public static readonly Regex SHADER_INPUT_PATTERN = new Regex(@"^\s*layout\s*\(\s*location\s*=\s*(-?\d+)\s*\)\s*((?:flat\s*)?in\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+(\w+)\s*;)", RegexOptions.Multiline);
+        private static readonly Regex last_input_pattern = new Regex(@"^\s*layout\s*\(\s*location\s*=\s*-1\s*\)\s+in", RegexOptions.Multiline);
+        private static readonly Regex uniform_pattern = new Regex(@"^(\s*layout\s*\(.*)set\s*=\s*(-?\d)(.*\)\s*(?:(?:readonly\s*)?buffer|uniform))", RegexOptions.Multiline);
         private static readonly Regex include_pattern = new Regex(@"^\s*#\s*include\s+[""<](.*)["">]");
 
         public readonly ShaderPartType Type;
@@ -42,15 +44,22 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
             // Update the location of the m_BackbufferDrawDepth input to be placed after all other inputs.
             for (int i = 0; i < shaderCodes.Count; i++)
-                shaderCodes[i] = shaderCodes[i].Replace("layout(location = -1)", $"layout(location = {lastInputIndex + 1})");
+                shaderCodes[i] = last_input_pattern.Replace(shaderCodes[i], match => $"layout(location = {++lastInputIndex}) in");
 
-            // Increment the binding set of all uniform blocks.
-            // After this transformation, the g_GlobalUniforms block is placed in set 0 and all other user blocks begin from 1.
+            // Find the minimum uniform/buffer binding set across all shader codes. This will be a negative number (see sh_GlobalUniforms.h).
+            int minSet = shaderCodes.Select(c =>
+            {
+                return uniform_pattern.Matches(c).Where(m => m.Success)
+                                      .Select(m => int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture))
+                                      .DefaultIfEmpty(0).Min();
+            }).DefaultIfEmpty(0).Min();
+
+            // Increment the binding set of all uniform blocks such that the minimum index is 0.
             // The difference in implementation here (compared to above) is intentional, as uniform blocks must be consistent between the shader stages, so they can't be easily appended.
             for (int i = 0; i < shaderCodes.Count; i++)
             {
                 shaderCodes[i] = uniform_pattern.Replace(shaderCodes[i],
-                    match => $"{match.Groups[1].Value}set = {int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) + 1}{match.Groups[3].Value}");
+                    match => $"{match.Groups[1].Value}set = {int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) + Math.Abs(minSet)}{match.Groups[3].Value}");
             }
         }
 

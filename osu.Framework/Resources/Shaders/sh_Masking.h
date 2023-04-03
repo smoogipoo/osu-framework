@@ -8,6 +8,7 @@ layout(location = 1) in lowp vec4 v_Colour;
 #endif
 
 layout(location = 4) in mediump vec2 v_BlendRange;
+layout(location = 5) flat in int v_MaskingIndex;
 
 highp float distanceFromRoundedRect(highp vec2 offset, highp float radius)
 {

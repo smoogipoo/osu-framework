@@ -27,6 +27,9 @@ namespace osu.Framework.Graphics.Rendering.Vertices
         [VertexMember(2, VertexAttribPointerType.Float)]
         public Vector2 BlendRange;
 
+        [VertexMember(1, VertexAttribPointerType.Int)]
+        public int MaskingIndex;
+
         public readonly bool Equals(TexturedVertex2D other) =>
             Position.Equals(other.Position)
             && TexturePosition.Equals(other.TexturePosition)
