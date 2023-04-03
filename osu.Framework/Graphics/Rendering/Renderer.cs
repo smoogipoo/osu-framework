@@ -631,7 +631,7 @@ namespace osu.Framework.Graphics.Rendering
             if (CurrentMaskingInfo == maskingInfo)
                 return;
 
-            FlushCurrentBatch(FlushBatchSource.SetMasking);
+            // FlushCurrentBatch(FlushBatchSource.SetMasking);
 
             int lastMaskingIndex = CurrentMaskingIndex;
             CurrentMaskingIndex = (CurrentMaskingIndex + 1) % 1024;
@@ -680,25 +680,25 @@ namespace osu.Framework.Graphics.Rendering
                     : MaskingBuffer[lastMaskingIndex].InnerCornerRadius
             };
 
-            if (isPushing)
-            {
-                // When drawing to a viewport that doesn't match the projection size (e.g. via framebuffers), the resultant image will be scaled
-                Vector2 projectionScale = new Vector2(ProjectionMatrix.Row0.X / 2, -ProjectionMatrix.Row1.Y / 2);
-                Vector2 viewportScale = Vector2.Multiply(Viewport.Size, projectionScale);
-
-                Vector2 location = (maskingInfo.ScreenSpaceAABB.Location - ScissorOffset) * viewportScale;
-                Vector2 size = maskingInfo.ScreenSpaceAABB.Size * viewportScale;
-
-                RectangleI actualRect = new RectangleI(
-                    (int)Math.Floor(location.X),
-                    (int)Math.Floor(location.Y),
-                    (int)Math.Ceiling(size.X),
-                    (int)Math.Ceiling(size.Y));
-
-                PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
-            }
-            else
-                PopScissor();
+            // if (isPushing)
+            // {
+            //     // When drawing to a viewport that doesn't match the projection size (e.g. via framebuffers), the resultant image will be scaled
+            //     Vector2 projectionScale = new Vector2(ProjectionMatrix.Row0.X / 2, -ProjectionMatrix.Row1.Y / 2);
+            //     Vector2 viewportScale = Vector2.Multiply(Viewport.Size, projectionScale);
+            //
+            //     Vector2 location = (maskingInfo.ScreenSpaceAABB.Location - ScissorOffset) * viewportScale;
+            //     Vector2 size = maskingInfo.ScreenSpaceAABB.Size * viewportScale;
+            //
+            //     RectangleI actualRect = new RectangleI(
+            //         (int)Math.Floor(location.X),
+            //         (int)Math.Floor(location.Y),
+            //         (int)Math.Ceiling(size.X),
+            //         (int)Math.Ceiling(size.Y));
+            //
+            //     PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
+            // }
+            // else
+            //     PopScissor();
 
             currentMaskingInfo = maskingInfo;
         }

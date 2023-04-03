@@ -9,15 +9,17 @@ layout(location = 1) out lowp vec4 v_Colour;
 layout(location = 2) out highp vec2 v_TexCoord;
 layout(location = 3) out highp vec4 v_TexRect;
 layout(location = 4) out mediump vec2 v_BlendRange;
+layout(location = 5) flat out int v_MaskingIndex;
 
 void main(void)
 {
 	// Transform to position to masking space.
-	vec3 maskingPos = g_ToMaskingSpace * vec3(m_Position.xy, 1.0);
+	vec3 maskingPos = GetMaskingInfo(m_MaskingIndex).ToMaskingSpace * vec3(m_Position.xy, 1.0);
 	v_MaskingPosition = maskingPos.xy / maskingPos.z;
 
 	v_TexRect = vec4(0.0);
 	v_BlendRange = vec2(0.0);
+	v_MaskingIndex = m_MaskingIndex;
 
 	v_Colour = m_Colour;
 	v_TexCoord = m_TexCoord;
