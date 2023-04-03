@@ -22,4 +22,15 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         TData Data { get; set; }
     }
+
+    /// <inheritdoc cref="IUniformBuffer"/>
+    /// <typeparam name="TData">The type of data in the buffer.</typeparam>
+    public interface IArrayBuffer<TData> : IUniformBuffer
+        where TData : unmanaged, IEquatable<TData>
+    {
+        /// <summary>
+        /// The data contained by this <see cref="IArrayBuffer{TData}"/>.
+        /// </summary>
+        TData this[int index] { get; set; }
+    }
 }

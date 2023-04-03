@@ -431,6 +431,10 @@ namespace osu.Framework.Graphics.OpenGL
         }
 
         protected override IUniformBuffer<TData> CreateUniformBuffer<TData>() => new GLUniformBuffer<TData>(this);
+        protected override IArrayBuffer<TData> CreateArrayBuffer<TData>(int length)
+        {
+            throw new NotImplementedException();
+        }
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
                                                               Rgba32 initialisationColour = default)

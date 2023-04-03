@@ -391,6 +391,8 @@ namespace osu.Framework.Graphics.Rendering
         /// <typeparam name="TData">The type of data in the buffer.</typeparam>
         IUniformBuffer<TData> CreateUniformBuffer<TData>() where TData : unmanaged, IEquatable<TData>;
 
+        IArrayBuffer<TData> CreateArrayBuffer<TData>(int length) where TData : unmanaged, IEquatable<TData>;
+
         /// <summary>
         /// Sets the value of a uniform.
         /// </summary>

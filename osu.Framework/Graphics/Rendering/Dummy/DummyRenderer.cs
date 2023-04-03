@@ -203,6 +203,11 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         public IUniformBuffer<TData> CreateUniformBuffer<TData>() where TData : unmanaged, IEquatable<TData>
             => new DummyUniformBuffer<TData>();
 
+        public IArrayBuffer<TData> CreateArrayBuffer<TData>(int length) where TData : unmanaged, IEquatable<TData>
+        {
+            throw new NotImplementedException();
+        }
+
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {
         }

@@ -115,7 +115,12 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                 if (mainFile)
                 {
                     string internalIncludes = loadFile(manager.LoadRaw("Internal/sh_Compatibility.h"), false) + "\n";
+
                     internalIncludes += loadFile(manager.LoadRaw("Internal/sh_GlobalUniforms.h"), false) + "\n";
+
+                    if (Type == ShaderPartType.Vertex)
+                        internalIncludes += loadFile(manager.LoadRaw("Internal/sh_Vertex_Input.h"), false) + "\n";
+
                     code = internalIncludes + code;
 
                     if (Type == ShaderPartType.Vertex)

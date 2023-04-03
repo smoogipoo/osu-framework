@@ -49,10 +49,13 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         {
             ref var currentVertex = ref getMemory().Span[vertexIndex];
 
-            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != renderer.BackbufferDrawDepth;
+            bool isNewVertex = !currentVertex.Vertex.Equals(vertex)
+                               || currentVertex.BackbufferDrawDepth != renderer.BackbufferDrawDepth
+                               || currentVertex.MaskingIndex != renderer.CurrentMaskingIndex;
 
             currentVertex.Vertex = vertex;
             currentVertex.BackbufferDrawDepth = renderer.BackbufferDrawDepth;
+            currentVertex.MaskingIndex = renderer.CurrentMaskingIndex;
 
             return isNewVertex;
         }

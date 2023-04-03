@@ -395,6 +395,8 @@ namespace osu.Framework.Graphics.Veldrid
         {
             var veldridShader = (VeldridShader)Shader!;
 
+            veldridShader.BindUniformBlock("g_MaskingBuffer", MaskingBuffer!);
+
             pipeline.PrimitiveTopology = type;
             Array.Resize(ref pipeline.ResourceLayouts, veldridShader.LayoutCount);
 
@@ -560,6 +562,9 @@ namespace osu.Framework.Graphics.Veldrid
 
         protected override IUniformBuffer<TData> CreateUniformBuffer<TData>()
             => new VeldridUniformBuffer<TData>(this);
+
+        protected override IArrayBuffer<TData> CreateArrayBuffer<TData>(int length)
+            => new VeldridArrayBuffer<TData>(this, length);
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
                                                               Rgba32 initialisationColour = default)

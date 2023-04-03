@@ -16,8 +16,12 @@ namespace osu.Framework.Graphics.Rendering.Vertices
         [VertexMember(1, VertexAttribPointerType.Float)]
         public float BackbufferDrawDepth;
 
+        [VertexMember(1, VertexAttribPointerType.Int)]
+        public int MaskingIndex;
+
         public readonly bool Equals(DepthWrappingVertex<TVertex> other)
             => Vertex.Equals(other.Vertex)
-               && BackbufferDrawDepth.Equals(other.BackbufferDrawDepth);
+               && BackbufferDrawDepth.Equals(other.BackbufferDrawDepth)
+               && MaskingIndex.Equals(other.MaskingIndex);
     }
 }
