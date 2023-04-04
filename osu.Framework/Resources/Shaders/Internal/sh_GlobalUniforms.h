@@ -17,7 +17,12 @@ struct MaskingInfo
     highp float InnerCornerRadius;
 };
 
-layout(std140, set = -2, binding = 0) uniform g_GlobalUniforms
+layout(std140, set = -2, binding = 0) readonly buffer g_MaskingBuffer
+{
+    MaskingInfo Data[];
+} MaskingBuffer;
+
+layout(std140, set = -1, binding = 0) uniform g_GlobalUniforms
 {
     // Whether the backbuffer is currently being drawn to.
     bool g_BackbufferDraw;
@@ -41,11 +46,6 @@ layout(std140, set = -2, binding = 0) uniform g_GlobalUniforms
     int g_WrapModeS;
     int g_WrapModeT;
 };
-
-layout(std140, set = -1, binding = 0) readonly buffer g_MaskingBuffer
-{
-    MaskingInfo Data[];
-} MaskingBuffer;
 
 MaskingInfo GetMaskingInfo(int index)
 {
