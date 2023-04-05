@@ -540,7 +540,7 @@ namespace osu.Framework.Graphics.Veldrid
         }
 
         protected override IShaderPart CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderPartType partType)
-            => new VeldridShaderPart(rawData, partType, manager);
+            => new VeldridShaderPart(this, rawData, partType, manager);
 
         protected override IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer)
             => new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), globalUniformBuffer);

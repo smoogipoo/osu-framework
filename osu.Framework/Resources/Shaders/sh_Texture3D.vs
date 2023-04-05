@@ -13,8 +13,10 @@ layout(location = 5) flat out int v_MaskingIndex;
 
 void main(void)
 {
+    InitMasking(m_MaskingIndex);
+
 	// Transform to position to masking space.
-	vec3 maskingPos = GetMaskingInfo(m_MaskingIndex).ToMaskingSpace * vec3(m_Position.xy, 1.0);
+	vec3 maskingPos = g_MaskingInfo.ToMaskingSpace * vec3(m_Position.xy, 1.0);
 	v_MaskingPosition = maskingPos.xy / maskingPos.z;
 
 	v_TexRect = vec4(0.0);

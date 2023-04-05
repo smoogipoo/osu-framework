@@ -14,7 +14,9 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 {
     internal class VeldridShaderPart : IShaderPart
     {
-        public static readonly Regex SHADER_INPUT_PATTERN = new Regex(@"^\s*layout\s*\(\s*location\s*=\s*(-?\d+)\s*\)\s*((?:flat\s*)?in\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+(\w+)\s*;)", RegexOptions.Multiline);
+        public static readonly Regex SHADER_INPUT_PATTERN =
+            new Regex(@"^\s*layout\s*\(\s*location\s*=\s*(-?\d+)\s*\)\s*((?:flat\s*)?in\s+(?:(?:lowp|mediump|highp)\s+)?\w+\s+(\w+)\s*;)", RegexOptions.Multiline);
+
         private static readonly Regex last_input_pattern = new Regex(@"^\s*layout\s*\(\s*location\s*=\s*-1\s*\)\s+in", RegexOptions.Multiline);
         private static readonly Regex uniform_pattern = new Regex(@"^(\s*layout\s*\(.*)set\s*=\s*(-?\d)(.*\)\s*(?:(?:readonly\s*)?buffer|uniform))", RegexOptions.Multiline);
         private static readonly Regex include_pattern = new Regex(@"^\s*#\s*include\s+[""<](.*)["">]");
@@ -22,10 +24,12 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
         public readonly ShaderPartType Type;
 
         private readonly List<string> shaderCodes = new List<string>();
+        private readonly VeldridRenderer renderer;
         private readonly ShaderManager manager;
 
-        public VeldridShaderPart(byte[]? data, ShaderPartType type, ShaderManager manager)
+        public VeldridShaderPart(VeldridRenderer renderer, byte[]? data, ShaderPartType type, ShaderManager manager)
         {
+            this.renderer = renderer;
             this.manager = manager;
 
             Type = type;
@@ -117,6 +121,12 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                     string internalIncludes = loadFile(manager.LoadRaw("Internal/sh_Compatibility.h"), false) + "\n";
 
                     internalIncludes += loadFile(manager.LoadRaw("Internal/sh_GlobalUniforms.h"), false) + "\n";
+                    internalIncludes += loadFile(manager.LoadRaw("Internal/sh_MaskingInfo.h"), false) + "\n";
+
+                    if (renderer.Device.Features.StructuredBuffer)
+                        internalIncludes += loadFile(manager.LoadRaw("Internal/sh_MaskingBuffer_SSBO.h"), false) + "\n";
+                    else
+                        internalIncludes += loadFile(manager.LoadRaw("Internal/sh_MaskingBuffer_UBO.h"), false) + "\n";
 
                     if (Type == ShaderPartType.Vertex)
                         internalIncludes += loadFile(manager.LoadRaw("Internal/sh_Vertex_Input.h"), false) + "\n";

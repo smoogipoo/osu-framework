@@ -15,8 +15,10 @@ layout(location = 5) flat out int v_MaskingIndex;
 
 void main(void)
 {
+    InitMasking(m_MaskingIndex);
+
 	// Transform from screen space to masking space.
-	highp vec3 maskingPos = GetMaskingInfo(m_MaskingIndex).ToMaskingSpace * vec3(m_Position, 1.0);
+	highp vec3 maskingPos = g_MaskingInfo.ToMaskingSpace * vec3(m_Position, 1.0);
 	v_MaskingPosition = maskingPos.xy / maskingPos.z;
 
 	v_Colour = m_Colour;
