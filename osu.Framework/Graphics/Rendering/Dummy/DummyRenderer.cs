@@ -156,6 +156,16 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         {
         }
 
+        public RectangleF? CurrentConservativeScreenSpaceRectangle => null;
+
+        public void PushConservativeScreenSpaceRectangle(RectangleF rect)
+        {
+        }
+
+        public void PopConservativeScreenSpaceRectangle()
+        {
+        }
+
         public void PushDepthInfo(DepthInfo depthInfo)
         {
         }

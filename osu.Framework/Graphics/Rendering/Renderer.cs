@@ -228,6 +228,7 @@ namespace osu.Framework.Graphics.Rendering
             scissorStateStack.Clear();
             scissorOffsetStack.Clear();
             shaderStack.Clear();
+            conservativeScreenSpaceRectangleStack.Clear();
 
             quadBatches.Clear();
             quadBatches.Push(defaultQuadBatch);
@@ -618,6 +619,22 @@ namespace osu.Framework.Graphics.Rendering
 
             maskingStack.Pop();
             setMaskingInfo(maskingStack.Peek(), false, true);
+        }
+
+        private readonly Stack<RectangleF> conservativeScreenSpaceRectangleStack = new Stack<RectangleF>();
+
+        internal RectangleF? CurrentConservativeScreenSpaceRectangle => conservativeScreenSpaceRectangleStack.TryPeek(out RectangleF rect) ? rect : null;
+
+        RectangleF? IRenderer.CurrentConservativeScreenSpaceRectangle => CurrentConservativeScreenSpaceRectangle;
+
+        public void PushConservativeScreenSpaceRectangle(RectangleF rect)
+        {
+            conservativeScreenSpaceRectangleStack.Push(rect);
+        }
+
+        public void PopConservativeScreenSpaceRectangle()
+        {
+            conservativeScreenSpaceRectangleStack.Pop();
         }
 
         private void setMaskingInfo(MaskingInfo maskingInfo, bool isPushing, bool overwritePreviousScissor)

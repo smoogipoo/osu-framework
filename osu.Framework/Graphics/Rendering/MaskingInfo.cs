@@ -13,8 +13,6 @@ namespace osu.Framework.Graphics.Rendering
         public RectangleI ScreenSpaceAABB;
         public RectangleF MaskingRect;
 
-        public RectangleF ScreenSpaceInscribedRectangle;
-
         /// <summary>
         /// This matrix transforms screen space coordinates to masking space (likely the parent
         /// space of the container doing the masking).
@@ -41,7 +39,6 @@ namespace osu.Framework.Graphics.Rendering
         public static bool operator ==(in MaskingInfo left, in MaskingInfo right) =>
             left.ScreenSpaceAABB == right.ScreenSpaceAABB &&
             left.MaskingRect == right.MaskingRect &&
-            left.ScreenSpaceInscribedRectangle.Equals(right.ScreenSpaceInscribedRectangle) &&
             left.ToMaskingSpace == right.ToMaskingSpace &&
             left.CornerRadius == right.CornerRadius &&
             left.CornerExponent == right.CornerExponent &&

@@ -51,6 +51,8 @@ namespace osu.Framework.Graphics.Containers
             /// </summary>
             private Quad? screenSpaceMaskingQuad;
 
+            private RectangleF? conservativeScreenSpaceRectangle;
+
             /// <summary>
             /// Information about how the edge effect should be rendered.
             /// </summary>
@@ -98,7 +100,7 @@ namespace osu.Framework.Graphics.Containers
                     shrunkDrawRectangle = new RectangleF(shrunkDrawRectangle.Location, MathUtils.LargestInscribedRectangle(shrunkDrawRectangle.Size, rotation));
 
                     MatrixExtensions.RotateFromLeft(ref inscribingMatrix, -rotation);
-                    MatrixExtensions.TranslateFromLeft(ref inscribingMatrix, new Vector2(shrunkDrawRectangle.Height / 2, -shrunkDrawRectangle.Width / 2));
+                    MatrixExtensions.TranslateFromRight(ref inscribingMatrix, shrunkDrawRectangle.Size / 2);
                 }
 
                 maskingInfo = !Source.Masking
@@ -107,7 +109,6 @@ namespace osu.Framework.Graphics.Containers
                     {
                         ScreenSpaceAABB = Source.ScreenSpaceDrawQuad.AABB,
                         MaskingRect = Source.DrawRectangle.Normalize(),
-                        ScreenSpaceInscribedRectangle = (Quad.FromRectangle(shrunkDrawRectangle) * inscribingMatrix).AABBFloat,
                         ToMaskingSpace = DrawInfo.MatrixInverse,
                         CornerRadius = Source.effectiveCornerRadius,
                         CornerExponent = Source.CornerExponent,
@@ -119,6 +120,10 @@ namespace osu.Framework.Graphics.Containers
                         BlendRange = blendRange,
                         AlphaExponent = 1,
                     };
+
+                conservativeScreenSpaceRectangle = Source.Masking
+                    ? (Quad.FromRectangle(shrunkDrawRectangle) * inscribingMatrix).AABBFloat
+                    : null;
 
                 edgeEffect = Source.EdgeEffect;
                 screenSpaceMaskingQuad = null;
@@ -249,8 +254,19 @@ namespace osu.Framework.Graphics.Containers
                     if (quadBatch != null)
                         renderer.PushQuadBatch(quadBatch);
 
-                    if (maskingInfo != null)
-                        renderer.PushMaskingInfo(maskingInfo.Value);
+                    if (conservativeScreenSpaceRectangle is RectangleF rect)
+                    {
+                        if (renderer.CurrentConservativeScreenSpaceRectangle is RectangleF other)
+                        {
+                            renderer.PushConservativeScreenSpaceRectangle(RectangleF.FromLTRB(
+                                Math.Max(rect.Left, other.Left),
+                                Math.Max(rect.Top, other.Top),
+                                Math.Min(rect.Right, other.Right),
+                                Math.Min(rect.Bottom, other.Bottom)));
+                        }
+                        else
+                            renderer.PushConservativeScreenSpaceRectangle(rect);
+                    }
                 }
 
                 // We still need to invoke this method recursively for all children so their depth value is updated
@@ -263,8 +279,8 @@ namespace osu.Framework.Graphics.Containers
                 // Assume that if we can't increment the depth value, no child can, thus nothing will be drawn.
                 if (canIncrement)
                 {
-                    if (maskingInfo != null)
-                        renderer.PopMaskingInfo();
+                    if (conservativeScreenSpaceRectangle != null)
+                        renderer.PopConservativeScreenSpaceRectangle();
 
                     if (quadBatch != null)
                         renderer.PopQuadBatch();

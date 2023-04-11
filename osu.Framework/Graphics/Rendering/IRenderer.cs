@@ -293,6 +293,12 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         void PopMaskingInfo();
 
+        Primitives.RectangleF? CurrentConservativeScreenSpaceRectangle { get; }
+
+        internal void PushConservativeScreenSpaceRectangle(Primitives.RectangleF rect);
+
+        internal void PopConservativeScreenSpaceRectangle();
+
         /// <summary>
         /// Applies new depth parameters.
         /// </summary>

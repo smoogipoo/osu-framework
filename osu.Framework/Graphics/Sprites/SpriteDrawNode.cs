@@ -83,18 +83,18 @@ namespace osu.Framework.Graphics.Sprites
                 drawRect = new RectangleF(drawRect.Location, MathUtils.LargestInscribedRectangle(drawRect.Size, rotation));
 
                 MatrixExtensions.RotateFromLeft(ref inscribingMatrix, -rotation);
-                MatrixExtensions.TranslateFromLeft(ref inscribingMatrix, new Vector2(drawRect.Height / 2, -drawRect.Width / 2));
+                MatrixExtensions.TranslateFromRight(ref inscribingMatrix, drawRect.Size / 2);
             }
 
             drawRect = (Quad.FromRectangle(drawRect) * inscribingMatrix).AABBFloat;
 
-            if (renderer.IsMaskingActive)
+            if (renderer.CurrentConservativeScreenSpaceRectangle is RectangleF rect)
             {
                 drawRect = RectangleF.FromLTRB(
-                    Math.Max(drawRect.Left, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Left),
-                    Math.Max(drawRect.Top, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Top),
-                    Math.Min(drawRect.Right, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Right),
-                    Math.Min(drawRect.Bottom, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Bottom));
+                    Math.Max(drawRect.Left, rect.Left),
+                    Math.Max(drawRect.Top, rect.Top),
+                    Math.Min(drawRect.Right, rect.Right),
+                    Math.Min(drawRect.Bottom, rect.Bottom));
             }
 
             renderer.DrawQuad(Texture, drawRect, DrawColourInfo.Colour, textureCoords: TextureCoords);
