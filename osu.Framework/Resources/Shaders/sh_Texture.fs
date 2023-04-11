@@ -2,6 +2,8 @@
 #include "sh_Masking.h"
 #include "sh_TextureWrapping.h"
 
+layout(early_fragment_tests) in;
+
 layout(location = 2) in mediump vec2 v_TexCoord;
 
 layout(set = 0, binding = 0) uniform lowp texture2D m_Texture;
