@@ -59,15 +59,15 @@ namespace osu.Framework.Graphics.Shapes
 
             protected override void BlitOpaqueInterior(IRenderer renderer)
             {
-                if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
-                    return;
-
-                var triangle = toTriangle(ConservativeScreenSpaceDrawQuad);
-
-                if (renderer.IsMaskingActive)
-                    renderer.DrawClipped(ref triangle, Texture, DrawColourInfo.Colour);
-                else
-                    renderer.DrawTriangle(Texture, triangle, DrawColourInfo.Colour);
+                // if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
+                //     return;
+                //
+                // var triangle = toTriangle(ConservativeScreenSpaceDrawQuad);
+                //
+                // if (renderer.IsMaskingActive)
+                //     renderer.DrawClipped(ref triangle, Texture, DrawColourInfo.Colour);
+                // else
+                //     renderer.DrawTriangle(Texture, triangle, DrawColourInfo.Colour);
             }
         }
     }

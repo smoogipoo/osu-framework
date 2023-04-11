@@ -10,9 +10,11 @@ using osuTK;
 using osu.Framework.Graphics.Colour;
 using System;
 using System.Runtime.CompilerServices;
+using osu.Framework.Extensions.MatrixExtensions;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
+using osu.Framework.Utils;
 
 namespace osu.Framework.Graphics.Containers
 {
@@ -88,13 +90,24 @@ namespace osu.Framework.Graphics.Containers
                 RectangleF shrunkDrawRectangle = Source.DrawRectangle.Normalize();
                 shrunkDrawRectangle = shrunkDrawRectangle.Shrink(new Vector2(Math.Min(shrunkDrawRectangle.Width / 2, shrinkage), Math.Min(shrunkDrawRectangle.Height / 2, shrinkage)));
 
+                float rotation = MathF.Atan2(DrawInfo.Matrix.M21, DrawInfo.Matrix.M11);
+                Matrix3 inscribingMatrix = DrawInfo.Matrix;
+
+                if (Math.Abs(rotation) > 0)
+                {
+                    shrunkDrawRectangle = new RectangleF(shrunkDrawRectangle.Location, MathUtils.LargestInscribedRectangle(shrunkDrawRectangle.Size, rotation));
+
+                    MatrixExtensions.RotateFromLeft(ref inscribingMatrix, -rotation);
+                    MatrixExtensions.TranslateFromLeft(ref inscribingMatrix, new Vector2(shrunkDrawRectangle.Height / 2, -shrunkDrawRectangle.Width / 2));
+                }
+
                 maskingInfo = !Source.Masking
                     ? null
                     : new MaskingInfo
                     {
                         ScreenSpaceAABB = Source.ScreenSpaceDrawQuad.AABB,
                         MaskingRect = Source.DrawRectangle.Normalize(),
-                        ConservativeScreenSpaceQuad = Quad.FromRectangle(shrunkDrawRectangle) * DrawInfo.Matrix,
+                        ScreenSpaceInscribedRectangle = (Quad.FromRectangle(shrunkDrawRectangle) * inscribingMatrix).AABBFloat,
                         ToMaskingSpace = DrawInfo.MatrixInverse,
                         CornerRadius = Source.effectiveCornerRadius,
                         CornerExponent = Source.CornerExponent,

@@ -7,6 +7,7 @@ using osuTK;
 using osuTK.Graphics;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Allocation;
+using osu.Framework.Graphics.Containers;
 
 namespace SampleGame
 {
@@ -17,19 +18,37 @@ namespace SampleGame
         [BackgroundDependencyLoader]
         private void load()
         {
-            Add(box = new Box
+            Add(new Container
             {
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
                 Size = new Vector2(150, 150),
-                Colour = Color4.Tomato
+                Masking = true,
+                Rotation = 45f,
+                Children = new Drawable[]
+                {
+                    new Box
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = Color4.Green
+                    },
+                    box = new Box
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = Color4.Tomato,
+                        Rotation = -45f
+                    }
+                }
             });
         }
 
         protected override void Update()
         {
             base.Update();
-            box.Rotation += (float)Time.Elapsed / 10;
         }
     }
 }

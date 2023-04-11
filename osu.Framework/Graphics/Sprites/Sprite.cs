@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.Sprites
     {
         public Sprite()
         {
-            AddLayout(conservativeScreenSpaceDrawQuadBacking);
+            AddLayout(conservativeScreenSpaceAABBBacking);
             AddLayout(inflationAmountBacking);
         }
 
@@ -173,7 +173,7 @@ namespace osu.Framework.Graphics.Sprites
                 FillAspectRatio = width / height;
 
                 Invalidate(Invalidation.DrawNode);
-                conservativeScreenSpaceDrawQuadBacking.Invalidate();
+                conservativeScreenSpaceAABBBacking.Invalidate();
 
                 if (Size == Vector2.Zero)
                     Size = new Vector2(texture?.DisplayWidth ?? 0, texture?.DisplayHeight ?? 0);
@@ -201,20 +201,20 @@ namespace osu.Framework.Graphics.Sprites
         }
 
         // Matches the invalidation types of Drawable.screenSpaceDrawQuadBacking
-        private readonly LayoutValue<Quad> conservativeScreenSpaceDrawQuadBacking = new LayoutValue<Quad>(Invalidation.DrawInfo | Invalidation.RequiredParentSizeToFit | Invalidation.Presence);
+        private readonly LayoutValue<RectangleF> conservativeScreenSpaceAABBBacking = new LayoutValue<RectangleF>(Invalidation.DrawInfo | Invalidation.RequiredParentSizeToFit | Invalidation.Presence);
 
-        public Quad ConservativeScreenSpaceDrawQuad => conservativeScreenSpaceDrawQuadBacking.IsValid
-            ? conservativeScreenSpaceDrawQuadBacking
-            : conservativeScreenSpaceDrawQuadBacking.Value = ComputeConservativeScreenSpaceDrawQuad();
+        public RectangleF ConservativeScreenSpaceAABB => conservativeScreenSpaceAABBBacking.IsValid
+            ? conservativeScreenSpaceAABBBacking
+            : conservativeScreenSpaceAABBBacking.Value = ComputeConservativeScreenSpaceABB();
 
-        protected virtual Quad ComputeConservativeScreenSpaceDrawQuad()
+        protected virtual RectangleF ComputeConservativeScreenSpaceABB()
         {
             if (Texture == null || Texture is TextureWhitePixel)
             {
                 if (EdgeSmoothness == Vector2.Zero)
-                    return ScreenSpaceDrawQuad;
+                    return ScreenSpaceDrawQuad.AABBFloat;
 
-                return ToScreenSpace(DrawRectangle);
+                return ToScreenSpace(DrawRectangle).AABBFloat;
             }
 
             // ======================================================================================================================
@@ -250,7 +250,7 @@ namespace osu.Framework.Graphics.Sprites
 
             Vector2 shrinkageAmount = Vector2.ComponentMin(scale.Xy, rectangle.Size / 2);
 
-            return ToScreenSpace(rectangle.Inflate(-shrinkageAmount));
+            return ToScreenSpace(rectangle.Inflate(-shrinkageAmount)).AABBFloat;
         }
 
         public override string ToString()

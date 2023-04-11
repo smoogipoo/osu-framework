@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using osuTK;
 
 namespace osu.Framework.Utils
 {
@@ -45,6 +46,31 @@ namespace osu.Framework.Utils
         public static double RadiansToDegrees(double radians)
         {
             return radians * (180.0 / Math.PI);
+        }
+
+        public static Vector2 LargestInscribedRectangle(Vector2 size, float radians)
+        {
+            bool widthIsLonger = size.X >= size.Y;
+            float sideLong = widthIsLonger ? size.X : size.Y;
+            float sideShort = widthIsLonger ? size.Y : size.X;
+
+            float sinA = MathF.Abs(MathF.Sin(radians));
+            float cosA = MathF.Abs(MathF.Cos(radians));
+
+            if (sideShort <= 2 * sinA * cosA * sideLong || MathF.Abs(sinA - cosA) < 1e-6)
+            {
+                float x = 0.5f * sideShort;
+
+                return widthIsLonger
+                    ? new Vector2(x / sinA, x / cosA)
+                    : new Vector2(x / cosA, x / sinA);
+            }
+
+            float cos2A = cosA * cosA - sinA * sinA;
+
+            return new Vector2(
+                (size.X * cosA - size.Y * sinA) / cos2A,
+                (size.Y * cosA - size.X * sinA) / cos2A);
         }
     }
 }

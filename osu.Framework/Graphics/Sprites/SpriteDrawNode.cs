@@ -3,10 +3,13 @@
 
 #nullable disable
 
+using System;
+using osu.Framework.Extensions.MatrixExtensions;
 using osuTK;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Rendering;
+using osu.Framework.Utils;
 
 namespace osu.Framework.Graphics.Sprites
 {
@@ -25,7 +28,7 @@ namespace osu.Framework.Graphics.Sprites
 
         protected new Sprite Source => (Sprite)base.Source;
 
-        protected Quad ConservativeScreenSpaceDrawQuad;
+        protected RectangleF ConservativeScreenSpaceAABB;
 
         private bool hasOpaqueInterior;
 
@@ -52,7 +55,7 @@ namespace osu.Framework.Graphics.Sprites
                                 && DrawColourInfo.Colour.HasSingleColour;
 
             if (CanDrawOpaqueInterior)
-                ConservativeScreenSpaceDrawQuad = Source.ConservativeScreenSpaceDrawQuad;
+                ConservativeScreenSpaceAABB = Source.ConservativeScreenSpaceAABB;
         }
 
         protected virtual void Blit(IRenderer renderer)
@@ -70,10 +73,31 @@ namespace osu.Framework.Graphics.Sprites
             if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                 return;
 
+            RectangleF drawRect = DrawRectangle;
+
+            float rotation = MathF.Atan2(DrawInfo.Matrix.M21, DrawInfo.Matrix.M11);
+            Matrix3 inscribingMatrix = DrawInfo.Matrix;
+
+            if (Math.Abs(rotation) > 0)
+            {
+                drawRect = new RectangleF(drawRect.Location, MathUtils.LargestInscribedRectangle(drawRect.Size, rotation));
+
+                MatrixExtensions.RotateFromLeft(ref inscribingMatrix, -rotation);
+                MatrixExtensions.TranslateFromLeft(ref inscribingMatrix, new Vector2(drawRect.Height / 2, -drawRect.Width / 2));
+            }
+
+            drawRect = (Quad.FromRectangle(drawRect) * inscribingMatrix).AABBFloat;
+
             if (renderer.IsMaskingActive)
-                renderer.DrawClipped(ref ConservativeScreenSpaceDrawQuad, Texture, DrawColourInfo.Colour);
-            else
-                renderer.DrawQuad(Texture, ConservativeScreenSpaceDrawQuad, DrawColourInfo.Colour, textureCoords: TextureCoords);
+            {
+                drawRect = RectangleF.FromLTRB(
+                    Math.Max(drawRect.Left, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Left),
+                    Math.Max(drawRect.Top, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Top),
+                    Math.Min(drawRect.Right, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Right),
+                    Math.Min(drawRect.Bottom, renderer.CurrentMaskingInfo.ScreenSpaceInscribedRectangle.Bottom));
+            }
+
+            renderer.DrawQuad(Texture, drawRect, DrawColourInfo.Colour, textureCoords: TextureCoords);
         }
 
         public override void Draw(IRenderer renderer)

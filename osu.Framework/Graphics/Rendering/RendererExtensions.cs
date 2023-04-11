@@ -2,14 +2,12 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Runtime.CompilerServices;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.OpenGL.Buffers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Statistics;
-using osu.Framework.Utils;
 using osuTK;
 
 namespace osu.Framework.Graphics.Rendering
@@ -189,32 +187,6 @@ namespace osu.Framework.Graphics.Rendering
             // See https://sentry.ppy.sh/organizations/ppy/issues/5739.
             if (area > 0)
                 FrameStatistics.Add(StatisticsCounterType.Pixels, area);
-        }
-
-        /// <summary>
-        /// Clips a <see cref="IConvexPolygon"/> to the current masking area and draws the resulting triangles to the screen using the specified texture.
-        /// </summary>
-        /// <param name="renderer">The renderer to draw the texture with.</param>
-        /// <param name="polygon">The polygon to draw.</param>
-        /// <param name="texture">The texture to fill the triangle with.</param>
-        /// <param name="textureRect">The texture rectangle.</param>
-        /// <param name="drawColour">The vertex colour.</param>
-        /// <param name="vertexAction">An action that adds vertices to a <see cref="IVertexBatch{T}"/>.</param>
-        /// <param name="inflationPercentage">The percentage amount that <paramref name="textureRect"/> should be inflated.</param>
-        /// <param name="textureCoords">The texture coordinates of the polygon's vertices (translated from the corresponding quad's rectangle).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DrawClipped<T>(this IRenderer renderer, ref T polygon, Texture texture, ColourInfo drawColour, RectangleF? textureRect = null, Action<TexturedVertex2D>? vertexAction = null,
-                                          Vector2? inflationPercentage = null, RectangleF? textureCoords = null)
-            where T : IConvexPolygon
-        {
-            var maskingQuad = renderer.CurrentMaskingInfo.ConservativeScreenSpaceQuad;
-
-            var clipper = new ConvexPolygonClipper<Quad, T>(ref maskingQuad, ref polygon);
-            Span<Vector2> buffer = stackalloc Vector2[clipper.GetClipBufferSize()];
-            Span<Vector2> clippedRegion = clipper.Clip(buffer);
-
-            for (int i = 2; i < clippedRegion.Length; i++)
-                renderer.DrawTriangle(texture, new Triangle(clippedRegion[0], clippedRegion[i - 1], clippedRegion[i]), drawColour, textureRect, vertexAction, inflationPercentage, textureCoords);
         }
 
         /// <summary>
