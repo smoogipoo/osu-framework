@@ -73,20 +73,20 @@ namespace osu.Framework.Graphics.Sprites
             if (DrawRectangle.Width == 0 || DrawRectangle.Height == 0)
                 return;
 
-            RectangleF drawRect = DrawRectangle;
+            Quad drawQuad = Quad.FromRectangle(DrawRectangle) * DrawInfo.Matrix;
 
-            float rotation = MathF.Atan2(DrawInfo.Matrix.M21, DrawInfo.Matrix.M11);
-            Matrix3 inscribingMatrix = DrawInfo.Matrix;
-
-            if (Math.Abs(rotation) > 0)
+            if (Math.Abs(DrawInfo.Rotation) != 0)
             {
-                drawRect = new RectangleF(drawRect.Location, MathUtils.LargestInscribedRectangle(drawRect.Size, rotation));
+                Matrix3 mat = DrawInfo.Matrix;
+                MatrixExtensions.RotateFromLeft(ref mat, -DrawInfo.Rotation);
 
-                MatrixExtensions.RotateFromLeft(ref inscribingMatrix, -rotation);
-                MatrixExtensions.TranslateFromRight(ref inscribingMatrix, drawRect.Size / 2);
+                Vector2 inscribedSize = MathUtils.LargestInscribedRectangle(DrawRectangle.Size, DrawInfo.Rotation);
+                RectangleF inscribed = (Quad.FromRectangle(new RectangleF(DrawRectangle.Location, inscribedSize)) * mat).AABBFloat;
+
+                drawQuad = inscribed.Offset(drawQuad.Centre - inscribed.Centre);
             }
 
-            drawRect = (Quad.FromRectangle(drawRect) * inscribingMatrix).AABBFloat;
+            RectangleF drawRect = drawQuad.AABBFloat;
 
             if (renderer.CurrentConservativeScreenSpaceRectangle is RectangleF rect)
             {

@@ -92,15 +92,17 @@ namespace osu.Framework.Graphics.Containers
                 RectangleF shrunkDrawRectangle = Source.DrawRectangle.Normalize();
                 shrunkDrawRectangle = shrunkDrawRectangle.Shrink(new Vector2(Math.Min(shrunkDrawRectangle.Width / 2, shrinkage), Math.Min(shrunkDrawRectangle.Height / 2, shrinkage)));
 
-                float rotation = MathF.Atan2(DrawInfo.Matrix.M21, DrawInfo.Matrix.M11);
-                Matrix3 inscribingMatrix = DrawInfo.Matrix;
+                Quad shrunkScreenSpaceDrawQuad = Quad.FromRectangle(shrunkDrawRectangle) * DrawInfo.Matrix;
 
-                if (Math.Abs(rotation) > 0)
+                if (Math.Abs(DrawInfo.Rotation) > 0)
                 {
-                    shrunkDrawRectangle = new RectangleF(shrunkDrawRectangle.Location, MathUtils.LargestInscribedRectangle(shrunkDrawRectangle.Size, rotation));
+                    Matrix3 mat = DrawInfo.Matrix;
+                    MatrixExtensions.RotateFromLeft(ref mat, -DrawInfo.Rotation);
 
-                    MatrixExtensions.RotateFromLeft(ref inscribingMatrix, -rotation);
-                    MatrixExtensions.TranslateFromRight(ref inscribingMatrix, shrunkDrawRectangle.Size / 2);
+                    Vector2 inscribedSize = MathUtils.LargestInscribedRectangle(shrunkDrawRectangle.Size, DrawInfo.Rotation);
+                    RectangleF inscribedQuad = (Quad.FromRectangle(new RectangleF(shrunkDrawRectangle.Location, inscribedSize)) * mat).AABBFloat;
+
+                    shrunkScreenSpaceDrawQuad = inscribedQuad.Offset(shrunkScreenSpaceDrawQuad.Centre - inscribedQuad.Centre);
                 }
 
                 maskingInfo = !Source.Masking
@@ -122,7 +124,7 @@ namespace osu.Framework.Graphics.Containers
                     };
 
                 conservativeScreenSpaceRectangle = Source.Masking
-                    ? (Quad.FromRectangle(shrunkDrawRectangle) * inscribingMatrix).AABBFloat
+                    ? shrunkScreenSpaceDrawQuad.AABBFloat
                     : null;
 
                 edgeEffect = Source.EdgeEffect;

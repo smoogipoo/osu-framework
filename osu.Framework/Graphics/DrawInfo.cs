@@ -13,11 +13,13 @@ namespace osu.Framework.Graphics
     {
         public Matrix3 Matrix;
         public Matrix3 MatrixInverse;
+        public float Rotation;
 
         public DrawInfo(Matrix3? matrix = null, Matrix3? matrixInverse = null)
         {
             Matrix = matrix ?? Matrix3.Identity;
             MatrixInverse = matrixInverse ?? Matrix3.Identity;
+            Rotation = 0;
         }
 
         /// <summary>
@@ -30,6 +32,8 @@ namespace osu.Framework.Graphics
         /// <param name="origin">The center of rotation and scale.</param>
         public void ApplyTransform(Vector2 translation, Vector2 scale, float rotation, Vector2 shear, Vector2 origin)
         {
+            Rotation += MathUtils.DegreesToRadians(rotation);
+
             if (translation != Vector2.Zero)
             {
                 MatrixExtensions.TranslateFromLeft(ref Matrix, translation);
