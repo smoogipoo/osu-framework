@@ -9,7 +9,7 @@ using osu.Framework.IO.Stores;
 
 namespace osu.Framework.Graphics.Shaders
 {
-    public class ShaderManager : IDisposable
+    public sealed class ShaderManager : IDisposable
     {
         private const string shader_prefix = @"sh_";
 
@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Shaders
         private readonly ConcurrentDictionary<(string, string), IShader> shaderCache = new ConcurrentDictionary<(string, string), IShader>();
 
         private readonly IRenderer renderer;
-        private readonly IResourceStore<byte[]> store;
+        private readonly ResourceStore<byte[]> store;
 
         /// <summary>
         /// Constructs a new <see cref="ShaderManager"/>.
@@ -25,15 +25,27 @@ namespace osu.Framework.Graphics.Shaders
         public ShaderManager(IRenderer renderer, IResourceStore<byte[]> store)
         {
             this.renderer = renderer;
-            this.store = store;
+            this.store = new ResourceStore<byte[]>(store);
         }
+
+        /// <summary>
+        /// Adds a shader lookup resource store.
+        /// </summary>
+        /// <param name="store">The store to add.</param>
+        public void AddStore(IResourceStore<byte[]> store) => this.store.AddStore(store);
+
+        /// <summary>
+        /// Removes a shader lookup resource store.
+        /// </summary>
+        /// <param name="store">The store to remove.</param>
+        public void RemoveStore(IResourceStore<byte[]> store) => this.store.RemoveStore(store);
 
         /// <summary>
         /// Retrieves raw shader data from the store.
         /// Use <see cref="Load"/> to retrieve a usable <see cref="IShader"/> instead.
         /// </summary>
         /// <param name="name">The shader name.</param>
-        public virtual byte[] LoadRaw(string name)
+        public byte[] LoadRaw(string name)
         {
             byte[]? bytes = store.Get(name);
 
@@ -47,7 +59,7 @@ namespace osu.Framework.Graphics.Shaders
         /// </summary>
         /// <param name="vertex">The vertex shader name.</param>
         /// <param name="fragment">The fragment shader name.</param>
-        public virtual IShader Load(string vertex, string fragment)
+        public IShader Load(string vertex, string fragment)
         {
             var tuple = (vertex, fragment);
 
@@ -61,7 +73,7 @@ namespace osu.Framework.Graphics.Shaders
                 createShaderPart(fragment, ShaderPartType.Fragment));
         }
 
-        internal virtual IShader CreateShader(IRenderer renderer, string name, params IShaderPart[] parts) => renderer.CreateShader(name, parts);
+        internal IShader CreateShader(IRenderer renderer, string name, params IShaderPart[] parts) => renderer.CreateShader(name, parts);
 
         private IShaderPart createShaderPart(string name, ShaderPartType partType, bool bypassCache = false)
         {
@@ -111,27 +123,21 @@ namespace osu.Framework.Graphics.Shaders
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+            if (isDisposed)
+                return;
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!isDisposed)
+            isDisposed = true;
+
+            store.Dispose();
+
+            renderer.ScheduleDisposal(s =>
             {
-                isDisposed = true;
+                foreach (var shader in s.shaderCache.Values)
+                    shader.Dispose();
 
-                store.Dispose();
-
-                renderer.ScheduleDisposal(s =>
-                {
-                    foreach (var shader in s.shaderCache.Values)
-                        shader.Dispose();
-
-                    foreach (var part in s.partCache.Values)
-                        part.Dispose();
-                }, this);
-            }
+                foreach (var part in s.partCache.Values)
+                    part.Dispose();
+            }, this);
         }
 
         #endregion
