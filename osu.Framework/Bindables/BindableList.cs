@@ -26,7 +26,7 @@ namespace osu.Framework.Bindables
         /// </summary>
         public event Action<bool> DisabledChanged;
 
-        private readonly List<T> collection = new List<T>();
+        private List<T> collection = new List<T>();
 
         private readonly Cached<WeakReference<BindableList<T>>> weakReferenceCache = new Cached<WeakReference<BindableList<T>>>();
 
@@ -54,29 +54,15 @@ namespace osu.Framework.Bindables
         public T this[int index]
         {
             get => collection[index];
-            set => setIndex(index, value, null);
-        }
-
-        private void setIndex(int index, T item, BindableList<T> caller)
-        {
-            ensureMutationAllowed();
-
-            T lastItem = collection[index];
-
-            collection[index] = item;
-
-            if (bindings != null)
+            set
             {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.setIndex(index, item, this);
-                }
-            }
+                ensureMutationAllowed();
 
-            notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, item, lastItem, index));
+                T lastItem = collection[index];
+                collection[index] = value;
+
+                notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, lastItem, index));
+            }
         }
 
         /// <summary>
@@ -85,24 +71,10 @@ namespace osu.Framework.Bindables
         /// <param name="item">The item to be added.</param>
         /// <exception cref="InvalidOperationException">Thrown when this <see cref="BindableList{T}"/> is <see cref="Disabled"/>.</exception>
         public void Add(T item)
-            => add(item, null);
-
-        private void add(T item, BindableList<T> caller)
         {
             ensureMutationAllowed();
 
             collection.Add(item);
-
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.add(item, this);
-                }
-            }
 
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, collection.Count - 1));
         }
@@ -121,24 +93,10 @@ namespace osu.Framework.Bindables
         /// <param name="item">The item to insert.</param>
         /// <exception cref="InvalidOperationException">Thrown when this <see cref="BindableList{T}"/> is <see cref="Disabled"/>.</exception>
         public void Insert(int index, T item)
-            => insert(index, item, null);
-
-        private void insert(int index, T item, BindableList<T> caller)
         {
             ensureMutationAllowed();
 
             collection.Insert(index, item);
-
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.insert(index, item, this);
-                }
-            }
 
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
         }
@@ -148,9 +106,6 @@ namespace osu.Framework.Bindables
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when this <see cref="BindableList{T}"/> is <see cref="Disabled"/>.</exception>
         public void Clear()
-            => clear(null);
-
-        private void clear(BindableList<T> caller)
         {
             ensureMutationAllowed();
 
@@ -161,17 +116,6 @@ namespace osu.Framework.Bindables
             var clearedItems = collection.ToList();
 
             collection.Clear();
-
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.clear(this);
-                }
-            }
 
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, clearedItems, 0));
         }
@@ -191,9 +135,6 @@ namespace osu.Framework.Bindables
         /// <returns><code>true</code> if the removal was successful.</returns>
         /// <exception cref="InvalidOperationException">Thrown if this <see cref="BindableList{T}"/> is <see cref="Disabled"/>.</exception>
         public bool Remove(T item)
-            => remove(item, null);
-
-        private bool remove(T item, BindableList<T> caller)
         {
             ensureMutationAllowed();
 
@@ -208,17 +149,6 @@ namespace osu.Framework.Bindables
 
             collection.RemoveAt(index);
 
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-removing from the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.remove(listItem, this);
-                }
-            }
-
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, listItem, index));
 
             return true;
@@ -231,11 +161,6 @@ namespace osu.Framework.Bindables
         /// <param name="count">The count of items to be removed.</param>
         public void RemoveRange(int index, int count)
         {
-            removeRange(index, count, null);
-        }
-
-        private void removeRange(int index, int count, BindableList<T> caller)
-        {
             ensureMutationAllowed();
 
             var removedItems = collection.GetRange(index, count);
@@ -244,17 +169,6 @@ namespace osu.Framework.Bindables
 
             if (removedItems.Count == 0)
                 return;
-
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // Prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.removeRange(index, count, this);
-                }
-            }
 
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItems, index));
         }
@@ -294,9 +208,6 @@ namespace osu.Framework.Bindables
         /// </summary>
         /// <param name="match">The predicate.</param>
         public int RemoveAll(Predicate<T> match)
-            => removeAll(match, null);
-
-        private int removeAll(Predicate<T> match, BindableList<T> caller)
         {
             ensureMutationAllowed();
 
@@ -306,17 +217,6 @@ namespace osu.Framework.Bindables
 
             // RemoveAll is internally optimised
             collection.RemoveAll(match);
-
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.removeAll(match, this);
-                }
-            }
 
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removed));
 
@@ -485,6 +385,8 @@ namespace osu.Framework.Bindables
 
             removeWeakReference(tThem.weakReference);
             tThem.removeWeakReference(weakReference);
+
+            setCollectionRecursive(collection.ToList(), null);
         }
 
         #endregion IUnbindable
@@ -502,27 +404,16 @@ namespace osu.Framework.Bindables
         /// </summary>
         /// <param name="items">The collection whose items should be added to this collection.</param>
         /// <exception cref="InvalidOperationException">Thrown if this collection is <see cref="Disabled"/></exception>
-        public void AddRange(IEnumerable<T> items)
-            => addRange(items as IList ?? items.ToArray(), null);
+        public void AddRange(IEnumerable<T> items) => addRange(items as IList<T> ?? items.ToArray());
 
-        private void addRange(IList items, BindableList<T> caller)
+        private void addRange(IList<T> items)
         {
             ensureMutationAllowed();
 
-            collection.AddRange(items.Cast<T>());
+            int countBefore = collection.Count;
+            collection.AddRange(items);
 
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.addRange(items, this);
-                }
-            }
-
-            notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, items, collection.Count - items.Count));
+            notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, (IList)items, countBefore));
         }
 
         /// <summary>
@@ -531,9 +422,6 @@ namespace osu.Framework.Bindables
         /// <param name="oldIndex">The index of the item to move.</param>
         /// <param name="newIndex">The index specifying the new location of the item.</param>
         public void Move(int oldIndex, int newIndex)
-            => move(oldIndex, newIndex, null);
-
-        private void move(int oldIndex, int newIndex, BindableList<T> caller)
         {
             ensureMutationAllowed();
 
@@ -541,17 +429,6 @@ namespace osu.Framework.Bindables
 
             collection.RemoveAt(oldIndex);
             collection.Insert(newIndex, item);
-
-            if (bindings != null)
-            {
-                foreach (var b in bindings)
-                {
-                    // prevent re-adding the item back to the callee.
-                    // That would result in a <see cref="StackOverflowException"/>.
-                    if (b != caller)
-                        b.move(oldIndex, newIndex, this);
-                }
-            }
 
             notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, item, newIndex, oldIndex));
         }
@@ -594,12 +471,44 @@ namespace osu.Framework.Bindables
             if (them == this)
                 throw new ArgumentException("A collection can not be bound to itself");
 
-            // copy state and content over
-            Parse(them);
+            List<T> oldItems = collection;
+
+            if (!collection.SequenceEqual(them.collection))
+            {
+                // Emulate a .Clear().
+                if (collection.Count > 0)
+                {
+                    setCollectionRecursive(new List<T>(), null);
+                    notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItems, 0));
+                }
+
+                // Emulate a .AddRange().
+                setCollectionRecursive(them.collection, null);
+                notifyCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, collection, 0));
+            }
+            else
+                setCollectionRecursive(them.collection, null);
+
             Disabled = them.Disabled;
 
             addWeakReference(them.weakReference);
             them.addWeakReference(weakReference);
+        }
+
+        private void setCollectionRecursive(List<T> newCollection, BindableList<T> sender)
+        {
+            collection = newCollection;
+
+            if (bindings != null)
+            {
+                foreach (var b in bindings)
+                {
+                    // prevent re-adding the item back to the callee.
+                    // That would result in a <see cref="StackOverflowException"/>.
+                    if (b != sender)
+                        b.setCollectionRecursive(newCollection, this);
+                }
+            }
         }
 
         /// <summary>
@@ -647,7 +556,23 @@ namespace osu.Framework.Bindables
 
         #endregion IEnumerable
 
-        private void notifyCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
+        private void notifyCollectionChanged(NotifyCollectionChangedEventArgs args) => notifyCollectionChangedInternal(args, null);
+
+        private void notifyCollectionChangedInternal(NotifyCollectionChangedEventArgs args, BindableList<T> sender)
+        {
+            if (bindings != null)
+            {
+                foreach (var b in bindings)
+                {
+                    // prevent re-adding the item back to the callee.
+                    // That would result in a <see cref="StackOverflowException"/>.
+                    if (b != sender)
+                        b.notifyCollectionChangedInternal(args, this);
+                }
+            }
+
+            CollectionChanged?.Invoke(this, args);
+        }
 
         private void ensureMutationAllowed()
         {
