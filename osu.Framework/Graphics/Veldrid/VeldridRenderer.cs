@@ -62,6 +62,12 @@ namespace osu.Framework.Graphics.Veldrid
         public VeldridIndexData SharedLinearIndex { get; }
         public VeldridIndexData SharedQuadIndex { get; }
 
+        private readonly DeviceBuffer[] stagingBuffers = new DeviceBuffer[1];
+        private DeviceBuffer currentStagingBuffer => stagingBuffers[(int)ResetId % stagingBuffers.Length];
+        private MappedResource stagingBufferMap;
+
+        private uint stagingBufferOffset;
+
         private readonly List<IVeldridUniformBuffer> uniformBufferResetList = new List<IVeldridUniformBuffer>();
         private readonly Dictionary<int, VeldridTextureResources> boundTextureUnits = new Dictionary<int, VeldridTextureResources>();
         private readonly Dictionary<string, IVeldridUniformBuffer> boundUniformBuffers = new Dictionary<string, IVeldridUniformBuffer>();
@@ -197,6 +203,9 @@ namespace osu.Framework.Graphics.Veldrid
             Commands = Factory.CreateCommandList();
             BufferUpdateCommands = Factory.CreateCommandList();
 
+            for (int i = 0; i < stagingBuffers.Length; i++)
+                stagingBuffers[i] = Factory.CreateBuffer(new BufferDescription(64 * 1024 * 1024, BufferUsage.Staging));
+
             pipeline.Outputs = Device.SwapchainFramebuffer.OutputDescription;
         }
 
@@ -218,17 +227,43 @@ namespace osu.Framework.Graphics.Veldrid
             BufferUpdateCommands.Begin();
 
             base.BeginFrame(windowSize);
+
+            // Must be after the base call.
+            stagingBufferMap = Device.Map(currentStagingBuffer, MapMode.Write);
+        }
+
+        public void StageVertices<T>(DeviceBuffer target, Span<T> data, int startIndex, int count)
+            where T : unmanaged
+        {
+            unsafe
+            {
+                uint startIndexInBytes = (uint)(Unsafe.SizeOf<T>() * startIndex);
+                uint sizeInBytes = (uint)(Unsafe.SizeOf<T>() * count);
+
+                ReadOnlySpan<byte> srcBytes = MemoryMarshal.AsBytes(data).Slice((int)startIndexInBytes, (int)sizeInBytes);
+                Span<byte> dstBytes = new Span<byte>(stagingBufferMap.Data.ToPointer(), (int)stagingBufferMap.SizeInBytes).Slice((int)stagingBufferOffset);
+
+                srcBytes.CopyTo(dstBytes);
+
+                BufferUpdateCommands.CopyBuffer(currentStagingBuffer, stagingBufferOffset, target, startIndexInBytes, sizeInBytes);
+
+                stagingBufferOffset += sizeInBytes;
+            }
         }
 
         protected internal override void FinishFrame()
         {
             base.FinishFrame();
 
+            Device.Unmap(currentStagingBuffer);
+
             BufferUpdateCommands.End();
             Device.SubmitCommands(BufferUpdateCommands);
 
             Commands.End();
             Device.SubmitCommands(Commands);
+
+            stagingBufferOffset = 0;
         }
 
         protected internal override void SwapBuffers() => Device.SwapBuffers();
