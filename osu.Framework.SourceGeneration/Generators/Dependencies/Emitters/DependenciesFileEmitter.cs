@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -61,7 +62,9 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
                                                         SyntaxFactory.Block(
                                                             emitPrecondition(),
                                                             emitBaseCall(),
-                                                            emitRegistration()))));
+                                                            emitRegistration()))))
+                               .AddMembers(
+                                   emitTrampolineConstructors().ToArray());
         }
 
         private StatementSyntax emitPrecondition()
@@ -196,6 +199,100 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
 
             static StatementSyntax createEpilogue() =>
                 SyntaxFactory.ReturnStatement(SyntaxFactory.IdentifierName(LOCAL_DEPENDENCIES_VAR_NAME));
+        }
+
+        private IEnumerable<MemberDeclarationSyntax> emitTrampolineConstructors()
+        {
+            foreach (ConstructorDeclarationSyntax origConstructor in Target.ClassSyntax.Members.OfType<ConstructorDeclarationSyntax>())
+            {
+                List<ParameterSyntax> origRequiredParams = new List<ParameterSyntax>();
+                List<ParameterSyntax> origOptionalParams = new List<ParameterSyntax>();
+
+                foreach (var param in origConstructor.ParameterList.Parameters)
+                {
+                    if (param.Default == null)
+                        origRequiredParams.Add(param);
+                    else
+                        origOptionalParams.Add(param);
+                }
+
+                List<ParameterSyntax> depsRequiredParams = new List<ParameterSyntax>();
+                List<ParameterSyntax> depsOptionalParams = new List<ParameterSyntax>();
+
+                foreach (var param in emitDependenciesAsParameters())
+                {
+                    if (param.Default == null)
+                        depsRequiredParams.Add(param);
+                    else
+                        depsOptionalParams.Add(param);
+                }
+
+                yield return
+                    origConstructor
+                        .WithParameterList(
+                            SyntaxFactory.ParameterList(
+                                SyntaxFactory.SeparatedList(
+                                    origRequiredParams
+                                        .Concat(depsRequiredParams)
+                                        .Concat(origOptionalParams)
+                                        .Concat(depsOptionalParams))))
+                        .WithInitializer(
+                            SyntaxFactory.ConstructorInitializer(
+                                SyntaxKind.ThisConstructorInitializer,
+                                SyntaxFactory.ArgumentList(
+                                    SyntaxFactory.SeparatedList(
+                                        origConstructor.ParameterList.Parameters.Select(p =>
+                                            SyntaxFactory.Argument(
+                                                SyntaxFactory.IdentifierName(p.Identifier.Text)))))))
+                        .WithBody(
+                            SyntaxFactory.Block(
+                                /* Todo: */));
+            }
+        }
+
+        private IEnumerable<ParameterSyntax> emitDependenciesAsParameters()
+        {
+            foreach (var param in Target.ResolvedMembers.Where(p => !p.CanBeNull))
+                yield return createParameter(param.PropertyName, param.GlobalPrefixedTypeName, false);
+
+            foreach (var loader in Target.DependencyLoaderMembers.Where(l => !l.CanBeNull))
+            {
+                foreach (var param in loader.Parameters.Where(p => !p.CanBeNull))
+                {
+                    yield return createParameter(param.ParameterName, param.GlobalPrefixedTypeName, false);
+                }
+            }
+
+            foreach (var param in Target.ResolvedMembers.Where(p => p.CanBeNull))
+                yield return createParameter(param.PropertyName, param.GlobalPrefixedTypeName, false);
+
+            foreach (var loader in Target.DependencyLoaderMembers.Where(l => l.CanBeNull))
+            {
+                foreach (var param in loader.Parameters.Where(p => p.CanBeNull))
+                {
+                    yield return createParameter(param.ParameterName, param.GlobalPrefixedTypeName, false);
+                }
+            }
+
+            static ParameterSyntax createParameter(string name, string type, bool canBeNull)
+            {
+                ParameterSyntax param = SyntaxFactory.Parameter(
+                                                         SyntaxFactory.Identifier(char.ToLowerInvariant(name[0]) + name.Substring(1)))
+                                                     .WithType(
+                                                         SyntaxFactory.ParseTypeName(type));
+
+                if (canBeNull)
+                {
+                    param = param.WithType(
+                                     SyntaxFactory.NullableType(param.Type!))
+                                 .WithDefault(
+                                     SyntaxFactory.EqualsValueClause(
+                                         SyntaxFactory.LiteralExpression(
+                                             SyntaxKind.NullLiteralExpression)));
+                }
+
+                return param;
+            }
         }
     }
 }
