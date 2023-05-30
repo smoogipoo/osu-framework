@@ -7,11 +7,13 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Data
 {
     public readonly struct BackgroundDependencyLoaderParameterData
     {
+        public readonly string ParameterName;
         public readonly string GlobalPrefixedTypeName;
         public readonly bool CanBeNull;
 
-        public BackgroundDependencyLoaderParameterData(string globalPrefixedTypeName, bool canBeNull)
+        public BackgroundDependencyLoaderParameterData(string parameterName, string globalPrefixedTypeName, bool canBeNull)
         {
+            ParameterName = parameterName;
             GlobalPrefixedTypeName = globalPrefixedTypeName;
             CanBeNull = canBeNull;
         }
@@ -21,7 +23,7 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Data
             string globalPrefixedTypeName = SyntaxHelpers.GetGlobalPrefixedTypeName(parameter.Type)!;
             bool canBeNull = parameter.NullableAnnotation == NullableAnnotation.Annotated;
 
-            return new BackgroundDependencyLoaderParameterData(globalPrefixedTypeName, canBeNull);
+            return new BackgroundDependencyLoaderParameterData(parameter.Name, globalPrefixedTypeName, canBeNull);
         }
     }
 }

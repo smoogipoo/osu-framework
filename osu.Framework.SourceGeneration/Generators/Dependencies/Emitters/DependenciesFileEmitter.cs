@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -15,10 +16,13 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
         public const string IS_REGISTERED_METHOD_NAME = "IsRegistered";
         public const string REGISTER_FOR_DEPENDENCY_ACTIVATION_METHOD_NAME = "RegisterForDependencyActivation";
         public const string REGISTER_METHOD_NAME = "Register";
+        public const string FACTORY_METHOD_NAME = "Factory";
 
         public const string TARGET_PARAMETER_NAME = "t";
         public const string DEPENDENCIES_PARAMETER_NAME = "d";
         public const string CACHE_INFO_PARAMETER_NAME = "i";
+
+        public const string SOURCE_GENERATED_OBJECT_CREATION_FACTORY_NAME = "SourceGeneratedObjectCreationFactory";
 
         public const string LOCAL_DEPENDENCIES_VAR_NAME = "dependencies";
 
@@ -39,7 +43,8 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
                                            SyntaxFactory.SimpleBaseType(
                                                SyntaxFactory.ParseTypeName("global::osu.Framework.Allocation.ISourceGeneratedDependencyActivator")))))
                                .WithMembers(
-                                   SyntaxFactory.SingletonList<MemberDeclarationSyntax>(
+                                   SyntaxFactory.List(new MemberDeclarationSyntax[]
+                                   {
                                        SyntaxFactory.MethodDeclaration(
                                                         SyntaxFactory.PredefinedType(
                                                             SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
@@ -61,7 +66,25 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
                                                         SyntaxFactory.Block(
                                                             emitPrecondition(),
                                                             emitBaseCall(),
-                                                            emitRegistration()))));
+                                                            emitRegistration())),
+                                       SyntaxFactory.MethodDeclaration(
+                                                        SyntaxFactory.ParseTypeName(Target.GlobalPrefixedTypeName + $".{SOURCE_GENERATED_OBJECT_CREATION_FACTORY_NAME}"),
+                                                        FACTORY_METHOD_NAME)
+                                                    .WithModifiers(
+                                                        SyntaxFactory.TokenList(
+                                                            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                                                            SyntaxFactory.Token(SyntaxKind.NewKeyword),
+                                                            SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
+                                                    .WithExpressionBody(
+                                                        SyntaxFactory.ArrowExpressionClause(
+                                                            SyntaxFactory.ObjectCreationExpression(
+                                                                             SyntaxFactory.IdentifierName(Target.GlobalPrefixedTypeName + $".{SOURCE_GENERATED_OBJECT_CREATION_FACTORY_NAME}"))
+                                                                         .WithArgumentList(
+                                                                             SyntaxFactory.ArgumentList())))
+                                                    .WithSemicolonToken(
+                                                        SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                                       emitFactoryClass()
+                                   }));
         }
 
         private StatementSyntax emitPrecondition()
@@ -196,6 +219,88 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
 
             static StatementSyntax createEpilogue() =>
                 SyntaxFactory.ReturnStatement(SyntaxFactory.IdentifierName(LOCAL_DEPENDENCIES_VAR_NAME));
+        }
+
+        private StructDeclarationSyntax emitFactoryClass()
+        {
+            return SyntaxFactory.StructDeclaration(SOURCE_GENERATED_OBJECT_CREATION_FACTORY_NAME)
+                                .WithModifiers(
+                                    SyntaxFactory.TokenList(
+                                        SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                                        SyntaxFactory.Token(SyntaxKind.NewKeyword),
+                                        SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword),
+                                        SyntaxFactory.Token(SyntaxKind.RefKeyword)))
+                                .WithMembers(
+                                    SyntaxFactory.SingletonList<MemberDeclarationSyntax>(
+                                        SyntaxFactory.MethodDeclaration(
+                                                         SyntaxFactory.ParseTypeName(Target.GlobalPrefixedTypeName),
+                                                         "With")
+                                                     .WithModifiers(
+                                                         SyntaxFactory.TokenList(
+                                                             SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+                                                     .WithParameterList(
+                                                         SyntaxFactory.ParameterList(
+                                                             SyntaxFactory.SeparatedList(
+                                                                 emitNewMethodParameters())))
+                                                     .WithBody(
+                                                         SyntaxFactory.Block(
+                                                             /* Todo */))
+                                    ));
+        }
+
+        private IEnumerable<SyntaxToken> emitNewMethodModifiers()
+        {
+            yield return SyntaxFactory.Token(SyntaxKind.PublicKeyword);
+
+            if (Target.NeedsOverride)
+                yield return SyntaxFactory.Token(SyntaxKind.NewKeyword);
+
+            yield return SyntaxFactory.Token(SyntaxKind.StaticKeyword);
+        }
+
+        private IEnumerable<ParameterSyntax> emitNewMethodParameters()
+        {
+            foreach (var param in Target.ResolvedMembers.Where(p => !p.CanBeNull))
+                yield return createParameter(param.PropertyName, param.GlobalPrefixedTypeName, false);
+
+            foreach (var loader in Target.DependencyLoaderMembers.Where(l => !l.CanBeNull))
+            {
+                foreach (var param in loader.Parameters.Where(p => !p.CanBeNull))
+                {
+                    yield return createParameter(param.ParameterName, param.GlobalPrefixedTypeName, false);
+                }
+            }
+
+            foreach (var param in Target.ResolvedMembers.Where(p => p.CanBeNull))
+                yield return createParameter(param.PropertyName, param.GlobalPrefixedTypeName, false);
+
+            foreach (var loader in Target.DependencyLoaderMembers.Where(l => l.CanBeNull))
+            {
+                foreach (var param in loader.Parameters.Where(p => p.CanBeNull))
+                {
+                    yield return createParameter(param.ParameterName, param.GlobalPrefixedTypeName, false);
+                }
+            }
+
+            static ParameterSyntax createParameter(string name, string type, bool canBeNull)
+            {
+                ParameterSyntax param = SyntaxFactory.Parameter(
+                                                         SyntaxFactory.Identifier(char.ToLowerInvariant(name[0]) + name.Substring(1)))
+                                                     .WithType(
+                                                         SyntaxFactory.ParseTypeName(type));
+
+                if (canBeNull)
+                {
+                    param = param.WithType(
+                                     SyntaxFactory.NullableType(param.Type!))
+                                 .WithDefault(
+                                     SyntaxFactory.EqualsValueClause(
+                                         SyntaxFactory.LiteralExpression(
+                                             SyntaxKind.NullLiteralExpression)));
+                }
+
+                return param;
+            }
         }
     }
 }
