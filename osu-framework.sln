@@ -71,6 +71,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu.Framework.SourceGenerat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu.Framework.SourceGeneration.Tests", "osu.Framework.SourceGeneration.Tests\osu.Framework.SourceGeneration.Tests.csproj", "{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Veldrid", "..\veldrid\src\Veldrid\Veldrid.csproj", "{D4BBB233-6B29-47E2-B83A-5666A66224EB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -365,6 +367,18 @@ Global
 		{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}.Release|iPhone.Build.0 = Release|Any CPU
 		{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
 		{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Release|iPhone.Build.0 = Release|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{D4BBB233-6B29-47E2-B83A-5666A66224EB}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

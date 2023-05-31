@@ -32,7 +32,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             set
             {
                 data = value;
-                renderer.BufferUpdateCommands.UpdateBuffer(buffer, 0, ref data);
+                renderer.Commands.UpdateBuffer(buffer, 0, ref data);
             }
         }
 

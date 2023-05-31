@@ -53,7 +53,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers.Staging
         {
             unmap();
 
-            renderer.BufferUpdateCommands.CopyBuffer(
+            renderer.Commands.CopyBuffer(
                 stagingBuffer,
                 (uint)(srcOffset * Unsafe.SizeOf<T>()),
                 buffer,

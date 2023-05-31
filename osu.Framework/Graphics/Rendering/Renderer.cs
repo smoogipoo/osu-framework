@@ -178,8 +178,9 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Resets any states to prepare for drawing a new frame.
         /// </summary>
+        /// <param name="frameId"></param>
         /// <param name="windowSize">The full window size.</param>
-        protected internal virtual void BeginFrame(Vector2 windowSize)
+        protected internal virtual void BeginFrame(ulong frameId, Vector2 windowSize)
         {
             foreach (var source in flush_source_statistics)
                 source.Value = 0;
@@ -1129,7 +1130,7 @@ namespace osu.Framework.Graphics.Rendering
         }
 
         IVertexBatch<TexturedVertex2D> IRenderer.DefaultQuadBatch => DefaultQuadBatch;
-        void IRenderer.BeginFrame(Vector2 windowSize) => BeginFrame(windowSize);
+        void IRenderer.BeginFrame(ulong frameId, Vector2 windowSize) => BeginFrame(frameId, windowSize);
         void IRenderer.FinishFrame() => FinishFrame();
         void IRenderer.FlushCurrentBatch(FlushBatchSource? source) => FlushCurrentBatch(source);
         void IRenderer.SwapBuffers() => SwapBuffers();

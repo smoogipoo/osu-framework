@@ -161,8 +161,9 @@ namespace osu.Framework.Graphics.Rendering
         /// <summary>
         /// Resets any states to prepare for drawing a new frame.
         /// </summary>
+        /// <param name="frameId"></param>
         /// <param name="windowSize">The full window size.</param>
-        protected internal void BeginFrame(Vector2 windowSize);
+        protected internal void BeginFrame(ulong frameId, Vector2 windowSize);
 
         /// <summary>
         /// Performs any last actions before a frame ends.

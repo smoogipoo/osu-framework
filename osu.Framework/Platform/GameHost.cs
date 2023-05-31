@@ -44,6 +44,8 @@ using osu.Framework.Graphics.Video;
 using osu.Framework.IO.Serialization;
 using osu.Framework.IO.Stores;
 using osu.Framework.Localisation;
+using osu.Framework.Utils;
+using Veldrid.OpenGL;
 using Size = System.Drawing.Size;
 
 namespace osu.Framework.Platform
@@ -467,9 +469,13 @@ namespace osu.Framework.Platform
         }
 
         private readonly DepthValue depthValue = new DepthValue();
+        private readonly LatencyFlex latencyFlex = new LatencyFlex();
+        private ulong frameId;
 
         protected virtual void DrawFrame()
         {
+            ++frameId;
+
             if (Root == null)
                 return;
 
@@ -478,6 +484,20 @@ namespace osu.Framework.Platform
 
             Renderer.AllowTearing = windowMode.Value == WindowMode.Fullscreen;
             Renderer.WaitUntilNextFrameReady();
+
+            Wangs.FrameId = frameId;
+
+            ulong currentTime = (ulong)DrawThread.Clock.CurrentTime;
+            ulong waitTarget = latencyFlex.GetWaitTarget(frameId);
+            int sleepTime = (int)Math.Max(0, (long)waitTarget - (long)currentTime);
+
+            if (sleepTime > 0)
+            {
+                Thread.Sleep(sleepTime);
+                Console.WriteLine($"Slept: {sleepTime}ms");
+            }
+
+            latencyFlex.BeginFrame(frameId, waitTarget, sleepTime == 0 ? currentTime : waitTarget);
 
             ObjectUsage<DrawNode> buffer;
 
@@ -490,11 +510,13 @@ namespace osu.Framework.Platform
             try
             {
                 using (drawMonitor.BeginCollecting(PerformanceCollectionType.DrawReset))
-                    Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
+                    Renderer.BeginFrame(frameId, new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
 
                 if (!bypassFrontToBackPass.Value)
                 {
                     depthValue.Reset();
+
+                    Thread.Sleep(5);
 
                     Renderer.SetBlend(BlendingParameters.None);
 
@@ -942,6 +964,12 @@ namespace osu.Framework.Platform
             Logger.Log($"🖼️ Initialising \"{renderer.GetType().ReadableName().Replace("Renderer", "")}\" renderer with \"{surfaceType}\" surface");
 
             Renderer = renderer;
+            Wangs.FrameCompleted += frameId =>
+            {
+                latencyFlex.EndFrame(frameId, (ulong)DrawThread.Clock.CurrentTime, out ulong latency, out ulong frameTime);
+                // Console.WriteLine($"Latency: {latency}");
+                // Console.WriteLine($"Frame Time: {frameTime}");
+            };
 
             // Prepare window
             Window = CreateWindow(surfaceType);

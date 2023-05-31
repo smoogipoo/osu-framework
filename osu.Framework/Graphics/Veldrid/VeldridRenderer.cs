@@ -58,7 +58,6 @@ namespace osu.Framework.Graphics.Veldrid
         public ResourceFactory Factory => Device.ResourceFactory;
 
         public CommandList Commands { get; private set; } = null!;
-        public CommandList BufferUpdateCommands { get; private set; } = null!;
 
         public VeldridIndexData SharedLinearIndex { get; }
         public VeldridIndexData SharedQuadIndex { get; }
@@ -196,14 +195,13 @@ namespace osu.Framework.Graphics.Veldrid
             MaxTextureSize = maxTextureSize;
 
             Commands = Factory.CreateCommandList();
-            BufferUpdateCommands = Factory.CreateCommandList();
 
             pipeline.Outputs = Device.SwapchainFramebuffer.OutputDescription;
         }
 
         private Vector2 currentSize;
 
-        protected internal override void BeginFrame(Vector2 windowSize)
+        protected internal override void BeginFrame(ulong frameId, Vector2 windowSize)
         {
             if (windowSize != currentSize)
             {
@@ -216,17 +214,13 @@ namespace osu.Framework.Graphics.Veldrid
             uniformBufferResetList.Clear();
 
             Commands.Begin();
-            BufferUpdateCommands.Begin();
 
-            base.BeginFrame(windowSize);
+            base.BeginFrame(frameId, windowSize);
         }
 
         protected internal override void FinishFrame()
         {
             base.FinishFrame();
-
-            BufferUpdateCommands.End();
-            Device.SubmitCommands(BufferUpdateCommands);
 
             Commands.End();
             Device.SubmitCommands(Commands);
@@ -333,7 +327,7 @@ namespace osu.Framework.Graphics.Veldrid
                 }
             }
 
-            BufferUpdateCommands.CopyTexture(
+            Commands.CopyTexture(
                 staging, 0, 0, 0, 0, 0,
                 texture, (uint)x, (uint)y, 0, (uint)level, 0, (uint)width, (uint)height, 1, 1);
         }

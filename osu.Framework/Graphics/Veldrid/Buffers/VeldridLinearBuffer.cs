@@ -37,7 +37,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
                 for (ushort i = 0; i < amountVertices; i++)
                     indices[i] = i;
 
-                renderer.BufferUpdateCommands.UpdateBuffer(renderer.SharedLinearIndex.Buffer, 0, indices);
+                renderer.Commands.UpdateBuffer(renderer.SharedLinearIndex.Buffer, 0, indices);
             }
         }
 

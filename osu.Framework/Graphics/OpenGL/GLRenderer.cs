@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -61,6 +62,8 @@ namespace osu.Framework.Graphics.OpenGL
         private bool? lastBlendingEnabledState;
         private int lastBoundVertexArray;
 
+        private readonly ConcurrentQueue<(ulong frameId, IntPtr fence)> fenceQueue = new ConcurrentQueue<(ulong, IntPtr)>();
+
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             if (graphicsSurface.Type != GraphicsSurfaceType.OpenGL)
@@ -104,7 +107,7 @@ namespace osu.Framework.Graphics.OpenGL
             return extensionsBuilder.ToString().TrimEnd();
         }
 
-        protected internal override void BeginFrame(Vector2 windowSize)
+        protected internal override void BeginFrame(ulong frameId, Vector2 windowSize)
         {
             lastBlendingEnabledState = null;
             lastBoundBuffers.AsSpan().Clear();
@@ -115,7 +118,7 @@ namespace osu.Framework.Graphics.OpenGL
 
             GL.UseProgram(0);
 
-            base.BeginFrame(windowSize);
+            base.BeginFrame(frameId, windowSize);
         }
 
         protected internal override void WaitUntilNextFrameReady()
