@@ -149,6 +149,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                         {
                             GraphicsSurfaceType.Metal => CrossCompileTarget.MSL,
                             GraphicsSurfaceType.Direct3D11 => CrossCompileTarget.HLSL,
+                            GraphicsSurfaceType.Direct3D12 => CrossCompileTarget.HLSL,
                             _ => throw new InvalidOperationException($"Unsupported surface type: {renderer.SurfaceType}.")
                         };
 

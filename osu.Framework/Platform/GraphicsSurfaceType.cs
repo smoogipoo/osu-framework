@@ -33,5 +33,11 @@ namespace osu.Framework.Platform
         /// </summary>
         [Description("Direct3D 11")]
         Direct3D11,
+
+        /// <summary>
+        /// A Direct3D12 graphics surface.
+        /// </summary>
+        [Description("Direct3D 12")]
+        Direct3D12,
     }
 }

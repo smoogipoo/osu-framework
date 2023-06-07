@@ -17,7 +17,10 @@
       "osu.Framework.Tests\\osu.Framework.Tests.csproj",
       "osu.Framework\\osu.Framework.csproj",
       "SampleGame.Desktop\\SampleGame.Desktop.csproj",
-      "SampleGame\\SampleGame.csproj"
+      "SampleGame\\SampleGame.csproj",
+      "..\\veldrid\\src\\Veldrid.MetalBindings\\Veldrid.MetalBindings.csproj",
+      "..\\veldrid\\src\\Veldrid.OpenGLBindings\\Veldrid.OpenGLBindings.csproj",
+      "..\\veldrid\\src\\Veldrid\\Veldrid.csproj"
     ]
   }
 }

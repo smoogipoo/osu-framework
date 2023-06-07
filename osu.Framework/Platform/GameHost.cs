@@ -811,6 +811,7 @@ namespace osu.Framework.Platform
             switch (RuntimeInfo.OS)
             {
                 case RuntimeInfo.Platform.Windows:
+                    yield return RendererType.Direct3D12;
                     yield return RendererType.Direct3D11;
 
                     break;
@@ -909,6 +910,10 @@ namespace osu.Framework.Platform
 
                 case RendererType.Direct3D11:
                     surface = GraphicsSurfaceType.Direct3D11;
+                    break;
+
+                case RendererType.Direct3D12:
+                    surface = GraphicsSurfaceType.Direct3D12;
                     break;
 
                 case RendererType.OpenGL:

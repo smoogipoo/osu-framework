@@ -19,6 +19,9 @@ namespace osu.Framework.Configuration
         [Description("Direct3D 11")]
         Direct3D11,
 
+        [Description("Direct3D 12")]
+        Direct3D12,
+
         [Description("OpenGL")]
         OpenGL,
 

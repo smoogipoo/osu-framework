@@ -43,6 +43,7 @@ namespace osu.Framework.Platform.SDL2
                 case GraphicsSurfaceType.Vulkan:
                 case GraphicsSurfaceType.Metal:
                 case GraphicsSurfaceType.Direct3D11:
+                case GraphicsSurfaceType.Direct3D12:
                     break;
 
                 default:
@@ -76,6 +77,7 @@ namespace osu.Framework.Platform.SDL2
                     break;
 
                 case GraphicsSurfaceType.Direct3D11:
+                case GraphicsSurfaceType.Direct3D12:
                     // todo: SDL has no "drawable size" method for D3D11, return window size for now.
                     SDL.SDL_GetWindowSize(window.SDLWindowHandle, out width, out height);
                     break;

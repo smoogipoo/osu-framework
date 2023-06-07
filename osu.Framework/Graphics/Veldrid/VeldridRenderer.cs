@@ -98,6 +98,7 @@ namespace osu.Framework.Graphics.Veldrid
                 SwapchainDepthFormat = PixelFormat.R16_UNorm,
                 SyncToVerticalBlank = true,
                 ResourceBindingModel = ResourceBindingModel.Improved,
+                Debug = true
             };
 
             var size = graphicsSurface.GetDrawableSize();
@@ -185,6 +186,11 @@ namespace osu.Framework.Graphics.Veldrid
                 case GraphicsSurfaceType.Direct3D11:
                     Device = GraphicsDevice.CreateD3D11(options, swapchain);
                     Device.LogD3D11(out maxTextureSize);
+                    break;
+
+                case GraphicsSurfaceType.Direct3D12:
+                    Device = GraphicsDevice.CreateD3D12(options, swapchain);
+                    // Device.LogD3D11(out maxTextureSize);
                     break;
 
                 case GraphicsSurfaceType.Metal:

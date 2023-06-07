@@ -45,6 +45,7 @@ namespace osu.Framework.Platform.Windows
                     break;
 
                 case GraphicsSurfaceType.Direct3D11:
+                case GraphicsSurfaceType.Direct3D12:
                     applyBorderlessWindowHack = false;
                     break;
             }
