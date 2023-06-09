@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using JetBrains.Annotations;
-using Newtonsoft.Json;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.IO.Serialization;
@@ -441,14 +440,24 @@ namespace osu.Framework.Bindables
         /// <inheritdoc cref="IBindable{T}.GetBoundCopy"/>
         public Bindable<T> GetBoundCopy() => IBindable.GetBoundCopyImplementation(this);
 
-        void ISerializableBindable.SerializeTo(JsonWriter writer, JsonSerializer serializer)
+        void ISerializableBindable.SerializeTo(Newtonsoft.Json.JsonWriter writer, Newtonsoft.Json.JsonSerializer serializer)
         {
             serializer.Serialize(writer, Value);
         }
 
-        void ISerializableBindable.DeserializeFrom(JsonReader reader, JsonSerializer serializer)
+        void ISerializableBindable.DeserializeFrom(Newtonsoft.Json.JsonReader reader, Newtonsoft.Json.JsonSerializer serializer)
         {
             Value = serializer.Deserialize<T>(reader);
+        }
+
+        public void SerializeTo(System.Text.Json.Utf8JsonWriter writer, System.Text.Json.JsonSerializerOptions options)
+        {
+            writer.WriteRawValue(System.Text.Json.JsonSerializer.Serialize(Value, options), true);
+        }
+
+        public void DeserializeFrom(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options)
+        {
+            Value = System.Text.Json.JsonSerializer.Deserialize<T>(ref reader, options);
         }
 
         private LeasedBindable<T> leasedBindable;
