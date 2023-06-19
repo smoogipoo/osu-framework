@@ -1,5 +1,8 @@
 // Automatically included for every vertex shader.
 
+#ifndef INTERNAL_VERTEX_OUTPUT_H
+#define INTERNAL_VERTEX_OUTPUT_H
+
 void main()
 {
     {{ real_main }}(); // Invoke real main func
@@ -18,3 +21,5 @@ void main()
     if (g_IsClipSpaceYInverted || requiresFramebufferInvert)
         gl_Position.y = -gl_Position.y;
 }
+
+#endif

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Primitives;
@@ -14,10 +15,12 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid.Batches;
 using osu.Framework.Platform;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Buffers.Staging;
 using osu.Framework.Graphics.Veldrid.Shaders;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Statistics;
 using osuTK;
+using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -60,7 +63,7 @@ namespace osu.Framework.Graphics.Veldrid
         public VeldridIndexData SharedLinearIndex { get; }
         public VeldridIndexData SharedQuadIndex { get; }
 
-        private readonly List<IVeldridUniformBuffer> uniformBufferResetList = new List<IVeldridUniformBuffer>();
+        private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
         private readonly Dictionary<int, VeldridTextureResources> boundTextureUnits = new Dictionary<int, VeldridTextureResources>();
         private readonly Dictionary<string, IVeldridUniformBuffer> boundUniformBuffers = new Dictionary<string, IVeldridUniformBuffer>();
         private IGraphicsSurface graphicsSurface = null!;
@@ -267,8 +270,10 @@ namespace osu.Framework.Graphics.Veldrid
             if (texture is not VeldridTexture veldridTexture)
                 return false;
 
-            foreach (var res in veldridTexture.GetResourceList())
-                boundTextureUnits[unit++] = res;
+            var resources = veldridTexture.GetResourceList();
+
+            for (int i = 0; i < resources.Count; i++)
+                BindTextureResource(resources[i], unit++);
 
             return true;
         }
@@ -305,10 +310,32 @@ namespace osu.Framework.Graphics.Veldrid
         {
             using var staging = Factory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, texture.Format, TextureUsage.Staging));
 
-            for (uint yi = (uint)y; yi < height; yi++)
-                Device.UpdateTexture(staging, (IntPtr)(data.ToInt64() + yi * rowLengthInBytes), (uint)rowLengthInBytes, (uint)x, yi, 0, (uint)width, 1, 1, (uint)level, 0);
+            unsafe
+            {
+                MappedResource mappedData = Device.Map(staging, MapMode.Write);
 
-            Commands.CopyTexture(staging, texture);
+                try
+                {
+                    void* srcPtr = data.ToPointer();
+                    void* dstPtr = mappedData.Data.ToPointer();
+
+                    for (int i = 0; i < height; i++)
+                    {
+                        Unsafe.CopyBlockUnaligned(dstPtr, srcPtr, mappedData.RowPitch);
+
+                        srcPtr = Unsafe.Add<byte>(srcPtr, rowLengthInBytes);
+                        dstPtr = Unsafe.Add<byte>(dstPtr, (int)mappedData.RowPitch);
+                    }
+                }
+                finally
+                {
+                    Device.Unmap(staging);
+                }
+            }
+
+            BufferUpdateCommands.CopyTexture(
+                staging, 0, 0, 0, 0, 0,
+                texture, (uint)x, (uint)y, 0, (uint)level, 0, (uint)width, (uint)height, 1, 1);
         }
 
         protected override void SetShaderImplementation(IShader shader)
@@ -366,6 +393,11 @@ namespace osu.Framework.Graphics.Veldrid
             VeldridFrameBuffer? veldridFrameBuffer = (VeldridFrameBuffer?)frameBuffer;
             Framebuffer framebuffer = veldridFrameBuffer?.Framebuffer ?? Device.SwapchainFramebuffer;
 
+            SetFramebuffer(framebuffer);
+        }
+
+        public void SetFramebuffer(Framebuffer framebuffer)
+        {
             Commands.SetFramebuffer(framebuffer);
             pipeline.Outputs = framebuffer.OutputDescription;
         }
@@ -539,11 +571,11 @@ namespace osu.Framework.Graphics.Veldrid
             }
         }
 
-        protected override IShaderPart CreateShaderPart(ShaderManager manager, string name, byte[]? rawData, ShaderPartType partType)
-            => new VeldridShaderPart(this, rawData, partType, manager);
+        protected override IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
+            => new VeldridShaderPart(this, rawData, partType, store);
 
-        protected override IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer)
-            => new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), globalUniformBuffer);
+        protected override IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer, ShaderCompilationStore compilationStore)
+            => new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), globalUniformBuffer, compilationStore);
 
         public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
             => new VeldridFrameBuffer(this, renderBufferFormats?.ToPixelFormats(), filteringMode.ToSamplerFilter());
@@ -567,11 +599,43 @@ namespace osu.Framework.Graphics.Veldrid
             => new VeldridArrayBuffer<TData>(this, length);
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
-                                                              Rgba32 initialisationColour = default)
+                                                              Color4 initialisationColour = default)
             => new VeldridTexture(this, width, height, manualMipmaps, filteringMode.ToSamplerFilter(), initialisationColour);
 
         protected override INativeTexture CreateNativeVideoTexture(int width, int height)
             => new VeldridVideoTexture(this, width, height);
+
+        internal IStagingBuffer<T> CreateStagingBuffer<T>(uint count)
+            where T : unmanaged
+        {
+            switch (FrameworkEnvironment.StagingBufferType)
+            {
+                case 0:
+                    return new ManagedStagingBuffer<T>(this, count);
+
+                case 1:
+                    return new PersistentStagingBuffer<T>(this, count);
+
+                case 2:
+                    return new DeferredStagingBuffer<T>(this, count);
+
+                default:
+                    switch (Device.BackendType)
+                    {
+                        case GraphicsBackend.Direct3D11:
+                        case GraphicsBackend.Vulkan:
+                            return new PersistentStagingBuffer<T>(this, count);
+
+                        default:
+                        // Metal uses a more optimal path that elides a Blit Command Encoder.
+                        case GraphicsBackend.Metal:
+                        // OpenGL backends need additional work to support coherency and persistently mapped buffers.
+                        case GraphicsBackend.OpenGL:
+                        case GraphicsBackend.OpenGLES:
+                            return new ManagedStagingBuffer<T>(this, count);
+                    }
+            }
+        }
 
         protected override void SetUniformImplementation<T>(IUniformWithValue<T> uniform)
         {
@@ -581,5 +645,7 @@ namespace osu.Framework.Graphics.Veldrid
         {
             uniformBufferResetList.Add(buffer);
         }
+
+        public void BindTextureResource(VeldridTextureResources resource, int unit) => boundTextureUnits[unit] = resource;
     }
 }

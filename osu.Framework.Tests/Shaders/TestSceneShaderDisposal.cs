@@ -29,7 +29,7 @@ namespace osu.Framework.Tests.Shaders
         {
             AddStep("setup manager", () =>
             {
-                manager = new TestShaderManager(new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources/Shaders"));
+                manager = new ShaderManager(new TestGLRenderer(), new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources/Shaders"));
                 shader = (GLShader)manager.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
                 shaderRef = new WeakReference<IShader>(shader);
 
@@ -58,20 +58,15 @@ namespace osu.Framework.Tests.Shaders
             });
         }
 
-        private class TestShaderManager : ShaderManager
+        private class TestGLRenderer : GLRenderer
         {
-            public TestShaderManager(IResourceStore<byte[]> store)
-                : base(new GLRenderer(), store)
-            {
-            }
-
-            internal override IShader CreateShader(IRenderer renderer, string name, params IShaderPart[] parts)
-                => new TestGLShader((GLRenderer)renderer, name, parts.Cast<GLShaderPart>().ToArray());
+            protected override IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer, ShaderCompilationStore compilationStore)
+                => new TestGLShader(this, name, parts.Cast<GLShaderPart>().ToArray(), globalUniformBuffer, compilationStore);
 
             private class TestGLShader : GLShader
             {
-                internal TestGLShader(GLRenderer renderer, string name, GLShaderPart[] parts)
-                    : base(renderer, name, parts, null)
+                internal TestGLShader(GLRenderer renderer, string name, GLShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer, ShaderCompilationStore compilationStore)
+                    : base(renderer, name, parts, globalUniformBuffer, compilationStore)
                 {
                 }
 

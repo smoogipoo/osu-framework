@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -27,14 +25,14 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
 
         private readonly IRenderer renderer;
         private readonly List<string> shaderCodes = new List<string>();
-        private readonly ShaderManager manager;
+        private readonly IShaderStore store;
 
         private int partID = -1;
 
-        public GLShaderPart(IRenderer renderer, string name, byte[] data, ShaderType type, ShaderManager manager)
+        public GLShaderPart(IRenderer renderer, string name, byte[]? data, ShaderType type, IShaderStore store)
         {
             this.renderer = renderer;
-            this.manager = manager;
+            this.store = store;
 
             Name = name;
             Type = type;
@@ -62,10 +60,10 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
                 shaderCodes[i] = uniform_pattern.Replace(shaderCodes[i], match => $"{match.Groups[1].Value}set = {int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) + 1}{match.Groups[3].Value}");
         }
 
-        private string loadFile(byte[] bytes, bool mainFile)
+        private string loadFile(byte[]? bytes, bool mainFile)
         {
             if (bytes == null)
-                return null;
+                return string.Empty;
 
             using (MemoryStream ms = new MemoryStream(bytes))
             using (StreamReader sr = new StreamReader(ms))
@@ -74,7 +72,7 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
 
                 while (sr.Peek() != -1)
                 {
-                    string line = sr.ReadLine();
+                    string? line = sr.ReadLine();
 
                     if (string.IsNullOrEmpty(line))
                     {
@@ -105,7 +103,7 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
                         //                        if (File.Exists(includeName))
                         //                            rawData = File.ReadAllBytes(includeName);
                         //#endif
-                        code += loadFile(manager.LoadRaw(includeName), false) + '\n';
+                        code += loadFile(store.GetRawData(includeName), false) + '\n';
                     }
                     else
                         code += line + '\n';
@@ -113,20 +111,20 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
 
                 if (mainFile)
                 {
-                    string internalIncludes = loadFile(manager.LoadRaw("Internal/sh_Compatibility.h"), false) + "\n";
-                    internalIncludes += loadFile(manager.LoadRaw("Internal/sh_GlobalUniforms.h"), false) + "\n";
+                    string internalIncludes = loadFile(store.GetRawData("Internal/sh_Compatibility.h"), false) + "\n";
+                    internalIncludes += loadFile(store.GetRawData("Internal/sh_GlobalUniforms.h"), false) + "\n";
                     code = internalIncludes + code;
 
                     if (Type == ShaderType.VertexShader)
                     {
-                        string backbufferCode = loadFile(manager.LoadRaw("Internal/sh_Vertex_Output.h"), false);
+                        string backbufferCode = loadFile(store.GetRawData("Internal/sh_Vertex_Output.h"), false);
 
                         if (!string.IsNullOrEmpty(backbufferCode))
                         {
-                            string realMainName = "real_main_" + Guid.NewGuid().ToString("N");
+                            const string real_main_name = "__internal_real_main";
 
-                            backbufferCode = backbufferCode.Replace("{{ real_main }}", realMainName);
-                            code = Regex.Replace(code, @"void main\((.*)\)", $"void {realMainName}()") + backbufferCode + '\n';
+                            backbufferCode = backbufferCode.Replace("{{ real_main }}", real_main_name);
+                            code = Regex.Replace(code, @"void main\((.*)\)", $"void {real_main_name}()") + backbufferCode + '\n';
                         }
                     }
                 }
