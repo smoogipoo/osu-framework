@@ -365,11 +365,6 @@ namespace osu.Framework.Graphics.Veldrid
             Commands.SetViewport(0, new Viewport(viewport.Left, viewport.Top, viewport.Width, viewport.Height, 0, 1));
         }
 
-        protected override void SetScissorImplementation(RectangleI scissor)
-        {
-            Commands.SetScissorRect(0, (uint)scissor.X, (uint)scissor.Y, (uint)scissor.Width, (uint)scissor.Height);
-        }
-
         protected override void SetDepthInfoImplementation(DepthInfo depthInfo)
         {
             pipeline.DepthStencilState.DepthTestEnabled = depthInfo.DepthTest;

@@ -13,11 +13,10 @@ namespace osu.Framework.Graphics.Rendering
         public UniformBool IsMasking;
         public UniformFloat CornerRadius;
         public UniformFloat CornerExponent;
-        private readonly UniformPadding4 pad2;
+        public UniformFloat BorderThickness;
 
         public UniformVector4 MaskingRect;
-        public UniformFloat BorderThickness;
-        private readonly UniformPadding12 pad3;
+        public UniformVector4 ScissorRect;
 
         public UniformMatrix4 BorderColour;
         public UniformFloat MaskingBlendRange;

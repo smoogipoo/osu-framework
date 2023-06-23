@@ -551,8 +551,16 @@ namespace osu.Framework.Graphics.Rendering
             if (!UsingBackbuffer && !IsUvOriginTopLeft)
                 compensatedScissor.Y = Viewport.Height - scissor.Bottom;
 
-            FlushCurrentBatch(FlushBatchSource.SetScissor);
-            SetScissorImplementation(compensatedScissor);
+            MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![CurrentMaskingIndex] with
+            {
+                ScissorRect = new Vector4(
+                    2f * compensatedScissor.Left / Viewport.Width - 1,
+                    2f * compensatedScissor.Top / Viewport.Height - 1,
+                    2f * compensatedScissor.Right / Viewport.Width - 1,
+                    2f * compensatedScissor.Bottom / Viewport.Height - 1
+                )
+            };
+
             // do not expose the implementation detail of flipping the scissor box to Scissor readers.
             Scissor = scissor;
         }
@@ -575,12 +583,6 @@ namespace osu.Framework.Graphics.Rendering
             FlushCurrentBatch(FlushBatchSource.SetScissor);
             ScissorOffset = offset;
         }
-
-        /// <summary>
-        /// Updates the graphics device with a new scissor rectangle.
-        /// </summary>
-        /// <param name="scissor">The scissor rectangle to use.</param>
-        protected abstract void SetScissorImplementation(RectangleI scissor);
 
         /// <summary>
         /// Updates the graphics device with the new scissor state.
@@ -686,28 +688,29 @@ namespace osu.Framework.Graphics.Rendering
                 DiscardInner = maskingInfo.Hollow,
                 InnerCornerRadius = maskingInfo.Hollow
                     ? maskingInfo.HollowCornerRadius
-                    : MaskingBuffer[lastMaskingIndex].InnerCornerRadius
+                    : MaskingBuffer[lastMaskingIndex].InnerCornerRadius,
+                ScissorRect = MaskingBuffer[lastMaskingIndex].ScissorRect
             };
 
-            // if (isPushing)
-            // {
-            //     // When drawing to a viewport that doesn't match the projection size (e.g. via framebuffers), the resultant image will be scaled
-            //     Vector2 projectionScale = new Vector2(ProjectionMatrix.Row0.X / 2, -ProjectionMatrix.Row1.Y / 2);
-            //     Vector2 viewportScale = Vector2.Multiply(Viewport.Size, projectionScale);
-            //
-            //     Vector2 location = (maskingInfo.ScreenSpaceAABB.Location - ScissorOffset) * viewportScale;
-            //     Vector2 size = maskingInfo.ScreenSpaceAABB.Size * viewportScale;
-            //
-            //     RectangleI actualRect = new RectangleI(
-            //         (int)Math.Floor(location.X),
-            //         (int)Math.Floor(location.Y),
-            //         (int)Math.Ceiling(size.X),
-            //         (int)Math.Ceiling(size.Y));
-            //
-            //     PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
-            // }
-            // else
-            //     PopScissor();
+            if (isPushing)
+            {
+                // When drawing to a viewport that doesn't match the projection size (e.g. via framebuffers), the resultant image will be scaled
+                Vector2 projectionScale = new Vector2(ProjectionMatrix.Row0.X / 2, -ProjectionMatrix.Row1.Y / 2);
+                Vector2 viewportScale = Vector2.Multiply(Viewport.Size, projectionScale);
+
+                Vector2 location = (maskingInfo.ScreenSpaceAABB.Location - ScissorOffset) * viewportScale;
+                Vector2 size = maskingInfo.ScreenSpaceAABB.Size * viewportScale;
+
+                RectangleI actualRect = new RectangleI(
+                    (int)Math.Floor(location.X),
+                    (int)Math.Floor(location.Y),
+                    (int)Math.Ceiling(size.X),
+                    (int)Math.Ceiling(size.Y));
+
+                PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
+            }
+            else
+                PopScissor();
 
             currentMaskingInfo = maskingInfo;
         }

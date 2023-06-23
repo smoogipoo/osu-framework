@@ -7,8 +7,9 @@ struct MaskingInfo
     bool IsMasking;
     highp float CornerRadius;
     highp float CornerExponent;
-    highp vec4 MaskingRect;
     highp float BorderThickness;
+    highp vec4 MaskingRect;
+    highp vec4 ScissorRect;
     lowp mat4 BorderColour;
     mediump float MaskingBlendRange;
     lowp float AlphaExponent;

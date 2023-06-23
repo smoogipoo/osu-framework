@@ -313,8 +313,6 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected override void SetViewportImplementation(RectangleI viewport) => GL.Viewport(viewport.Left, viewport.Top, viewport.Width, viewport.Height);
 
-        protected override void SetScissorImplementation(RectangleI scissor) => GL.Scissor(scissor.X, Viewport.Height - scissor.Bottom, scissor.Width, scissor.Height);
-
         protected override void SetDepthInfoImplementation(DepthInfo depthInfo)
         {
             if (depthInfo.DepthTest)
