@@ -551,7 +551,10 @@ namespace osu.Framework.Graphics.Rendering
             if (!UsingBackbuffer && !IsUvOriginTopLeft)
                 compensatedScissor.Y = Viewport.Height - scissor.Bottom;
 
-            MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![CurrentMaskingIndex] with
+            int lastMaskingIndex = CurrentMaskingIndex;
+            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % 1024;
+
+            MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![lastMaskingIndex] with
             {
                 ScissorRect = new Vector4(
                     2f * compensatedScissor.Left / Viewport.Width - 1,
