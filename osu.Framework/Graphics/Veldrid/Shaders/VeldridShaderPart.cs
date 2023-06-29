@@ -127,7 +127,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                     internalIncludes += loadFile(store.GetRawData("Internal/sh_GlobalUniforms.h"), false) + "\n";
                     internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingInfo.h"), false) + "\n";
 
-                    if (renderer.Device.Features.StructuredBuffer)
+                    if (renderer.UseStructuredBuffers)
                         internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingBuffer_SSBO.h"), false) + "\n";
                     else
                         internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingBuffer_UBO.h"), false) + "\n";

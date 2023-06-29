@@ -49,6 +49,8 @@ namespace osu.Framework.Graphics.Veldrid
             set => Device.AllowTearing = value;
         }
 
+        public bool UseStructuredBuffers => !FrameworkEnvironment.NoStructuredBuffers && Device.Features.StructuredBuffer;
+
         public override bool IsDepthRangeZeroToOne => Device.IsDepthRangeZeroToOne;
         public override bool IsUvOriginTopLeft => Device.IsUvOriginTopLeft;
         public override bool IsClipSpaceYInverted => Device.IsClipSpaceYInverted;

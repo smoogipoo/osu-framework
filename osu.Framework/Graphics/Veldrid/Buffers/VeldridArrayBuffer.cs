@@ -29,7 +29,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             Length = length;
             structureSize = (uint)Marshal.SizeOf(default(TData));
 
-            if (renderer.Device.Features.StructuredBuffer)
+            if (renderer.UseStructuredBuffers)
             {
                 bufferData = new TData[length];
                 buffer = renderer.Factory.CreateBuffer(new BufferDescription(
@@ -47,19 +47,19 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         {
             get
             {
-                if (renderer.Device.Features.StructuredBuffer)
+                if (renderer.UseStructuredBuffers)
                     return bufferData![index];
 
                 return uniformBuffer!.Data;
             }
             set
             {
-                if (renderer.Device.Features.StructuredBuffer)
+                if (renderer.UseStructuredBuffers)
                 {
                     if (bufferData![index].Equals(value))
                         return;
 
-                    if (!renderer.Device.Features.StructuredBuffer)
+                    if (!renderer.UseStructuredBuffers)
                         renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
 
                     bufferData[index] = value;
@@ -72,7 +72,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
         {
-            if (renderer.Device.Features.StructuredBuffer)
+            if (renderer.UseStructuredBuffers)
                 return set ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
 
             return uniformBuffer!.GetResourceSet(layout);
