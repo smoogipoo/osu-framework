@@ -14,7 +14,7 @@ layout(location = 4) in mediump vec2 v_BlendRange;
 layout(location = 5) flat in int v_MaskingIndex;
 
 /// Positive if outside the rect, negative if inside the rect.
-highp float distacneFromScissorRect(highp vec2 offset)
+highp float distanceFromScissorRect(highp vec2 offset)
 {
 	highp vec2 maskingPosition = v_MaskingPosition + offset;
 
@@ -85,7 +85,7 @@ lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
 		return v_Colour * texel;
 	}
 
-	if (distacneFromScissorRect(vec2(0.0)) > 0)
+	if (distanceFromScissorRect(vec2(0.0)) > 0)
 	{
 		discard;
 	}
