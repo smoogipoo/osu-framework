@@ -201,6 +201,7 @@ namespace osu.Framework.Graphics.Veldrid
             BufferUpdateCommands = Factory.CreateCommandList();
 
             pipeline.Outputs = Device.SwapchainFramebuffer.OutputDescription;
+            pipeline.RasterizerState.ScissorTestEnabled = false;
         }
 
         private Vector2 currentSize;
@@ -265,7 +266,9 @@ namespace osu.Framework.Graphics.Veldrid
                 Commands.ClearDepthStencil((float)clearInfo.Depth, (byte)clearInfo.Stencil);
         }
 
-        protected override void SetScissorStateImplementation(bool enabled) => pipeline.RasterizerState.ScissorTestEnabled = enabled;
+        protected override void SetScissorStateImplementation(bool enabled)
+        {
+        }
 
         protected override bool SetTextureImplementation(INativeTexture? texture, int unit)
         {

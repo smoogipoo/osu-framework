@@ -541,23 +541,15 @@ namespace osu.Framework.Graphics.Rendering
                 scissor.Height = -scissor.Height;
             }
 
-            // when rendering to a framebuffer on a backend which has the UV origin set to bottom-left (OpenGL),
-            // vertex positions are flipped vertically in sh_Vertex_Output.h to match that UV origin.
-            // for scissoring to continue to work correctly with that, the scissor box has to be inverted too.
-            var compensatedScissor = scissor;
-            if (!UsingBackbuffer && !IsUvOriginTopLeft)
-                compensatedScissor.Y = Viewport.Height - scissor.Bottom;
+            RectangleF scissorAABB = (Quad.FromRectangle(scissor) * MaskingBuffer![CurrentMaskingIndex].ToMaskingSpace).AABB;
 
             int lastMaskingIndex = CurrentMaskingIndex;
             CurrentMaskingIndex = (CurrentMaskingIndex + 1) % 1024;
 
-            Vector2 topLeft = Vector2Extensions.Transform(compensatedScissor.TopLeft, MaskingBuffer![lastMaskingIndex].ToMaskingSpace);
-            Vector2 bottomRight = Vector2Extensions.Transform(compensatedScissor.BottomRight, MaskingBuffer![lastMaskingIndex].ToMaskingSpace);
-
             MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![lastMaskingIndex] with
             {
                 // LTRB-format
-                ScissorRect = new Vector4(topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y)
+                ScissorRect = new Vector4(scissorAABB.Left, scissorAABB.Top, scissorAABB.Right, scissorAABB.Bottom)
             };
 
             // do not expose the implementation detail of flipping the scissor box to Scissor readers.
@@ -693,19 +685,7 @@ namespace osu.Framework.Graphics.Rendering
 
             if (isPushing)
             {
-                // When drawing to a viewport that doesn't match the projection size (e.g. via framebuffers), the resultant image will be scaled
-                Vector2 projectionScale = new Vector2(ProjectionMatrix.Row0.X / 2, -ProjectionMatrix.Row1.Y / 2);
-                Vector2 viewportScale = Vector2.Multiply(Viewport.Size, projectionScale);
-
-                Vector2 location = (maskingInfo.ScreenSpaceAABB.Location - ScissorOffset) * viewportScale;
-                Vector2 size = maskingInfo.ScreenSpaceAABB.Size * viewportScale;
-
-                RectangleI actualRect = new RectangleI(
-                    (int)Math.Floor(location.X),
-                    (int)Math.Floor(location.Y),
-                    (int)Math.Ceiling(size.X),
-                    (int)Math.Ceiling(size.Y));
-
+                RectangleI actualRect = maskingInfo.ScreenSpaceAABB;
                 PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
             }
             else

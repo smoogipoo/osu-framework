@@ -156,34 +156,24 @@ namespace osu.Framework.Graphics
 
         private IDisposable establishFrameBufferViewport(IRenderer renderer)
         {
-            // Disable masking for generating the frame buffer since masking will be re-applied
-            // when actually drawing later on anyways. This allows more information to be captured
-            // in the frame buffer and helps with cached buffers being re-used.
-            RectangleI screenSpaceMaskingRect = new RectangleI((int)Math.Floor(screenSpaceDrawRectangle.X), (int)Math.Floor(screenSpaceDrawRectangle.Y), (int)frameBufferSize.X + 1,
-                (int)frameBufferSize.Y + 1);
-
             renderer.PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = screenSpaceMaskingRect,
-                MaskingRect = screenSpaceDrawRectangle,
-                ToMaskingSpace = Matrix3.Identity,
+                ScreenSpaceAABB = screenSpaceDrawRectangle,
+                MaskingRect = ((Drawable)Source).DrawRectangle,
+                ToMaskingSpace = DrawInfo.MatrixInverse,
                 BlendRange = 1,
                 AlphaExponent = 1,
             }, true);
 
             // Match viewport to FrameBuffer such that we don't draw unnecessary pixels.
             renderer.PushViewport(new RectangleI(0, 0, (int)frameBufferSize.X, (int)frameBufferSize.Y));
-            renderer.PushScissor(new RectangleI(0, 0, (int)frameBufferSize.X, (int)frameBufferSize.Y));
-            renderer.PushScissorOffset(screenSpaceMaskingRect.Location);
 
             return new ValueInvokeOnDisposal<(BufferedDrawNode node, IRenderer renderer)>((this, renderer), tup => tup.node.returnViewport(tup.renderer));
         }
 
         private void returnViewport(IRenderer renderer)
         {
-            renderer.PopScissorOffset();
             renderer.PopViewport();
-            renderer.PopScissor();
             renderer.PopMaskingInfo();
         }
 
