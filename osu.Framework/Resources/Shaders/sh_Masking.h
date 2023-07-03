@@ -12,12 +12,11 @@ layout(location = 1) in lowp vec4 v_Colour;
 
 layout(location = 4) in mediump vec2 v_BlendRange;
 layout(location = 5) flat in int v_MaskingIndex;
-layout(location = 6) in highp vec2 v_Coord;
 
 /// Positive if outside the rect, negative if inside the rect.
 highp float distacneFromScissorRect(highp vec2 offset)
 {
-	highp vec2 maskingPosition = v_Coord + offset;
+	highp vec2 maskingPosition = v_MaskingPosition + offset;
 
 	// Compute offset distance from masking rect in masking space.
 	highp vec2 topLeftOffset = g_MaskingInfo.ScissorRect.xy - maskingPosition;

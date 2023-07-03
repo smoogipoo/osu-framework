@@ -541,9 +541,6 @@ namespace osu.Framework.Graphics.Rendering
                 scissor.Height = -scissor.Height;
             }
 
-            if (Scissor == scissor)
-                return;
-
             // when rendering to a framebuffer on a backend which has the UV origin set to bottom-left (OpenGL),
             // vertex positions are flipped vertically in sh_Vertex_Output.h to match that UV origin.
             // for scissoring to continue to work correctly with that, the scissor box has to be inverted too.
@@ -554,14 +551,13 @@ namespace osu.Framework.Graphics.Rendering
             int lastMaskingIndex = CurrentMaskingIndex;
             CurrentMaskingIndex = (CurrentMaskingIndex + 1) % 1024;
 
+            Vector2 topLeft = Vector2Extensions.Transform(compensatedScissor.TopLeft, MaskingBuffer![lastMaskingIndex].ToMaskingSpace);
+            Vector2 bottomRight = Vector2Extensions.Transform(compensatedScissor.BottomRight, MaskingBuffer![lastMaskingIndex].ToMaskingSpace);
+
             MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![lastMaskingIndex] with
             {
-                ScissorRect = new Vector4(
-                    2f * compensatedScissor.Left / Viewport.Width - 1,
-                    2f * compensatedScissor.Top / Viewport.Height - 1,
-                    2f * compensatedScissor.Right / Viewport.Width - 1,
-                    2f * compensatedScissor.Bottom / Viewport.Height - 1
-                )
+                // LTRB-format
+                ScissorRect = new Vector4(topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y)
             };
 
             // do not expose the implementation detail of flipping the scissor box to Scissor readers.

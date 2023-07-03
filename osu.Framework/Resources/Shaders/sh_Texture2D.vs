@@ -15,7 +15,6 @@ layout(location = 2) out highp vec2 v_TexCoord;
 layout(location = 3) out highp vec4 v_TexRect;
 layout(location = 4) out mediump vec2 v_BlendRange;
 layout(location = 5) flat out int v_MaskingIndex;
-layout(location = 6) out highp vec2 v_Coord;
 
 void main(void)
 {
@@ -32,7 +31,6 @@ void main(void)
 	v_MaskingIndex = m_MaskingIndex;
 
 	gl_Position = g_ProjMatrix * vec4(m_Position, 1.0, 1.0);
-	v_Coord = vec2(gl_Position.x, -gl_Position.y);
 }
 
 #endif
