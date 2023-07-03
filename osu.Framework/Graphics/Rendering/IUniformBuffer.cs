@@ -28,6 +28,8 @@ namespace osu.Framework.Graphics.Rendering
     public interface IArrayBuffer<TData> : IUniformBuffer
         where TData : unmanaged, IEquatable<TData>
     {
+        int Length { get; }
+
         /// <summary>
         /// The data contained by this <see cref="IArrayBuffer{TData}"/>.
         /// </summary>

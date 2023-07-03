@@ -202,7 +202,7 @@ namespace osu.Framework.Graphics.Rendering
                 IsUvOriginTopLeft = IsUvOriginTopLeft
             };
 
-            MaskingBuffer ??= ((IRenderer)this).CreateArrayBuffer<ShaderMaskingInfo>(1024);
+            MaskingBuffer ??= ((IRenderer)this).CreateArrayBuffer<ShaderMaskingInfo>(16384);
             CurrentMaskingIndex = 0;
 
             Debug.Assert(defaultQuadBatch != null);
@@ -544,7 +544,7 @@ namespace osu.Framework.Graphics.Rendering
             RectangleF scissorAABB = (Quad.FromRectangle(scissor) * MaskingBuffer![CurrentMaskingIndex].ToMaskingSpace).AABB;
 
             int lastMaskingIndex = CurrentMaskingIndex;
-            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % 1024;
+            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % MaskingBuffer!.Length;
 
             MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![lastMaskingIndex] with
             {
@@ -636,7 +636,7 @@ namespace osu.Framework.Graphics.Rendering
             // FlushCurrentBatch(FlushBatchSource.SetMasking);
 
             int lastMaskingIndex = CurrentMaskingIndex;
-            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % 1024;
+            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % MaskingBuffer!.Length;
 
             MaskingBuffer![CurrentMaskingIndex] = new ShaderMaskingInfo
             {

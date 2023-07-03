@@ -11,7 +11,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     internal class VeldridArrayBuffer<TData> : IArrayBuffer<TData>, IVeldridUniformBuffer
         where TData : unmanaged, IEquatable<TData>
     {
-        public readonly int Length;
+        public int Length { get; }
 
         private readonly VeldridRenderer renderer;
         private readonly uint structureSize;
