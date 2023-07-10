@@ -440,7 +440,7 @@ namespace osu.Framework.Graphics.OpenGL
         }
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
-                                                              Color4 initialisationColour = default)
+                                                              Color4? initialisationColour = null)
         {
             All glFilteringMode;
 

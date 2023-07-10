@@ -24,7 +24,7 @@ namespace osu.Framework.Platform
     /// <summary>
     /// Default implementation of a window, using SDL for windowing and graphics support.
     /// </summary>
-    public abstract partial class SDL2Window : IWindow
+    internal abstract partial class SDL2Window : IWindow
     {
         internal IntPtr SDLWindowHandle { get; private set; } = IntPtr.Zero;
 
@@ -174,11 +174,14 @@ namespace osu.Framework.Platform
         [UsedImplicitly]
         private SDL.SDL_EventFilter? eventFilterDelegate;
 
-        private ObjectHandle<SDL2Window> objectHandle;
+        /// <summary>
+        /// Represents a handle to this <see cref="SDL2Window"/> instance, used for unmanaged callbacks.
+        /// </summary>
+        protected ObjectHandle<SDL2Window> ObjectHandle { get; private set; }
 
         protected SDL2Window(GraphicsSurfaceType surfaceType)
         {
-            objectHandle = new ObjectHandle<SDL2Window>(this, GCHandleType.Normal);
+            ObjectHandle = new ObjectHandle<SDL2Window>(this, GCHandleType.Normal);
 
             if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO | SDL.SDL_INIT_GAMECONTROLLER) < 0)
             {
@@ -250,7 +253,7 @@ namespace osu.Framework.Platform
         /// </summary>
         public void Run()
         {
-            SDL.SDL_SetEventFilter(eventFilterDelegate = eventFilter, objectHandle.Handle);
+            SDL.SDL_SetEventFilter(eventFilterDelegate = eventFilter, ObjectHandle.Handle);
 
             RunMainLoop();
         }
@@ -326,7 +329,7 @@ namespace osu.Framework.Platform
 
                 case SDL.SDL_EventType.SDL_WINDOWEVENT:
                     // polling via SDL_PollEvent blocks on resizes (https://stackoverflow.com/a/50858339)
-                    if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED)
+                    if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED && !updatingWindowStateAndSize)
                         fetchWindowSize();
 
                     break;
@@ -542,11 +545,11 @@ namespace osu.Framework.Platform
 
         #endregion
 
-        public void SetIconFromStream(Stream stream)
+        public void SetIconFromStream(Stream imageStream)
         {
             using (var ms = new MemoryStream())
             {
-                stream.CopyTo(ms);
+                imageStream.CopyTo(ms);
                 ms.Position = 0;
 
                 var imageInfo = Image.Identify(ms);
@@ -614,7 +617,7 @@ namespace osu.Framework.Platform
             Close();
             SDL.SDL_Quit();
 
-            objectHandle.Dispose();
+            ObjectHandle.Dispose();
         }
     }
 }

@@ -181,10 +181,14 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
                     if (layout.Elements.Any(e => e.Kind == ResourceKind.TextureReadOnly || e.Kind == ResourceKind.TextureReadWrite))
                     {
-                        // Todo: We should enforce that a texture set contains both a texture and a sampler.
+                        ResourceLayoutElementDescription textureElement = layout.Elements.First(e => e.Kind == ResourceKind.TextureReadOnly || e.Kind == ResourceKind.TextureReadWrite);
+
+                        if (layout.Elements.All(e => e.Kind != ResourceKind.Sampler))
+                            throw new InvalidOperationException($"Texture {textureElement.Name} has no associated sampler.");
+
                         textureLayouts.Add(new VeldridUniformLayout(set, renderer.Factory.CreateResourceLayout(layout)));
                     }
-                    else
+                    else if (layout.Elements[0].Kind == ResourceKind.UniformBuffer)
                         uniformLayouts[layout.Elements[0].Name] = new VeldridUniformLayout(set, renderer.Factory.CreateResourceLayout(layout));
                 }
 

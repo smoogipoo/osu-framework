@@ -498,6 +498,8 @@ namespace osu.Framework.Platform
             if (buffer == null)
                 return;
 
+            Debug.Assert(buffer.Object != null);
+
             try
             {
                 using (drawMonitor.BeginCollecting(PerformanceCollectionType.DrawReset))
@@ -1058,15 +1060,19 @@ namespace osu.Framework.Platform
 
         private void windowUpdate()
         {
-            inputPerformanceCollectionPeriod?.Dispose();
-            inputPerformanceCollectionPeriod = null;
+            outsideRunLoopCollectionPeriod?.Dispose();
+            outsideRunLoopCollectionPeriod = null;
 
             if (suspended)
                 return;
 
             threadRunner.RunMainLoop();
 
-            inputPerformanceCollectionPeriod = inputMonitor.BeginCollecting(PerformanceCollectionType.WndProc);
+            outsideRunLoopCollectionPeriod = RuntimeInfo.OS == RuntimeInfo.Platform.iOS
+                // in iOS, the game loop is wrapped around CADisplayLink which waits for the next V-Sync point before processing next frame,
+                // therefore we should mark this as "sleep" time in draw thread instead.
+                ? drawMonitor.BeginCollecting(PerformanceCollectionType.Sleep)
+                : inputMonitor.BeginCollecting(PerformanceCollectionType.WndProc);
         }
 
         /// <summary>
@@ -1140,7 +1146,7 @@ namespace osu.Framework.Platform
             Root = root;
         }
 
-        private InvokeOnDisposal inputPerformanceCollectionPeriod;
+        private InvokeOnDisposal outsideRunLoopCollectionPeriod;
 
         private Bindable<bool> bypassFrontToBackPass;
 
@@ -1388,6 +1394,9 @@ namespace osu.Framework.Platform
             new KeyBinding(new KeyCombination(InputKey.Control, InputKey.X), PlatformAction.Cut),
             new KeyBinding(new KeyCombination(InputKey.Control, InputKey.C), PlatformAction.Copy),
             new KeyBinding(new KeyCombination(InputKey.Control, InputKey.V), PlatformAction.Paste),
+            new KeyBinding(new KeyCombination(InputKey.Shift, InputKey.Delete), PlatformAction.Cut),
+            new KeyBinding(new KeyCombination(InputKey.Control, InputKey.Insert), PlatformAction.Copy),
+            new KeyBinding(new KeyCombination(InputKey.Shift, InputKey.Insert), PlatformAction.Paste),
             new KeyBinding(new KeyCombination(InputKey.Control, InputKey.A), PlatformAction.SelectAll),
             new KeyBinding(InputKey.Left, PlatformAction.MoveBackwardChar),
             new KeyBinding(InputKey.Right, PlatformAction.MoveForwardChar),
