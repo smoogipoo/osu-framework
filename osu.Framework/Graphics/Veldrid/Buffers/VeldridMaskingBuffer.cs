@@ -11,44 +11,15 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 {
     internal class VeldridMaskingBuffer : IMaskingBuffer, IVeldridUniformBuffer
     {
-        /// <summary>
-        /// Number of masking infos per array buffer.
-        /// </summary>
-        /// <remarks>
-        /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer.
-        /// </remarks>
-        private const int array_buffer_size = 65536;
-
-        /// <summary>
-        /// Number of masking infos per uniform buffer.
-        /// </summary>
-        /// <remarks>
-        /// The OpenGL spec guarantees a minimum size of 16KB for this type of buffer.
-        /// </remarks>
-        private const int uniform_buffer_size = 128;
-
-        /// <summary>
-        /// Number of elements inside each buffer.
-        /// </summary>
-        private readonly int bufferSize;
-
-        /// <summary>
-        /// The size (in bytes) of each element of the buffer.
-        /// </summary>
-        private readonly uint elementSize;
-
         private readonly VeldridRenderer renderer;
 
-        private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
-        private ResourceSet?[] resourceSets = Array.Empty<ResourceSet?>();
-
+        private readonly List<VeldridMaskingBufferStorage<ShaderMaskingInfo>> buffers = new List<VeldridMaskingBufferStorage<ShaderMaskingInfo>>();
         private int currentElementIndex = -1;
 
         public VeldridMaskingBuffer(VeldridRenderer renderer)
         {
             this.renderer = renderer;
-            bufferSize = renderer.UseStructuredBuffers ? array_buffer_size : uniform_buffer_size;
-            elementSize = (uint)Marshal.SizeOf(default(ShaderMaskingInfo));
+            buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
         }
 
         public int Add(ShaderMaskingInfo maskingInfo)
@@ -58,7 +29,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
                 // Signal the first use of this buffer.
                 renderer.RegisterUniformBufferForReset(this);
             }
-            else if ((currentElementIndex + 1) % bufferSize == 0)
+            else if ((currentElementIndex + 1) % buffers[0].Size == 0)
             {
                 // If this invocation transitions to a new buffer, flush the pipeline.
                 renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
@@ -67,34 +38,26 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             // Move to a new element.
             ++currentElementIndex;
 
-            int bufferIndex = currentElementIndex / bufferSize;
+            int bufferIndex = currentElementIndex / buffers[0].Size;
 
             if (bufferIndex >= buffers.Count)
             {
                 while (bufferIndex >= buffers.Count)
-                {
-                    buffers.Add(renderer.UseStructuredBuffers
-                        ? renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * bufferSize), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, elementSize))
-                        : renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * bufferSize), BufferUsage.UniformBuffer)));
-                }
-
-                Array.Resize(ref resourceSets, buffers.Count);
+                    buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
             }
 
-            DeviceBuffer buffer = buffers[bufferIndex];
-            int bufferOffset = currentElementIndex % bufferSize;
-            uint bufferOffsetInBytes = (uint)(bufferOffset * elementSize);
+            VeldridMaskingBufferStorage<ShaderMaskingInfo> buffer = buffers[bufferIndex];
 
-            // Upload the element.
-            renderer.BufferUpdateCommands.UpdateBuffer(buffer, bufferOffsetInBytes, ref maskingInfo);
+            int bufferOffset = currentElementIndex % buffer.Size;
+            buffer[bufferOffset] = maskingInfo;
 
             return bufferOffset;
         }
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
         {
-            int bufferIndex = currentElementIndex / bufferSize;
-            return resourceSets[bufferIndex] ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffers[bufferIndex]));
+            int bufferIndex = currentElementIndex / buffers[0].Size;
+            return buffers[bufferIndex].GetResourceSet(layout);
         }
 
         public void ResetCounters()
@@ -104,8 +67,76 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public void Dispose()
         {
-            foreach (DeviceBuffer buffer in buffers)
+            foreach (var buffer in buffers)
                 buffer.Dispose();
+        }
+    }
+
+    internal class VeldridMaskingBufferStorage<TData> : IDisposable
+        where TData : unmanaged, IEquatable<TData>
+    {
+        /// <summary>
+        /// Number of masking infos per array buffer.
+        /// </summary>
+        /// <remarks>
+        /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer.
+        /// </remarks>
+        public const int ARRAY_BUFFER_SIZE = 2048;
+
+        /// <summary>
+        /// Number of masking infos per uniform buffer.
+        /// </summary>
+        /// <remarks>
+        /// The OpenGL spec guarantees a minimum size of 16KB for this type of buffer.
+        /// </remarks>
+        public const int UNIFORM_BUFFER_SIZE = 128;
+
+        public readonly int Size;
+
+        private readonly TData[] data;
+        private readonly DeviceBuffer buffer;
+        private readonly VeldridRenderer renderer;
+        private readonly uint elementSize;
+
+        public VeldridMaskingBufferStorage(VeldridRenderer renderer)
+        {
+            this.renderer = renderer;
+
+            elementSize = (uint)Marshal.SizeOf(default(ShaderMaskingInfo));
+
+            if (renderer.UseStructuredBuffers)
+            {
+                Size = ARRAY_BUFFER_SIZE;
+                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, elementSize));
+            }
+            else
+            {
+                Size = UNIFORM_BUFFER_SIZE;
+                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            }
+
+            data = new TData[Size];
+        }
+
+        public TData this[int index]
+        {
+            get => data[index];
+            set
+            {
+                if (data[index].Equals(value))
+                    return;
+
+                data[index] = value;
+
+                renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(index * elementSize), ref data[index]);
+            }
+        }
+
+        public ResourceSet GetResourceSet(ResourceLayout layout) => renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+
+        public void Dispose()
+        {
+            buffer.Dispose();
         }
     }
 }
