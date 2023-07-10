@@ -59,14 +59,14 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
                     if (bufferData![index].Equals(value))
                         return;
 
-                    if (!renderer.UseStructuredBuffers)
-                        renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
-
                     bufferData[index] = value;
                     renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(index * structureSize), ref bufferData[index]);
                 }
                 else
+                {
+                    renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
                     uniformBuffer!.Data = value;
+                }
             }
         }
 
