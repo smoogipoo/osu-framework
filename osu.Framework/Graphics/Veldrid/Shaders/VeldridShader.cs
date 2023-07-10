@@ -192,7 +192,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                     ? $"🖍️ Shader {name} loaded from cache!"
                     : $"🖍️ Shader {name} compiled!");
             }
-            catch (SpirvCompilationException e)
+            catch (Exception e)
             {
                 Logger.Error(e, $"🖍️ Failed to initialise shader {name}");
                 throw;
@@ -208,6 +208,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
             };
 
             BindUniformBlock("g_GlobalUniforms", globalUniformBuffer);
+            BindUniformBlock("g_MaskingBuffer", renderer.MaskingBuffer!);
         }
 
         private bool isDisposed;

@@ -134,8 +134,9 @@ namespace osu.Framework.Graphics.Rendering
         private readonly LockedWeakList<Texture> allTextures = new LockedWeakList<Texture>();
 
         internal int CurrentMaskingIndex { get; private set; }
+        private ShaderMaskingInfo currentShaderMaskingInfo;
 
-        protected IArrayBuffer<ShaderMaskingInfo>? MaskingBuffer { get; private set; }
+        public IMaskingBuffer? MaskingBuffer { get; private set; }
         private IUniformBuffer<GlobalUniformData>? globalUniformBuffer;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
         private IVertexBatch? currentActiveBatch;
@@ -202,7 +203,8 @@ namespace osu.Framework.Graphics.Rendering
                 IsUvOriginTopLeft = IsUvOriginTopLeft
             };
 
-            MaskingBuffer ??= ((IRenderer)this).CreateArrayBuffer<ShaderMaskingInfo>(16384);
+            MaskingBuffer ??= CreateMaskingBuffer();
+            currentShaderMaskingInfo = default;
             CurrentMaskingIndex = 0;
 
             Debug.Assert(defaultQuadBatch != null);
@@ -541,14 +543,11 @@ namespace osu.Framework.Graphics.Rendering
                 scissor.Height = -scissor.Height;
             }
 
-            int lastMaskingIndex = CurrentMaskingIndex;
-            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % MaskingBuffer!.Length;
-
-            MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![lastMaskingIndex] with
+            addShaderMaskingInfo(currentShaderMaskingInfo with
             {
                 // LTRB-format
                 ScissorRect = new Vector4(scissor.Left, scissor.Top, scissor.Right, scissor.Bottom)
-            };
+            });
 
             // do not expose the implementation detail of flipping the scissor box to Scissor readers.
             Scissor = scissor;
@@ -633,10 +632,7 @@ namespace osu.Framework.Graphics.Rendering
 
             // FlushCurrentBatch(FlushBatchSource.SetMasking);
 
-            int lastMaskingIndex = CurrentMaskingIndex;
-            CurrentMaskingIndex = (CurrentMaskingIndex + 1) % MaskingBuffer!.Length;
-
-            MaskingBuffer![CurrentMaskingIndex] = new ShaderMaskingInfo
+            addShaderMaskingInfo(new ShaderMaskingInfo
             {
                 IsMasking = IsMaskingActive,
                 MaskingRect = new Vector4(
@@ -670,16 +666,16 @@ namespace osu.Framework.Graphics.Rendering
                         maskingInfo.BorderColour.BottomRight.SRGB.G,
                         maskingInfo.BorderColour.BottomRight.SRGB.B,
                         maskingInfo.BorderColour.BottomRight.SRGB.A)
-                    : MaskingBuffer[lastMaskingIndex].BorderColour,
+                    : currentShaderMaskingInfo.BorderColour,
                 MaskingBlendRange = maskingInfo.BlendRange,
                 AlphaExponent = maskingInfo.AlphaExponent,
                 EdgeOffset = maskingInfo.EdgeOffset,
                 DiscardInner = maskingInfo.Hollow,
                 InnerCornerRadius = maskingInfo.Hollow
                     ? maskingInfo.HollowCornerRadius
-                    : MaskingBuffer[lastMaskingIndex].InnerCornerRadius,
-                ScissorRect = MaskingBuffer[lastMaskingIndex].ScissorRect
-            };
+                    : currentShaderMaskingInfo.InnerCornerRadius,
+                ScissorRect = currentShaderMaskingInfo.ScissorRect
+            });
 
             if (isPushing)
             {
@@ -690,6 +686,11 @@ namespace osu.Framework.Graphics.Rendering
                 PopScissor();
 
             currentMaskingInfo = maskingInfo;
+        }
+
+        private void addShaderMaskingInfo(ShaderMaskingInfo maskingInfo)
+        {
+            CurrentMaskingIndex = MaskingBuffer!.Add(currentShaderMaskingInfo = maskingInfo);
         }
 
         #endregion
@@ -1069,6 +1070,8 @@ namespace osu.Framework.Graphics.Rendering
         /// <param name="length"></param>
         /// <inheritdoc cref="IRenderer.CreateArrayBuffer{TData}"/>
         protected abstract IArrayBuffer<TData> CreateArrayBuffer<TData>(int length) where TData : unmanaged, IEquatable<TData>;
+
+        protected abstract IMaskingBuffer CreateMaskingBuffer();
 
         /// <summary>
         /// Creates a new <see cref="INativeTexture"/>.

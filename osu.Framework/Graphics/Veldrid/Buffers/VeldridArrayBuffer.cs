@@ -17,8 +17,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         private readonly uint structureSize;
 
         private readonly DeviceBuffer? buffer;
-        private readonly TData[]? bufferData;
-        private readonly VeldridUniformBuffer<TData>? uniformBuffer;
+        private readonly TData[] bufferData;
 
         private ResourceSet? set;
 
@@ -29,64 +28,32 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             Length = length;
             structureSize = (uint)Marshal.SizeOf(default(TData));
 
-            if (renderer.UseStructuredBuffers)
-            {
-                bufferData = new TData[length];
-                buffer = renderer.Factory.CreateBuffer(new BufferDescription(
-                    (uint)(structureSize * length),
-                    BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic,
-                    structureSize));
-            }
-            else
-            {
-                uniformBuffer = new VeldridUniformBuffer<TData>(renderer);
-            }
+            bufferData = new TData[length];
+            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(structureSize * length), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, structureSize));
         }
 
         public TData this[int index]
         {
-            get
-            {
-                if (renderer.UseStructuredBuffers)
-                    return bufferData![index];
-
-                return uniformBuffer!.Data;
-            }
+            get => bufferData[index];
             set
             {
-                if (renderer.UseStructuredBuffers)
-                {
-                    if (bufferData![index].Equals(value))
-                        return;
+                if (bufferData[index].Equals(value))
+                    return;
 
-                    bufferData[index] = value;
-                    renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(index * structureSize), ref bufferData[index]);
-                }
-                else
-                {
-                    renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
-                    uniformBuffer!.Data = value;
-                }
+                bufferData[index] = value;
+                renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(index * structureSize), ref bufferData[index]);
             }
         }
 
-        public ResourceSet GetResourceSet(ResourceLayout layout)
-        {
-            if (renderer.UseStructuredBuffers)
-                return set ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
-
-            return uniformBuffer!.GetResourceSet(layout);
-        }
+        public ResourceSet GetResourceSet(ResourceLayout layout) => set ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
 
         public void ResetCounters()
         {
-            uniformBuffer?.ResetCounters();
         }
 
         public void Dispose()
         {
             buffer?.Dispose();
-            uniformBuffer?.Dispose();
             set?.Dispose();
         }
     }

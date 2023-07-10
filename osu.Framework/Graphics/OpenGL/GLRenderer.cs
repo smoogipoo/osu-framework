@@ -12,6 +12,7 @@ using osu.Framework.Graphics.OpenGL.Batches;
 using osu.Framework.Graphics.OpenGL.Shaders;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Logging;
@@ -430,7 +431,10 @@ namespace osu.Framework.Graphics.OpenGL
         }
 
         protected override IUniformBuffer<TData> CreateUniformBuffer<TData>() => new GLUniformBuffer<TData>(this);
-        protected override IArrayBuffer<TData> CreateArrayBuffer<TData>(int length)
+
+        protected override IArrayBuffer<TData> CreateArrayBuffer<TData>(int length) => new DummyArrayBuffer<TData>();
+
+        protected override IMaskingBuffer CreateMaskingBuffer()
         {
             throw new NotImplementedException();
         }

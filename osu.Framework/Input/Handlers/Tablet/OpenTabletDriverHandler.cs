@@ -48,6 +48,8 @@ namespace osu.Framework.Input.Handlers.Tablet
         {
             this.host = host;
 
+            return true;
+
             outputMode = new AbsoluteTabletMode(this);
 
             host.Window.Resized += () => updateOutputArea(host.Window);
