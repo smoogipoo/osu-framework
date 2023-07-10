@@ -541,15 +541,13 @@ namespace osu.Framework.Graphics.Rendering
                 scissor.Height = -scissor.Height;
             }
 
-            RectangleF scissorAABB = (Quad.FromRectangle(scissor) * MaskingBuffer![CurrentMaskingIndex].ToMaskingSpace).AABB;
-
             int lastMaskingIndex = CurrentMaskingIndex;
             CurrentMaskingIndex = (CurrentMaskingIndex + 1) % MaskingBuffer!.Length;
 
             MaskingBuffer![CurrentMaskingIndex] = MaskingBuffer![lastMaskingIndex] with
             {
                 // LTRB-format
-                ScissorRect = new Vector4(scissorAABB.Left, scissorAABB.Top, scissorAABB.Right, scissorAABB.Bottom)
+                ScissorRect = new Vector4(scissor.Left, scissor.Top, scissor.Right, scissor.Bottom)
             };
 
             // do not expose the implementation detail of flipping the scissor box to Scissor readers.
