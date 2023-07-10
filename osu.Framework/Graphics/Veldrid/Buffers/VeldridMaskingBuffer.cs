@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// <remarks>
         /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer.
         /// </remarks>
-        private const int array_buffer_size = 1024;
+        private const int array_buffer_size = 65536;
 
         /// <summary>
         /// Number of masking infos per uniform buffer.
