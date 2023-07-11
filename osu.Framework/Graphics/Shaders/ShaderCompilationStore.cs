@@ -10,6 +10,7 @@ using osu.Framework.Logging;
 using osu.Framework.Platform;
 using Veldrid;
 using Veldrid.SPIRV;
+using Vortice.ShaderCompiler;
 
 namespace osu.Framework.Graphics.Shaders
 {
@@ -19,30 +20,39 @@ namespace osu.Framework.Graphics.Shaders
 
         public VertexFragmentShaderCompilation CompileVertexFragment(string vertexText, string fragmentText, CrossCompileTarget target)
         {
+            Options opt = new Options();
+            opt.SetSourceLanguage(SourceLanguage.GLSL);
+            opt.SetOptimizationLevel(OptimizationLevel.Performance);
+            Compiler c = new Compiler(opt);
+
             // vertexHash#fragmentHash#target
             string filename = $"{vertexText.ComputeMD5Hash()}#{fragmentText.ComputeMD5Hash()}#{(int)target}";
 
-            if (tryGetCached(filename, out VertexFragmentShaderCompilation? existing))
-            {
-                existing.WasCached = true;
-                return existing;
-            }
+            // if (tryGetCached(filename, out VertexFragmentShaderCompilation? existing))
+            // {
+            //     existing.WasCached = true;
+            //     return existing;
+            // }
 
             // Debug preserves names for reflection.
             byte[] vertexBytes = SpirvCompilation.CompileGlslToSpirv(vertexText, null, ShaderStages.Vertex, new GlslCompileOptions(true)).SpirvBytes;
             byte[] fragmentBytes = SpirvCompilation.CompileGlslToSpirv(fragmentText, null, ShaderStages.Fragment, new GlslCompileOptions(true)).SpirvBytes;
-
             VertexFragmentCompilationResult crossResult = SpirvCompilation.CompileVertexFragment(vertexBytes, fragmentBytes, target, new CrossCompileOptions());
+
+            byte[] optVBytes = c.Compile(vertexText, string.Empty, ShaderKind.VertexShader).GetBytecode().ToArray();
+            byte[] optFBytes = c.Compile(fragmentText, string.Empty, ShaderKind.FragmentShader).GetBytecode().ToArray();
+            VertexFragmentCompilationResult optCrossResult = SpirvCompilation.CompileVertexFragment(optVBytes, optFBytes, target, new CrossCompileOptions());
+
             VertexFragmentShaderCompilation compilation = new VertexFragmentShaderCompilation
             {
-                VertexBytes = vertexBytes,
-                FragmentBytes = fragmentBytes,
-                VertexText = crossResult.VertexShader,
-                FragmentText = crossResult.FragmentShader,
+                VertexBytes = optVBytes,
+                FragmentBytes = optFBytes,
+                VertexText = optCrossResult.VertexShader,
+                FragmentText = optCrossResult.FragmentShader,
                 Reflection = crossResult.Reflection
             };
 
-            saveToCache(filename, compilation);
+            // saveToCache(filename, compilation);
 
             return compilation;
         }
@@ -52,11 +62,11 @@ namespace osu.Framework.Graphics.Shaders
             // programHash#target
             string filename = $"{programText.ComputeMD5Hash()}#{(int)target}";
 
-            if (tryGetCached(filename, out ComputeProgramCompilation? existing))
-            {
-                existing.WasCached = true;
-                return existing;
-            }
+            // if (tryGetCached(filename, out ComputeProgramCompilation? existing))
+            // {
+            //     existing.WasCached = true;
+            //     return existing;
+            // }
 
             // Debug preserves names for reflection.
             byte[] programBytes = SpirvCompilation.CompileGlslToSpirv(programText, null, ShaderStages.Compute, new GlslCompileOptions(true)).SpirvBytes;
@@ -69,7 +79,7 @@ namespace osu.Framework.Graphics.Shaders
                 Reflection = crossResult.Reflection
             };
 
-            saveToCache(filename, compilation);
+            // saveToCache(filename, compilation);
 
             return compilation;
         }

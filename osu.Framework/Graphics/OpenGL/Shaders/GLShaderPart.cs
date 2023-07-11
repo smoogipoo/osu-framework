@@ -121,7 +121,7 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
 
                         if (!string.IsNullOrEmpty(backbufferCode))
                         {
-                            const string real_main_name = "__internal_real_main";
+                            const string real_main_name = "internal_real_main";
 
                             backbufferCode = backbufferCode.Replace("{{ real_main }}", real_main_name);
                             code = Regex.Replace(code, @"void main\((.*)\)", $"void {real_main_name}()") + backbufferCode + '\n';
