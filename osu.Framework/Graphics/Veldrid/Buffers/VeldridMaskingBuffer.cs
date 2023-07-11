@@ -79,17 +79,19 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// Number of masking infos per array buffer.
         /// </summary>
         /// <remarks>
-        /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer.
+        /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer. This may differ for other backends.
+        /// The total size as measured here, is around 1.5MB.
         /// </remarks>
-        public const int ARRAY_BUFFER_SIZE = 2048;
+        public const int ARRAY_BUFFER_SIZE = 8192;
 
         /// <summary>
         /// Number of masking infos per uniform buffer.
         /// </summary>
         /// <remarks>
-        /// The OpenGL spec guarantees a minimum size of 16KB for this type of buffer.
+        /// The OpenGL spec guarantees a minimum size of 16KB for this type of buffer. This may differ for other backends.
+        /// The total size as measured here, is around 12KB.
         /// </remarks>
-        public const int UNIFORM_BUFFER_SIZE = 128;
+        public const int UNIFORM_BUFFER_SIZE = 64;
 
         public readonly int Size;
 
@@ -118,6 +120,9 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             data = new TData[Size];
         }
 
+        private int changeBeginIndex = -1;
+        private int changeCount;
+
         public TData this[int index]
         {
             get => data[index];
@@ -128,11 +133,42 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
                 data[index] = value;
 
-                renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(index * elementSize), ref data[index]);
+                if (changeBeginIndex == -1)
+                {
+                    // If this is the first upload, nothing more needs to be done.
+                    changeBeginIndex = index;
+                }
+                else
+                {
+                    // If this is not the first upload, then we need to check if this index is contiguous with the previous changes.
+                    if (index != changeBeginIndex + changeCount)
+                    {
+                        // This index is not contiguous. Flush the current uploads and start a new change set.
+                        flushChanges();
+                        changeBeginIndex = index;
+                    }
+                }
+
+                changeCount++;
             }
         }
 
-        public ResourceSet GetResourceSet(ResourceLayout layout) => renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+        private void flushChanges()
+        {
+            if (changeBeginIndex == -1)
+                return;
+
+            renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(changeBeginIndex * elementSize), data.AsSpan().Slice(changeBeginIndex, changeCount));
+
+            changeBeginIndex = -1;
+            changeCount = 0;
+        }
+
+        public ResourceSet GetResourceSet(ResourceLayout layout)
+        {
+            flushChanges();
+            return renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+        }
 
         public void Dispose()
         {
