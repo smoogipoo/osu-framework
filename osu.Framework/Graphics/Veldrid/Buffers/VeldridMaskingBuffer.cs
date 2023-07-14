@@ -14,12 +14,14 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         private readonly VeldridRenderer renderer;
 
         private readonly List<VeldridMaskingBufferStorage<ShaderMaskingInfo>> buffers = new List<VeldridMaskingBufferStorage<ShaderMaskingInfo>>();
+        private readonly int bufferSize;
         private int currentElementIndex = -1;
 
         public VeldridMaskingBuffer(VeldridRenderer renderer)
         {
             this.renderer = renderer;
             buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
+            bufferSize = buffers[0].Size;
         }
 
         public int Add(ShaderMaskingInfo maskingInfo)
@@ -29,7 +31,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
                 // Signal the first use of this buffer.
                 renderer.RegisterUniformBufferForReset(this);
             }
-            else if ((currentElementIndex + 1) % buffers[0].Size == 0)
+            else if ((currentElementIndex + 1) % bufferSize == 0)
             {
                 // If this invocation transitions to a new buffer, flush the pipeline.
                 renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
@@ -38,7 +40,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             // Move to a new element.
             ++currentElementIndex;
 
-            int bufferIndex = currentElementIndex / buffers[0].Size;
+            int bufferIndex = currentElementIndex / bufferSize;
+            int bufferOffset = currentElementIndex % bufferSize;
 
             if (bufferIndex >= buffers.Count)
             {
@@ -46,17 +49,14 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
                     buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
             }
 
-            VeldridMaskingBufferStorage<ShaderMaskingInfo> buffer = buffers[bufferIndex];
-
-            int bufferOffset = currentElementIndex % buffer.Size;
-            buffer[bufferOffset] = maskingInfo;
+            buffers[bufferIndex][bufferOffset] = maskingInfo;
 
             return bufferOffset;
         }
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
         {
-            int bufferIndex = currentElementIndex / buffers[0].Size;
+            int bufferIndex = currentElementIndex / bufferSize;
             return buffers[bufferIndex].GetResourceSet(layout);
         }
 
