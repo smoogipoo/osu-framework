@@ -14,8 +14,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         private readonly VeldridRenderer renderer;
 
         private readonly List<VeldridMaskingBufferStorage<ShaderMaskingInfo>> buffers = new List<VeldridMaskingBufferStorage<ShaderMaskingInfo>>();
+        private readonly Stack<int> usedIndicesStack = new Stack<int>();
         private readonly int bufferSize;
-        private int currentElementIndex = -1;
+
+        private int currentIndex = -1;
+        private int lastAddedIndex = -1;
 
         public VeldridMaskingBuffer(VeldridRenderer renderer)
         {
@@ -24,45 +27,64 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             bufferSize = buffers[0].Size;
         }
 
-        public int Add(ShaderMaskingInfo maskingInfo)
+        public int Push(ShaderMaskingInfo maskingInfo)
         {
-            if (currentElementIndex == -1)
+            int additionIndex = lastAddedIndex + 1;
+            int currentBufferIndex = currentIndex / bufferSize;
+            int newBufferIndex = additionIndex / bufferSize;
+            int newBufferOffset = additionIndex % bufferSize;
+
+            if (currentIndex == -1)
             {
                 // Signal the first use of this buffer.
                 renderer.RegisterUniformBufferForReset(this);
             }
-            else if ((currentElementIndex + 1) % bufferSize == 0)
+            else if (currentBufferIndex != newBufferIndex)
             {
                 // If this invocation transitions to a new buffer, flush the pipeline.
                 renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
             }
 
-            // Move to a new element.
-            ++currentElementIndex;
+            // Ensure that the item can be stored.
+            if (newBufferIndex == buffers.Count)
+                buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
 
-            int bufferIndex = currentElementIndex / bufferSize;
-            int bufferOffset = currentElementIndex % bufferSize;
+            // Add the item.
+            buffers[newBufferIndex][newBufferOffset] = maskingInfo;
 
-            if (bufferIndex >= buffers.Count)
+            lastAddedIndex = additionIndex;
+            currentIndex = additionIndex;
+            usedIndicesStack.Push(currentIndex);
+
+            return newBufferOffset;
+        }
+
+        public void Pop()
+        {
+            int nextIndex = usedIndicesStack.Pop();
+            int currentBufferIndex = currentIndex / bufferSize;
+            int newBufferIndex = nextIndex / bufferSize;
+            int newBufferOffset = nextIndex % bufferSize;
+
+            if (newBufferIndex != currentBufferIndex)
             {
-                while (bufferIndex >= buffers.Count)
-                    buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
+                // If this invocation transitions to a new buffer, flush the pipeline.
+                renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
             }
 
-            buffers[bufferIndex][bufferOffset] = maskingInfo;
-
-            return bufferOffset;
+            currentIndex = nextIndex;
         }
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
         {
-            int bufferIndex = currentElementIndex / bufferSize;
+            int bufferIndex = currentIndex / bufferSize;
             return buffers[bufferIndex].GetResourceSet(layout);
         }
 
         public void ResetCounters()
         {
-            currentElementIndex = -1;
+            currentIndex = -1;
+            lastAddedIndex = -1;
         }
 
         public void Dispose()

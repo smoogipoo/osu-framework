@@ -538,7 +538,7 @@ namespace osu.Framework.Graphics.Rendering
             smi.ScissorRect = new Vector4(scissor.Left, scissor.Top, scissor.Right, scissor.Bottom);
 
             scissorRectStack.Push(scissor);
-            maskingBufferStack.Push((MaskingBuffer!.Add(smi), smi));
+            maskingBufferStack.Push((MaskingBuffer!.Push(smi), smi));
 
             Scissor = scissor;
         }
@@ -549,6 +549,7 @@ namespace osu.Framework.Graphics.Rendering
 
             scissorRectStack.Pop();
             maskingBufferStack.Pop();
+            MaskingBuffer!.Pop();
 
             Scissor = scissorRectStack.Peek();
         }
