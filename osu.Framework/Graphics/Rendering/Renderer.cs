@@ -133,10 +133,12 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Lazy<TextureWhitePixel> whitePixel;
         private readonly LockedWeakList<Texture> allTextures = new LockedWeakList<Texture>();
 
-        internal int CurrentMaskingIndex { get; private set; }
-        private ShaderMaskingInfo currentShaderMaskingInfo;
+        internal int CurrentMaskingIndex => maskingBufferStack.Count == 0 ? 0 : maskingBufferStack.Peek().index;
 
         public IMaskingBuffer? MaskingBuffer { get; private set; }
+        private readonly Stack<(int index, ShaderMaskingInfo maskingInfo)> maskingBufferStack = new Stack<(int index, ShaderMaskingInfo maskingInfo)>();
+        private ShaderMaskingInfo currentMaskingBufferData => maskingBufferStack.Count == 0 ? default : maskingBufferStack.Peek().maskingInfo;
+
         private IUniformBuffer<GlobalUniformData>? globalUniformBuffer;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
         private IVertexBatch? currentActiveBatch;
@@ -205,8 +207,7 @@ namespace osu.Framework.Graphics.Rendering
             };
 
             MaskingBuffer ??= CreateMaskingBuffer();
-            currentShaderMaskingInfo = default;
-            CurrentMaskingIndex = 0;
+            maskingBufferStack.Clear();
 
             Debug.Assert(defaultQuadBatch != null);
 
@@ -489,11 +490,7 @@ namespace osu.Framework.Graphics.Rendering
 
         #region Scissor
 
-        public void PushScissor(RectangleI scissor)
-        {
-            scissorRectStack.Push(scissor);
-            setScissor(scissor);
-        }
+        public void PushScissor(RectangleI scissor) => pushScissorAndMasking(scissor, null);
 
         public void PushScissorState(bool enabled)
         {
@@ -507,13 +504,7 @@ namespace osu.Framework.Graphics.Rendering
             setScissorOffset(offset);
         }
 
-        public void PopScissor()
-        {
-            Trace.Assert(scissorRectStack.Count > 1);
-
-            scissorRectStack.Pop();
-            setScissor(scissorRectStack.Peek());
-        }
+        public void PopScissor() => popScissorAndMasking();
 
         public void PopScissorState()
         {
@@ -531,7 +522,7 @@ namespace osu.Framework.Graphics.Rendering
             setScissorOffset(scissorOffsetStack.Peek());
         }
 
-        private void setScissor(RectangleI scissor)
+        private void pushScissorAndMasking(RectangleI scissor, ShaderMaskingInfo? maskingInfo)
         {
             if (scissor.Width < 0)
             {
@@ -545,14 +536,24 @@ namespace osu.Framework.Graphics.Rendering
                 scissor.Height = -scissor.Height;
             }
 
-            addShaderMaskingInfo(currentShaderMaskingInfo with
-            {
-                // LTRB-format
-                ScissorRect = new Vector4(scissor.Left, scissor.Top, scissor.Right, scissor.Bottom)
-            });
+            // Set the masking info scissor rectangle in LTRB-format.
+            ShaderMaskingInfo smi = maskingInfo ?? currentMaskingBufferData;
+            smi.ScissorRect = new Vector4(scissor.Left, scissor.Top, scissor.Right, scissor.Bottom);
 
-            // do not expose the implementation detail of flipping the scissor box to Scissor readers.
+            scissorRectStack.Push(scissor);
+            maskingBufferStack.Push((MaskingBuffer!.Add(smi), smi));
+
             Scissor = scissor;
+        }
+
+        private void popScissorAndMasking()
+        {
+            Trace.Assert(scissorRectStack.Count > 1);
+
+            scissorRectStack.Pop();
+            maskingBufferStack.Pop();
+
+            Scissor = scissorRectStack.Peek();
         }
 
         private void setScissorState(bool enabled)
@@ -632,67 +633,73 @@ namespace osu.Framework.Graphics.Rendering
             if (CurrentMaskingInfo == maskingInfo)
                 return;
 
-            // FlushCurrentBatch(FlushBatchSource.SetMasking);
-
-            addShaderMaskingInfo(new ShaderMaskingInfo
-            {
-                IsMasking = IsMaskingActive,
-                MaskingRect = new Vector4(
-                    maskingInfo.MaskingRect.Left,
-                    maskingInfo.MaskingRect.Top,
-                    maskingInfo.MaskingRect.Right,
-                    maskingInfo.MaskingRect.Bottom),
-                ToMaskingSpace = maskingInfo.ToMaskingSpace,
-                CornerRadius = maskingInfo.CornerRadius,
-                CornerExponent = maskingInfo.CornerExponent,
-                BorderThickness = maskingInfo.BorderThickness / maskingInfo.BlendRange,
-                BorderColour = maskingInfo.BorderThickness > 0
-                    ? new Matrix4(
-                        // TopLeft
-                        maskingInfo.BorderColour.TopLeft.SRGB.R,
-                        maskingInfo.BorderColour.TopLeft.SRGB.G,
-                        maskingInfo.BorderColour.TopLeft.SRGB.B,
-                        maskingInfo.BorderColour.TopLeft.SRGB.A,
-                        // BottomLeft
-                        maskingInfo.BorderColour.BottomLeft.SRGB.R,
-                        maskingInfo.BorderColour.BottomLeft.SRGB.G,
-                        maskingInfo.BorderColour.BottomLeft.SRGB.B,
-                        maskingInfo.BorderColour.BottomLeft.SRGB.A,
-                        // TopRight
-                        maskingInfo.BorderColour.TopRight.SRGB.R,
-                        maskingInfo.BorderColour.TopRight.SRGB.G,
-                        maskingInfo.BorderColour.TopRight.SRGB.B,
-                        maskingInfo.BorderColour.TopRight.SRGB.A,
-                        // BottomRight
-                        maskingInfo.BorderColour.BottomRight.SRGB.R,
-                        maskingInfo.BorderColour.BottomRight.SRGB.G,
-                        maskingInfo.BorderColour.BottomRight.SRGB.B,
-                        maskingInfo.BorderColour.BottomRight.SRGB.A)
-                    : currentShaderMaskingInfo.BorderColour,
-                MaskingBlendRange = maskingInfo.BlendRange,
-                AlphaExponent = maskingInfo.AlphaExponent,
-                EdgeOffset = maskingInfo.EdgeOffset,
-                DiscardInner = maskingInfo.Hollow,
-                InnerCornerRadius = maskingInfo.Hollow
-                    ? maskingInfo.HollowCornerRadius
-                    : currentShaderMaskingInfo.InnerCornerRadius,
-                ScissorRect = currentShaderMaskingInfo.ScissorRect
-            });
-
             if (isPushing)
             {
+                ShaderMaskingInfo smi = new ShaderMaskingInfo
+                {
+                    IsMasking = IsMaskingActive,
+                    MaskingRect = new Vector4(
+                        maskingInfo.MaskingRect.Left,
+                        maskingInfo.MaskingRect.Top,
+                        maskingInfo.MaskingRect.Right,
+                        maskingInfo.MaskingRect.Bottom),
+                    ToMaskingSpace = maskingInfo.ToMaskingSpace,
+                    CornerRadius = maskingInfo.CornerRadius,
+                    CornerExponent = maskingInfo.CornerExponent,
+                    BorderThickness = maskingInfo.BorderThickness / maskingInfo.BlendRange,
+                    BorderColour = maskingInfo.BorderThickness > 0
+                        ? new Matrix4(
+                            // TopLeft
+                            maskingInfo.BorderColour.TopLeft.SRGB.R,
+                            maskingInfo.BorderColour.TopLeft.SRGB.G,
+                            maskingInfo.BorderColour.TopLeft.SRGB.B,
+                            maskingInfo.BorderColour.TopLeft.SRGB.A,
+                            // BottomLeft
+                            maskingInfo.BorderColour.BottomLeft.SRGB.R,
+                            maskingInfo.BorderColour.BottomLeft.SRGB.G,
+                            maskingInfo.BorderColour.BottomLeft.SRGB.B,
+                            maskingInfo.BorderColour.BottomLeft.SRGB.A,
+                            // TopRight
+                            maskingInfo.BorderColour.TopRight.SRGB.R,
+                            maskingInfo.BorderColour.TopRight.SRGB.G,
+                            maskingInfo.BorderColour.TopRight.SRGB.B,
+                            maskingInfo.BorderColour.TopRight.SRGB.A,
+                            // BottomRight
+                            maskingInfo.BorderColour.BottomRight.SRGB.R,
+                            maskingInfo.BorderColour.BottomRight.SRGB.G,
+                            maskingInfo.BorderColour.BottomRight.SRGB.B,
+                            maskingInfo.BorderColour.BottomRight.SRGB.A)
+                        : currentMaskingBufferData.BorderColour,
+                    MaskingBlendRange = maskingInfo.BlendRange,
+                    AlphaExponent = maskingInfo.AlphaExponent,
+                    EdgeOffset = maskingInfo.EdgeOffset,
+                    DiscardInner = maskingInfo.Hollow,
+                    InnerCornerRadius = maskingInfo.Hollow
+                        ? maskingInfo.HollowCornerRadius
+                        : currentMaskingBufferData.InnerCornerRadius,
+                    ScissorRect = currentMaskingBufferData.ScissorRect
+                };
+
                 RectangleI actualRect = maskingInfo.ScreenSpaceAABB;
-                PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
+
+                if (!overwritePreviousScissor)
+                    actualRect = RectangleI.Intersect(scissorRectStack.Peek(), actualRect);
+
+                pushScissorAndMasking(actualRect, smi);
             }
             else
-                PopScissor();
+                popScissorAndMasking();
 
             currentMaskingInfo = maskingInfo;
         }
 
-        private void addShaderMaskingInfo(ShaderMaskingInfo maskingInfo)
+        private void pushMaskingBufferData(ShaderMaskingInfo maskingInfo)
         {
-            CurrentMaskingIndex = MaskingBuffer!.Add(currentShaderMaskingInfo = maskingInfo);
+        }
+
+        private void popMaskingBufferData()
+        {
+            maskingBufferStack.Pop();
         }
 
         #endregion
