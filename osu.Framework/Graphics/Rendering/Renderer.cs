@@ -690,15 +690,6 @@ namespace osu.Framework.Graphics.Rendering
             currentMaskingInfo = maskingInfo;
         }
 
-        private void pushMaskingBufferData(ShaderMaskingInfo maskingInfo)
-        {
-        }
-
-        private void popMaskingBufferData()
-        {
-            maskingBufferStack.Pop();
-        }
-
         #endregion
 
         #region Depth & Stencil
