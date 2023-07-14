@@ -61,7 +61,9 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public void Pop()
         {
-            int nextIndex = usedIndicesStack.Pop();
+            usedIndicesStack.Pop();
+
+            int nextIndex = usedIndicesStack.Peek();
             int currentBufferIndex = currentIndex / bufferSize;
             int newBufferIndex = nextIndex / bufferSize;
             int newBufferOffset = nextIndex % bufferSize;
