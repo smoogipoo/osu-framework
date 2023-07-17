@@ -83,16 +83,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             Trace.Assert(currentIndex != -1);
 
             int bufferIndex = currentIndex / bufferSize;
-
-            Console.WriteLine($"Draw (buf: {bufferIndex})");
-
             return buffers[bufferIndex].GetResourceSet(layout);
         }
 
         public void ResetCounters()
         {
-            Console.WriteLine("------ START ------");
-
             additionIndex = 0;
             currentIndex = -1;
             lastIndices.Clear();
