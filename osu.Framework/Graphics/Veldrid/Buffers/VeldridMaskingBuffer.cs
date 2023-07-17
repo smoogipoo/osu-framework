@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering;
 using Veldrid;
@@ -11,14 +12,23 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 {
     internal class VeldridMaskingBuffer : IMaskingBuffer, IVeldridUniformBuffer
     {
+        public int CurrentIndex => currentIndex % bufferSize;
+
         private readonly VeldridRenderer renderer;
 
         private readonly List<VeldridMaskingBufferStorage<ShaderMaskingInfo>> buffers = new List<VeldridMaskingBufferStorage<ShaderMaskingInfo>>();
-        private readonly Stack<int> usedIndicesStack = new Stack<int>();
+        private readonly Stack<int> lastIndices = new Stack<int>();
         private readonly int bufferSize;
 
+        /// <summary>
+        /// A monotonically increasing (during a frame) index at which items are added to the buffer.
+        /// </summary>
+        private int additionIndex;
+
+        /// <summary>
+        /// The index which tracks the current masking info. This is incremented and decremented during a frame.
+        /// </summary>
         private int currentIndex = -1;
-        private int lastAddedIndex = -1;
 
         public VeldridMaskingBuffer(VeldridRenderer renderer)
         {
@@ -29,21 +39,18 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public int Push(ShaderMaskingInfo maskingInfo)
         {
-            int additionIndex = lastAddedIndex + 1;
             int currentBufferIndex = currentIndex / bufferSize;
-            int newBufferIndex = additionIndex / bufferSize;
-            int newBufferOffset = additionIndex % bufferSize;
+            int newIndex = additionIndex++;
+            int newBufferIndex = newIndex / bufferSize;
+            int newBufferOffset = newIndex % bufferSize;
 
+            // Signal the first use of this buffer.
             if (currentIndex == -1)
-            {
-                // Signal the first use of this buffer.
                 renderer.RegisterUniformBufferForReset(this);
-            }
-            else if (currentBufferIndex != newBufferIndex)
-            {
-                // If this invocation transitions to a new buffer, flush the pipeline.
+
+            // Flush the pipeline if this invocation transitions to a new buffer.
+            if (newBufferIndex != currentBufferIndex)
                 renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
-            }
 
             // Ensure that the item can be stored.
             if (newBufferIndex == buffers.Count)
@@ -52,41 +59,43 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             // Add the item.
             buffers[newBufferIndex][newBufferOffset] = maskingInfo;
 
-            lastAddedIndex = additionIndex;
-            currentIndex = additionIndex;
-            usedIndicesStack.Push(currentIndex);
+            lastIndices.Push(currentIndex);
+            currentIndex = newIndex;
 
             return newBufferOffset;
         }
 
         public void Pop()
         {
-            usedIndicesStack.Pop();
-
-            int nextIndex = usedIndicesStack.Peek();
             int currentBufferIndex = currentIndex / bufferSize;
-            int newBufferIndex = nextIndex / bufferSize;
-            int newBufferOffset = nextIndex % bufferSize;
+            int newIndex = lastIndices.Pop();
+            int newBufferIndex = newIndex / bufferSize;
 
+            // Flush the pipeline if this invocation transitions to a new buffer.
             if (newBufferIndex != currentBufferIndex)
-            {
-                // If this invocation transitions to a new buffer, flush the pipeline.
                 renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
-            }
 
-            currentIndex = nextIndex;
+            currentIndex = newIndex;
         }
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
         {
+            Trace.Assert(currentIndex != -1);
+
             int bufferIndex = currentIndex / bufferSize;
+
+            Console.WriteLine($"Draw (buf: {bufferIndex})");
+
             return buffers[bufferIndex].GetResourceSet(layout);
         }
 
         public void ResetCounters()
         {
+            Console.WriteLine("------ START ------");
+
+            additionIndex = 0;
             currentIndex = -1;
-            lastAddedIndex = -1;
+            lastIndices.Clear();
         }
 
         public void Dispose()

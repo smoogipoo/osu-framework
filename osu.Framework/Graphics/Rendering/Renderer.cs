@@ -130,11 +130,11 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Lazy<TextureWhitePixel> whitePixel;
         private readonly LockedWeakList<Texture> allTextures = new LockedWeakList<Texture>();
 
-        internal int CurrentMaskingIndex => maskingBufferStack.Count == 0 ? 0 : maskingBufferStack.Peek().index;
+        internal int CurrentMaskingIndex => MaskingBuffer!.CurrentIndex;
 
         public IMaskingBuffer? MaskingBuffer { get; private set; }
-        private readonly Stack<(int index, ShaderMaskingInfo maskingInfo)> maskingBufferStack = new Stack<(int index, ShaderMaskingInfo maskingInfo)>();
-        private ShaderMaskingInfo currentMaskingBufferData => maskingBufferStack.Count == 0 ? default : maskingBufferStack.Peek().maskingInfo;
+        private readonly Stack<ShaderMaskingInfo> maskingBufferStack = new Stack<ShaderMaskingInfo>();
+        private ShaderMaskingInfo currentMaskingBufferData => maskingBufferStack.Count == 0 ? default : maskingBufferStack.Peek();
 
         private IUniformBuffer<GlobalUniformData>? globalUniformBuffer;
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
@@ -538,7 +538,8 @@ namespace osu.Framework.Graphics.Rendering
             smi.ScissorRect = new Vector4(scissor.Left, scissor.Top, scissor.Right, scissor.Bottom);
 
             scissorRectStack.Push(scissor);
-            maskingBufferStack.Push((MaskingBuffer!.Push(smi), smi));
+            maskingBufferStack.Push(smi);
+            MaskingBuffer!.Push(smi);
 
             Scissor = scissor;
         }

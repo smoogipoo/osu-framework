@@ -5,6 +5,7 @@ namespace osu.Framework.Graphics.Rendering
 {
     public interface IMaskingBuffer : IUniformBuffer
     {
+        int CurrentIndex { get; }
         int Push(ShaderMaskingInfo maskingInfo);
         void Pop();
     }
