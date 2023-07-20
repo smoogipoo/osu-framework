@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering;
 using Veldrid;
@@ -37,8 +36,6 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             }
 
             data = new TData[Size];
-
-            Trace.Assert(Size >= 2);
         }
 
         private int changeBeginIndex = -1;
