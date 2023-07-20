@@ -12,7 +12,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         {
         }
 
-        public int Length { get; } = 1;
+        public int Size { get; } = 1;
 
         public T this[int index]
         {

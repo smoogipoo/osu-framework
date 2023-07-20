@@ -213,7 +213,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
         public IUniformBuffer<TData> CreateUniformBuffer<TData>() where TData : unmanaged, IEquatable<TData>
             => new DummyUniformBuffer<TData>();
 
-        public IArrayBuffer<TData> CreateArrayBuffer<TData>(int length) where TData : unmanaged, IEquatable<TData>
+        public IArrayBuffer<TData> CreateArrayBuffer<TData>(int minLength, int maxLength) where TData : unmanaged, IEquatable<TData>
             => new DummyArrayBuffer<TData>();
 
         void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)

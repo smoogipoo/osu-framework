@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering;
 using Veldrid;
@@ -11,41 +12,84 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     internal class VeldridArrayBuffer<TData> : IArrayBuffer<TData>, IVeldridUniformBuffer
         where TData : unmanaged, IEquatable<TData>
     {
-        public int Length { get; }
+        public int Size { get; }
 
+        private readonly TData[] data;
+        private readonly DeviceBuffer buffer;
         private readonly VeldridRenderer renderer;
-        private readonly uint structureSize;
+        private readonly uint elementSize;
 
-        private readonly DeviceBuffer? buffer;
-        private readonly TData[] bufferData;
-
-        private ResourceSet? set;
-
-        public VeldridArrayBuffer(VeldridRenderer renderer, int length)
+        public VeldridArrayBuffer(VeldridRenderer renderer, int minSize, int maxSize)
         {
             this.renderer = renderer;
 
-            Length = length;
-            structureSize = (uint)Marshal.SizeOf(default(TData));
+            elementSize = (uint)Marshal.SizeOf(default(TData));
 
-            bufferData = new TData[length];
-            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(structureSize * length), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, structureSize));
+            if (renderer.UseStructuredBuffers)
+            {
+                Size = maxSize;
+                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, elementSize));
+            }
+            else
+            {
+                Size = minSize;
+                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            }
+
+            data = new TData[Size];
+
+            Trace.Assert(Size >= 2);
         }
+
+        private int changeBeginIndex = -1;
+        private int changeCount;
 
         public TData this[int index]
         {
-            get => bufferData[index];
+            get => data[index];
             set
             {
-                if (bufferData[index].Equals(value))
+                if (data[index].Equals(value))
                     return;
 
-                bufferData[index] = value;
-                renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(index * structureSize), ref bufferData[index]);
+                data[index] = value;
+
+                if (changeBeginIndex == -1)
+                {
+                    // If this is the first upload, nothing more needs to be done.
+                    changeBeginIndex = index;
+                }
+                else
+                {
+                    // If this is not the first upload, then we need to check if this index is contiguous with the previous changes.
+                    if (index != changeBeginIndex + changeCount)
+                    {
+                        // This index is not contiguous. Flush the current uploads and start a new change set.
+                        flushChanges();
+                        changeBeginIndex = index;
+                    }
+                }
+
+                changeCount++;
             }
         }
 
-        public ResourceSet GetResourceSet(ResourceLayout layout) => set ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+        private void flushChanges()
+        {
+            if (changeBeginIndex == -1)
+                return;
+
+            renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(changeBeginIndex * elementSize), data.AsSpan().Slice(changeBeginIndex, changeCount));
+
+            changeBeginIndex = -1;
+            changeCount = 0;
+        }
+
+        public ResourceSet GetResourceSet(ResourceLayout layout)
+        {
+            flushChanges();
+            return renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+        }
 
         public void ResetCounters()
         {
@@ -53,8 +97,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public void Dispose()
         {
-            buffer?.Dispose();
-            set?.Dispose();
+            buffer.Dispose();
         }
     }
 }

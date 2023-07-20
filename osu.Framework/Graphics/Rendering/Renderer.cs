@@ -16,6 +16,7 @@ using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Shaders.Types;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.IO.Stores;
 using osu.Framework.Lists;
 using osu.Framework.Platform;
@@ -130,9 +131,9 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Lazy<TextureWhitePixel> whitePixel;
         private readonly LockedWeakList<Texture> allTextures = new LockedWeakList<Texture>();
 
-        internal int CurrentMaskingIndex => MaskingBuffer!.CurrentIndex;
+        internal int CurrentMaskingIndex => MaskingBuffer!.CurrentOffset;
 
-        public IMaskingBuffer? MaskingBuffer { get; private set; }
+        public MaskingBuffer? MaskingBuffer { get; private set; }
         private readonly Stack<ShaderMaskingInfo> maskingBufferStack = new Stack<ShaderMaskingInfo>();
         private ShaderMaskingInfo currentMaskingBufferData => maskingBufferStack.Count == 0 ? default : maskingBufferStack.Peek();
 
@@ -203,7 +204,8 @@ namespace osu.Framework.Graphics.Rendering
                 IsUvOriginTopLeft = IsUvOriginTopLeft
             };
 
-            MaskingBuffer ??= CreateMaskingBuffer();
+            MaskingBuffer ??= new MaskingBuffer(this);
+            MaskingBuffer.Reset();
             maskingBufferStack.Clear();
 
             Debug.Assert(defaultQuadBatch != null);
@@ -1066,11 +1068,10 @@ namespace osu.Framework.Graphics.Rendering
         /// <inheritdoc cref="IRenderer.CreateUniformBuffer{TData}"/>
         protected abstract IUniformBuffer<TData> CreateUniformBuffer<TData>() where TData : unmanaged, IEquatable<TData>;
 
-        /// <param name="length"></param>
+        /// <param name="minLength"></param>
+        /// <param name="maxLength"></param>
         /// <inheritdoc cref="IRenderer.CreateArrayBuffer{TData}"/>
-        protected abstract IArrayBuffer<TData> CreateArrayBuffer<TData>(int length) where TData : unmanaged, IEquatable<TData>;
-
-        protected abstract IMaskingBuffer CreateMaskingBuffer();
+        protected abstract IArrayBuffer<TData> CreateArrayBuffer<TData>(int minLength, int maxLength) where TData : unmanaged, IEquatable<TData>;
 
         /// <summary>
         /// Creates a new <see cref="INativeTexture"/>.
@@ -1189,13 +1190,13 @@ namespace osu.Framework.Graphics.Rendering
             return CreateUniformBuffer<TData>();
         }
 
-        IArrayBuffer<TData> IRenderer.CreateArrayBuffer<TData>(int length)
+        IArrayBuffer<TData> IRenderer.CreateArrayBuffer<TData>(int minLength, int maxLength)
         {
             Trace.Assert(ThreadSafety.IsDrawThread);
 
             validateBufferDataType<TData>();
 
-            return CreateArrayBuffer<TData>(length);
+            return CreateArrayBuffer<TData>(minLength, maxLength);
         }
 
         private readonly HashSet<Type> validBufferDataTypes = new HashSet<Type>();

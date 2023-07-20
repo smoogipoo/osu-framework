@@ -136,22 +136,22 @@ namespace osu.Framework.Graphics.Veldrid.Batches
                 return 0;
 
             var buffers = currentVertexBuffers;
-
             if (buffers.Count == 0)
                 return 0;
 
-            VeldridVertexBuffer<T> buffer = buffers[currentBufferIndex];
-
-            if (changeBeginIndex >= 0)
-                buffer.UpdateRange(changeBeginIndex, changeEndIndex);
-
-            buffer.DrawRange(currentDrawIndex, currentVertexIndex);
-
             int count = currentVertexIndex - currentDrawIndex;
 
-            // When using multiple buffers we advance to the next one with every draw to prevent contention on the same buffer with future vertex updates.
+            int drawStartIndex = currentDrawIndex;
+            int changeStartIndex = changeBeginIndex;
+
             currentDrawIndex = currentVertexIndex;
             changeBeginIndex = -1;
+
+            VeldridVertexBuffer<T> buffer = buffers[currentBufferIndex];
+
+            if (changeStartIndex >= 0)
+                buffer.UpdateRange(changeStartIndex, changeEndIndex);
+            buffer.DrawRange(drawStartIndex, currentVertexIndex);
 
             FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
             FrameStatistics.Add(StatisticsCounterType.VerticesDraw, count);

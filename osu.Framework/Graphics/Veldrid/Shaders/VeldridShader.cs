@@ -212,7 +212,6 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
             };
 
             BindUniformBlock("g_GlobalUniforms", globalUniformBuffer);
-            BindUniformBlock("g_MaskingBuffer", renderer.MaskingBuffer!);
         }
 
         private bool isDisposed;
