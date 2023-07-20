@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// <summary>
         /// A monotonically increasing (during a frame) index at which items are added to the buffer.
         /// </summary>
-        private int additionIndex;
+        private int nextAdditionIndex;
 
         /// <summary>
         /// The index which tracks the current masking info. This is incremented and decremented during a frame.
@@ -39,8 +39,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public int Push(ShaderMaskingInfo maskingInfo)
         {
+            lastIndices.Push(currentIndex);
+
             int currentBufferIndex = currentIndex / bufferSize;
-            int newIndex = additionIndex++;
+            int currentBufferOffset = currentIndex % bufferSize;
+            int newIndex = nextAdditionIndex++;
             int newBufferIndex = newIndex / bufferSize;
             int newBufferOffset = newIndex % bufferSize;
 
@@ -48,18 +51,56 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             if (currentIndex == -1)
                 renderer.RegisterUniformBufferForReset(this);
 
-            // Flush the pipeline if this invocation transitions to a new buffer.
-            if (newBufferIndex != currentBufferIndex)
-                renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
-
             // Ensure that the item can be stored.
             if (newBufferIndex == buffers.Count)
                 buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
 
+            // Flush the pipeline if this invocation transitions to a new buffer.
+            if (newBufferIndex != currentBufferIndex)
+            {
+                renderer.FlushCurrentBatch(FlushBatchSource.SetMasking);
+
+                //
+                // When transitioning to a new buffer, we want to reduce a certain "ping-ponging" effect that occurs when there are many masking drawables at one level of the hierarchy.
+                // For example, suppose that there are 1000 masking drawables at the current level in the draw hierarchy, and each of those draws 4 vertices.
+                // Each drawable will Push() to transition to buffer X+1, and Pop() to transition back to buffer X.
+                // Since we flush every Pop(), this is equivalent to drawing 4 vertices per flush.
+                //
+                // A little hack is employed to resolve this issue:
+                // When transitioning to a new buffer, we copy the last item from the last buffer into the new buffer,
+                // and adjust the stack so that we no longer refer to a position inside the last buffer upon a Pop().
+                //
+                // If the item to be copied would end up at the last index in the new buffer, then we also need to advance the buffer itself,
+                // otherwise the user's item would be placed in a new buffer anyway and undo this optimisation.
+                //
+                // This can be thought of as a trade-off of space for performance (by reducing flushes).
+
+                // If the copy would be placed at the end of the new buffer, advance the buffer.
+                if (newBufferOffset == bufferSize - 1)
+                {
+                    nextAdditionIndex++;
+                    newIndex++;
+                    newBufferIndex++;
+                    newBufferOffset = 0;
+
+                    if (newBufferIndex == buffers.Count)
+                        buffers.Add(new VeldridMaskingBufferStorage<ShaderMaskingInfo>(renderer));
+                }
+
+                // Copy the current item from the last buffer into the new buffer.
+                buffers[newBufferIndex][newBufferOffset] = buffers[currentBufferIndex][currentBufferOffset];
+
+                // Adjust the stack so the last index points to the index in the new buffer, instead of currentIndex (from the old buffer).
+                lastIndices.Pop();
+                lastIndices.Push(newIndex);
+
+                nextAdditionIndex++;
+                newIndex++;
+                newBufferOffset++;
+            }
+
             // Add the item.
             buffers[newBufferIndex][newBufferOffset] = maskingInfo;
-
-            lastIndices.Push(currentIndex);
             currentIndex = newIndex;
 
             return newBufferOffset;
@@ -73,7 +114,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
             // Flush the pipeline if this invocation transitions to a new buffer.
             if (newBufferIndex != currentBufferIndex)
-                renderer.FlushCurrentBatch(FlushBatchSource.SetUniform);
+                renderer.FlushCurrentBatch(FlushBatchSource.SetMasking);
 
             currentIndex = newIndex;
         }
@@ -88,7 +129,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public void ResetCounters()
         {
-            additionIndex = 0;
+            nextAdditionIndex = 0;
             currentIndex = -1;
             lastIndices.Clear();
         }
@@ -104,7 +145,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         where TData : unmanaged, IEquatable<TData>
     {
         /// <summary>
-        /// Number of masking infos per array buffer.
+        /// Number of masking infos per array buffer. Must be at least 2.
         /// </summary>
         /// <remarks>
         /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer. This may differ for other backends.
@@ -113,7 +154,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         public const int ARRAY_BUFFER_SIZE = 8192;
 
         /// <summary>
-        /// Number of masking infos per uniform buffer.
+        /// Number of masking infos per uniform buffer. Must be at least 2.
         /// </summary>
         /// <remarks>
         /// The OpenGL spec guarantees a minimum size of 16KB for this type of buffer. This may differ for other backends.
@@ -146,6 +187,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             }
 
             data = new TData[Size];
+
+            Trace.Assert(Size >= 2);
         }
 
         private int changeBeginIndex = -1;
