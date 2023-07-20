@@ -12,7 +12,6 @@ using osu.Framework.Graphics.OpenGL.Batches;
 using osu.Framework.Graphics.OpenGL.Shaders;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
-using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Logging;
@@ -40,6 +39,8 @@ namespace osu.Framework.Graphics.OpenGL
         }
 
         protected internal override bool AllowTearing { get; set; }
+
+        public bool UseStructuredBuffers => !FrameworkEnvironment.NoStructuredBuffers; // Todo: Query extension
 
         public override bool IsDepthRangeZeroToOne => false;
         public override bool IsUvOriginTopLeft => false;
@@ -247,6 +248,18 @@ namespace osu.Framework.Graphics.OpenGL
             ScheduleDisposal(GL.DeleteFramebuffer, ((GLFrameBuffer)frameBuffer).FrameBuffer);
         }
 
+        public void DrawVertices(PrimitiveType type, int indexStart, int indicesCount)
+        {
+            var glShader = (GLShader)Shader!;
+
+            GLArrayBuffer<ShaderMaskingInfo> currentMaskingBuffer = (GLArrayBuffer<ShaderMaskingInfo>)MaskingBuffer!.CurrentBuffer;
+            currentMaskingBuffer.Flush();
+
+            glShader.BindUniformBlock("g_MaskingBuffer", currentMaskingBuffer);
+
+            GL.DrawElements(type, indicesCount, DrawElementsType.UnsignedShort, (IntPtr)(indexStart * sizeof(ushort)));
+        }
+
         protected override void ClearImplementation(ClearInfo clearInfo)
         {
             if (clearInfo.Colour != CurrentClearInfo.Colour)
@@ -276,10 +289,6 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected override void SetScissorStateImplementation(bool enabled)
         {
-            if (enabled)
-                GL.Enable(EnableCap.ScissorTest);
-            else
-                GL.Disable(EnableCap.ScissorTest);
         }
 
         protected override void SetBlendImplementation(BlendingParameters blendingParameters)
@@ -432,7 +441,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected override IUniformBuffer<TData> CreateUniformBuffer<TData>() => new GLUniformBuffer<TData>(this);
 
-        protected override IArrayBuffer<TData> CreateArrayBuffer<TData>(int minLength, int maxLength) => new DummyArrayBuffer<TData>();
+        protected override IArrayBuffer<TData> CreateArrayBuffer<TData>(int minLength, int maxLength) => new GLArrayBuffer<TData>(this, minLength, maxLength);
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
                                                               Color4? initialisationColour = null)
