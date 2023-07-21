@@ -15,7 +15,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// </summary>
         /// <remarks>
         /// The OpenGL spec guarantees a minimum size of 128MB for this type of buffer. This may differ for other backends.
-        /// The total size as measured here, is around 1.5MB.
+        /// The total size as measured here, is just under 2MB.
         /// </remarks>
         public const int ARRAY_BUFFER_SIZE = 8192;
 
@@ -24,7 +24,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// </summary>
         /// <remarks>
         /// The OpenGL spec guarantees a minimum size of 16KB for this type of buffer. This may differ for other backends.
-        /// The total size as measured here, is around 12KB.
+        /// The total size as measured here, is just under 16KB.
         /// </remarks>
         public const int UNIFORM_BUFFER_SIZE = 64;
 
