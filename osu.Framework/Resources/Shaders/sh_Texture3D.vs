@@ -13,6 +13,7 @@ layout(location = 2) out highp vec2 v_TexCoord;
 layout(location = 3) out highp vec4 v_TexRect;
 layout(location = 4) out mediump vec2 v_BlendRange;
 layout(location = 5) flat out int v_MaskingIndex;
+layout(location = 6) out highp vec2 v_Position;
 
 void main(void)
 {
@@ -25,6 +26,7 @@ void main(void)
 	v_TexRect = vec4(0.0);
 	v_BlendRange = vec2(0.0);
 	v_MaskingIndex = m_MaskingIndex;
+	v_Position = m_Position.xy;
 
 	v_Colour = m_Colour;
 	v_TexCoord = m_TexCoord;
