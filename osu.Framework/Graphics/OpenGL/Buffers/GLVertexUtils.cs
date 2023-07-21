@@ -60,7 +60,37 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             for (int i = 0; i < attributes.Count; i++)
             {
                 GL.EnableVertexAttribArray(i);
-                GL.VertexAttribPointer(i, attributes[i].Count, attributes[i].Type, attributes[i].Normalized, STRIDE, attributes[i].Offset);
+
+                switch (attributes[i].Type)
+                {
+                    case VertexAttribPointerType.Int:
+                        GL.VertexAttribIPointer(i, attributes[i].Count, VertexAttribIntegerType.Int, STRIDE, attributes[i].Offset);
+                        break;
+
+                    case VertexAttribPointerType.UnsignedInt:
+                        GL.VertexAttribIPointer(i, attributes[i].Count, VertexAttribIntegerType.UnsignedInt, STRIDE, attributes[i].Offset);
+                        break;
+
+                    case VertexAttribPointerType.Byte:
+                        GL.VertexAttribIPointer(i, attributes[i].Count, VertexAttribIntegerType.Byte, STRIDE, attributes[i].Offset);
+                        break;
+
+                    case VertexAttribPointerType.UnsignedByte:
+                        GL.VertexAttribIPointer(i, attributes[i].Count, VertexAttribIntegerType.UnsignedByte, STRIDE, attributes[i].Offset);
+                        break;
+
+                    case VertexAttribPointerType.Short:
+                        GL.VertexAttribIPointer(i, attributes[i].Count, VertexAttribIntegerType.Short, STRIDE, attributes[i].Offset);
+                        break;
+
+                    case VertexAttribPointerType.UnsignedShort:
+                        GL.VertexAttribIPointer(i, attributes[i].Count, VertexAttribIntegerType.UnsignedShort, STRIDE, attributes[i].Offset);
+                        break;
+
+                    default:
+                        GL.VertexAttribPointer(i, attributes[i].Count, attributes[i].Type, attributes[i].Normalized, STRIDE, attributes[i].Offset);
+                        break;
+                }
             }
         }
     }

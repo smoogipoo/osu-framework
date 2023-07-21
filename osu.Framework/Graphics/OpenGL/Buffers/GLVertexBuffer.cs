@@ -45,10 +45,13 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         {
             ref var currentVertex = ref getMemory().Span[vertexIndex];
 
-            bool isNewVertex = !currentVertex.Vertex.Equals(vertex) || currentVertex.BackbufferDrawDepth != Renderer.BackbufferDrawDepth;
+            bool isNewVertex = !currentVertex.Vertex.Equals(vertex)
+                               || currentVertex.BackbufferDrawDepth != Renderer.BackbufferDrawDepth
+                               || currentVertex.MaskingIndex != Renderer.CurrentMaskingIndex;
 
             currentVertex.Vertex = vertex;
             currentVertex.BackbufferDrawDepth = Renderer.BackbufferDrawDepth;
+            currentVertex.MaskingIndex = Renderer.CurrentMaskingIndex;
 
             return isNewVertex;
         }

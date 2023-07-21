@@ -8,7 +8,11 @@ using osuTK.Graphics.ES30;
 
 namespace osu.Framework.Graphics.OpenGL.Buffers
 {
-    internal class GLArrayBuffer<TData> : IArrayBuffer<TData>, IGLUniformBuffer
+    internal interface IGLArrayBuffer : IGLUniformBuffer
+    {
+    }
+
+    internal class GLArrayBuffer<TData> : IArrayBuffer<TData>, IGLArrayBuffer
         where TData : unmanaged, IEquatable<TData>
     {
         public int Size { get; }
@@ -74,13 +78,13 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             if (renderer.UseStructuredBuffers)
             {
                 GL.BindBuffer(BufferTarget.UniformBuffer, Id);
-                GL.BufferSubData(BufferTarget.UniformBuffer, (IntPtr)(changeBeginIndex * elementSize), (IntPtr)(elementSize * changeCount), ref data[0]);
+                GL.BufferSubData(BufferTarget.UniformBuffer, (IntPtr)(changeBeginIndex * elementSize), (IntPtr)(elementSize * changeCount), ref data[changeBeginIndex]);
                 GL.BindBuffer(BufferTarget.UniformBuffer, 0);
             }
             else
             {
                 GL.BindBuffer(BufferTarget.UniformBuffer, Id);
-                GL.BufferSubData(BufferTarget.UniformBuffer, (IntPtr)(changeBeginIndex * elementSize), (IntPtr)(elementSize * changeCount), ref data[0]);
+                GL.BufferSubData(BufferTarget.UniformBuffer, (IntPtr)(changeBeginIndex * elementSize), (IntPtr)(elementSize * changeCount), ref data[changeBeginIndex]);
                 GL.BindBuffer(BufferTarget.UniformBuffer, 0);
             }
 

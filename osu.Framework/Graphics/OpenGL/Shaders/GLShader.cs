@@ -151,7 +151,11 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
             EnsureShaderCompiled();
 
             renderer.FlushCurrentBatch(FlushBatchSource.BindBuffer);
-            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, uniformBlocks[blockName].Binding, glBuffer.Id);
+
+            if (buffer is IGLArrayBuffer)
+                osuTK.Graphics.OpenGL.GL.BindBufferBase(osuTK.Graphics.OpenGL.BufferRangeTarget.ShaderStorageBuffer, uniformBlocks[blockName].Binding, glBuffer.Id);
+            else
+                GL.BindBufferBase(BufferRangeTarget.UniformBuffer, uniformBlocks[blockName].Binding, glBuffer.Id);
         }
 
         private protected virtual bool CompileInternal()
