@@ -263,8 +263,8 @@ namespace osu.Framework.Graphics.Rendering
             PushScissorOffset(Vector2I.Zero);
             PushMaskingInfo(new MaskingInfo
             {
-                ScissorRect = new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y),
-                MaskingSpaceRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
+                ScreenSpaceScissorArea = new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y),
+                MaskingSpaceArea = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 ToMaskingSpace = Matrix3.Identity,
                 ToScissorSpace = Matrix3.Identity,
                 BlendRange = 1,
@@ -641,10 +641,10 @@ namespace osu.Framework.Graphics.Rendering
                 {
                     IsMasking = IsMaskingActive,
                     MaskingRect = new Vector4(
-                        maskingInfo.MaskingSpaceRect.Left,
-                        maskingInfo.MaskingSpaceRect.Top,
-                        maskingInfo.MaskingSpaceRect.Right,
-                        maskingInfo.MaskingSpaceRect.Bottom),
+                        maskingInfo.MaskingSpaceArea.Left,
+                        maskingInfo.MaskingSpaceArea.Top,
+                        maskingInfo.MaskingSpaceArea.Right,
+                        maskingInfo.MaskingSpaceArea.Bottom),
                     ToMaskingSpace = maskingInfo.ToMaskingSpace,
                     ToScissorSpace = maskingInfo.ToScissorSpace,
                     CornerRadius = maskingInfo.CornerRadius,
@@ -683,7 +683,7 @@ namespace osu.Framework.Graphics.Rendering
                     ScissorRect = currentMaskingBufferData.ScissorRect
                 };
 
-                RectangleI actualRect = maskingInfo.ScissorRect;
+                RectangleI actualRect = maskingInfo.ScreenSpaceScissorArea;
 
                 if (!overwritePreviousScissor)
                     actualRect = RectangleI.Intersect(scissorRectStack.Peek(), actualRect);

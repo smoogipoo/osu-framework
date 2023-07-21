@@ -11,24 +11,31 @@ namespace osu.Framework.Graphics.Rendering
     public struct MaskingInfo : IEquatable<MaskingInfo>
     {
         /// <summary>
-        /// The rectangle that provides the scissor area for drawn vertices.
+        /// A rectangle in screen-space that defines the scissor area.
         /// </summary>
-        public RectangleI ScissorRect;
+        public RectangleI ScreenSpaceScissorArea;
 
         /// <summary>
-        /// The rectangle that defines the masking space.
+        /// A rectangle in the local-space (i.e. <see cref="Drawable.DrawRectangle"/>) of the masking container, that defines the masking area.
         /// </summary>
-        public RectangleF MaskingSpaceRect;
+        public RectangleF MaskingSpaceArea;
 
+        /// <summary>
+        /// A quad representing the internal "safe" (without borders, corners, and AA smoothening) area of the masking container.
+        /// </summary>
+        /// <remarks>
+        /// This is used to clip drawn polygons during the front-to-back pass such that only areas guaranteed to be visible are drawn.
+        /// </remarks>
         public Quad ConservativeScreenSpaceQuad;
 
         /// <summary>
-        /// This matrix transforms screen space coordinates to masking space (likely the parent
-        /// space of the container doing the masking).
-        /// It is used by a shader to determine which pixels to discard.
+        /// A matrix that converts from vertex coordinates to the space of <see cref="MaskingSpaceArea"/>.
         /// </summary>
         public Matrix3 ToMaskingSpace;
 
+        /// <summary>
+        /// A matrix that converts from vertex coordinates to the space of <see cref="ScreenSpaceScissorArea"/>.
+        /// </summary>
         public Matrix3 ToScissorSpace;
 
         public float CornerRadius;
@@ -48,8 +55,8 @@ namespace osu.Framework.Graphics.Rendering
         public readonly bool Equals(MaskingInfo other) => this == other;
 
         public static bool operator ==(in MaskingInfo left, in MaskingInfo right) =>
-            left.ScissorRect == right.ScissorRect &&
-            left.MaskingSpaceRect == right.MaskingSpaceRect &&
+            left.ScreenSpaceScissorArea == right.ScreenSpaceScissorArea &&
+            left.MaskingSpaceArea == right.MaskingSpaceArea &&
             left.ConservativeScreenSpaceQuad.Equals(right.ConservativeScreenSpaceQuad) &&
             left.ToMaskingSpace == right.ToMaskingSpace &&
             left.ToScissorSpace == right.ToScissorSpace &&
