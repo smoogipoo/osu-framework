@@ -15,24 +15,26 @@ layout(location = 2) out highp vec2 v_TexCoord;
 layout(location = 3) out highp vec4 v_TexRect;
 layout(location = 4) out mediump vec2 v_BlendRange;
 layout(location = 5) flat out int v_MaskingIndex;
-layout(location = 6) out highp vec2 v_Position;
+layout(location = 6) out highp vec2 v_ScissorPosition;
 
 void main(void)
 {
     InitMasking(m_MaskingIndex);
 
-	// Transform from screen space to masking space.
-	highp vec3 maskingPos = g_MaskingInfo.ToMaskingSpace * vec3(m_Position, 1.0);
-	v_MaskingPosition = maskingPos.xy / maskingPos.z;
+    // Transform from screen space to masking space.
+    highp vec3 maskingPos = g_MaskingInfo.ToMaskingSpace * vec3(m_Position, 1.0);
+    v_MaskingPosition = maskingPos.xy / maskingPos.z;
 
-	v_Colour = m_Colour;
-	v_TexCoord = m_TexCoord;
-	v_TexRect = m_TexRect;
-	v_BlendRange = m_BlendRange;
-	v_MaskingIndex = m_MaskingIndex;
-	v_Position = m_Position;
+    highp vec3 scissorPos = g_MaskingInfo.ToScissorSpace * vec3(m_Position.xy, 1.0);
+    v_ScissorPosition = scissorPos.xy / scissorPos.z;
 
-	gl_Position = g_ProjMatrix * vec4(m_Position, 1.0, 1.0);
+    v_Colour = m_Colour;
+    v_TexCoord = m_TexCoord;
+    v_TexRect = m_TexRect;
+    v_BlendRange = m_BlendRange;
+    v_MaskingIndex = m_MaskingIndex;
+
+    gl_Position = g_ProjMatrix * vec4(m_Position, 1.0, 1.0);
 }
 
 #endif

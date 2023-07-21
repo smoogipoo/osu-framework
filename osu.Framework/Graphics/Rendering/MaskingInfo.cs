@@ -10,8 +10,15 @@ namespace osu.Framework.Graphics.Rendering
 {
     public struct MaskingInfo : IEquatable<MaskingInfo>
     {
-        public RectangleI ScreenSpaceAABB;
-        public RectangleF MaskingRect;
+        /// <summary>
+        /// The rectangle that provides the scissor area for drawn vertices.
+        /// </summary>
+        public RectangleI ScissorRect;
+
+        /// <summary>
+        /// The rectangle that defines the masking space.
+        /// </summary>
+        public RectangleF MaskingSpaceRect;
 
         public Quad ConservativeScreenSpaceQuad;
 
@@ -21,6 +28,8 @@ namespace osu.Framework.Graphics.Rendering
         /// It is used by a shader to determine which pixels to discard.
         /// </summary>
         public Matrix3 ToMaskingSpace;
+
+        public Matrix3 ToScissorSpace;
 
         public float CornerRadius;
         public float CornerExponent;
@@ -39,10 +48,11 @@ namespace osu.Framework.Graphics.Rendering
         public readonly bool Equals(MaskingInfo other) => this == other;
 
         public static bool operator ==(in MaskingInfo left, in MaskingInfo right) =>
-            left.ScreenSpaceAABB == right.ScreenSpaceAABB &&
-            left.MaskingRect == right.MaskingRect &&
+            left.ScissorRect == right.ScissorRect &&
+            left.MaskingSpaceRect == right.MaskingSpaceRect &&
             left.ConservativeScreenSpaceQuad.Equals(right.ConservativeScreenSpaceQuad) &&
             left.ToMaskingSpace == right.ToMaskingSpace &&
+            left.ToScissorSpace == right.ToScissorSpace &&
             left.CornerRadius == right.CornerRadius &&
             left.CornerExponent == right.CornerExponent &&
             left.BorderThickness == right.BorderThickness &&

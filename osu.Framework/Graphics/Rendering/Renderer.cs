@@ -263,9 +263,10 @@ namespace osu.Framework.Graphics.Rendering
             PushScissorOffset(Vector2I.Zero);
             PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y),
-                MaskingRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
+                ScissorRect = new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y),
+                MaskingSpaceRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 ToMaskingSpace = Matrix3.Identity,
+                ToScissorSpace = Matrix3.Identity,
                 BlendRange = 1,
                 AlphaExponent = 1,
                 CornerExponent = 2.5f,
@@ -640,11 +641,12 @@ namespace osu.Framework.Graphics.Rendering
                 {
                     IsMasking = IsMaskingActive,
                     MaskingRect = new Vector4(
-                        maskingInfo.MaskingRect.Left,
-                        maskingInfo.MaskingRect.Top,
-                        maskingInfo.MaskingRect.Right,
-                        maskingInfo.MaskingRect.Bottom),
+                        maskingInfo.MaskingSpaceRect.Left,
+                        maskingInfo.MaskingSpaceRect.Top,
+                        maskingInfo.MaskingSpaceRect.Right,
+                        maskingInfo.MaskingSpaceRect.Bottom),
                     ToMaskingSpace = maskingInfo.ToMaskingSpace,
+                    ToScissorSpace = maskingInfo.ToScissorSpace,
                     CornerRadius = maskingInfo.CornerRadius,
                     CornerExponent = maskingInfo.CornerExponent,
                     BorderThickness = maskingInfo.BorderThickness / maskingInfo.BlendRange,
@@ -681,7 +683,7 @@ namespace osu.Framework.Graphics.Rendering
                     ScissorRect = currentMaskingBufferData.ScissorRect
                 };
 
-                RectangleI actualRect = maskingInfo.ScreenSpaceAABB;
+                RectangleI actualRect = maskingInfo.ScissorRect;
 
                 if (!overwritePreviousScissor)
                     actualRect = RectangleI.Intersect(scissorRectStack.Peek(), actualRect);

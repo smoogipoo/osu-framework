@@ -12,13 +12,13 @@ layout(location = 1) in lowp vec4 v_Colour;
 
 layout(location = 4) in mediump vec2 v_BlendRange;
 layout(location = 5) flat in int v_MaskingIndex;
-layout(location = 6) in highp vec2 v_Position;
+layout(location = 6) in highp vec2 v_ScissorPosition;
 
 /// Positive if outside the rect, negative if inside the rect.
 highp float distanceFromScissorRect()
 {
-	highp vec2 topLeftOffset = g_MaskingInfo.ScissorRect.xy - v_Position;
-	highp vec2 bottomRightOffset = v_Position - g_MaskingInfo.ScissorRect.zw;
+	highp vec2 topLeftOffset = g_MaskingInfo.ScissorRect.xy - v_ScissorPosition;
+	highp vec2 bottomRightOffset = v_ScissorPosition - g_MaskingInfo.ScissorRect.zw;
 
 	highp vec2 distanceFromShrunkRect = max(bottomRightOffset, topLeftOffset);
 

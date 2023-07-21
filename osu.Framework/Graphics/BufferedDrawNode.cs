@@ -68,7 +68,7 @@ namespace osu.Framework.Graphics
         /// <summary>
         /// Whether this <see cref="BufferedDrawNode"/> should be redrawn.
         /// </summary>
-        protected bool RequiresRedraw => GetDrawVersion() > SharedData.DrawVersion;
+        protected bool RequiresRedraw => true;
 
         /// <summary>
         /// Retrieves the version of the state of this <see cref="DrawNode"/>.
@@ -157,9 +157,10 @@ namespace osu.Framework.Graphics
         {
             renderer.PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = screenSpaceDrawRectangle,
-                MaskingRect = ((Drawable)Source).DrawRectangle,
+                ScissorRect = screenSpaceDrawRectangle,
+                MaskingSpaceRect = ((Drawable)Source).DrawRectangle,
                 ToMaskingSpace = DrawInfo.MatrixInverse,
+                ToScissorSpace = Matrix3.Identity,
                 BlendRange = 1,
                 AlphaExponent = 1,
             }, true);

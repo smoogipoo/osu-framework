@@ -3,6 +3,7 @@
 struct MaskingInfo
 {
     mat3 ToMaskingSpace;
+    mat3 ToScissorSpace;
 
     bool IsMasking;
     highp float CornerRadius;
