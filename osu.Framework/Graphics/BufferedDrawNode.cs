@@ -68,7 +68,7 @@ namespace osu.Framework.Graphics
         /// <summary>
         /// Whether this <see cref="BufferedDrawNode"/> should be redrawn.
         /// </summary>
-        protected bool RequiresRedraw => true;
+        protected bool RequiresRedraw => GetDrawVersion() > SharedData.DrawVersion;
 
         /// <summary>
         /// Retrieves the version of the state of this <see cref="DrawNode"/>.
