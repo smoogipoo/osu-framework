@@ -35,6 +35,7 @@ namespace osu.Framework.Graphics
         protected RectangleF DrawRectangle { get; private set; }
 
         private Color4 backgroundColour;
+        private RectangleF localDrawRectangle;
         private RectangleF screenSpaceDrawRectangle;
         private Vector2 frameBufferScale;
         private Vector2 frameBufferSize;
@@ -52,6 +53,7 @@ namespace osu.Framework.Graphics
             base.ApplyState();
 
             backgroundColour = Source.BackgroundColour;
+            localDrawRectangle = Source.DrawRectangle;
             screenSpaceDrawRectangle = Source.ScreenSpaceDrawQuad.AABBFloat;
             DrawColourInfo = Source.FrameBufferDrawColour ?? new DrawColourInfo(Color4.White, base.DrawColourInfo.Blending);
             frameBufferScale = Source.FrameBufferScale;
@@ -60,6 +62,7 @@ namespace osu.Framework.Graphics
 
             frameBufferSize = new Vector2(MathF.Ceiling(screenSpaceDrawRectangle.Width * frameBufferScale.X), MathF.Ceiling(screenSpaceDrawRectangle.Height * frameBufferScale.Y));
 
+            // Todo: This should probably be prefixed with "screen space"...
             DrawRectangle = screenSpaceDrawRectangle;
 
             Child.ApplyState();
@@ -158,7 +161,7 @@ namespace osu.Framework.Graphics
             renderer.PushMaskingInfo(new MaskingInfo
             {
                 ScreenSpaceScissorArea = screenSpaceDrawRectangle,
-                MaskingSpaceArea = ((Drawable)Source).DrawRectangle,
+                MaskingSpaceArea = localDrawRectangle,
                 ToMaskingSpace = DrawInfo.MatrixInverse,
                 ToScissorSpace = Matrix3.Identity,
                 BlendRange = 1,

@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osuTK;
 using osuTK.Graphics;
@@ -35,5 +36,7 @@ namespace osu.Framework.Graphics
         /// The contents of the <see cref="IFrameBuffer"/>s are populated at this scale, however the scale of <see cref="Drawable"/>s remains unaffected.
         /// </remarks>
         Vector2 FrameBufferScale { get; }
+
+        RectangleF DrawRectangle { get; }
     }
 }
