@@ -40,7 +40,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         protected internal override bool AllowTearing { get; set; }
 
-        public bool UseStructuredBuffers => !FrameworkEnvironment.NoStructuredBuffers; // Todo: Query extension
+        public bool UseStructuredBuffers { get; private set; }
 
         public override bool IsDepthRangeZeroToOne => false;
         public override bool IsUvOriginTopLeft => false;
@@ -82,14 +82,18 @@ namespace osu.Framework.Graphics.OpenGL
             GL.Disable(EnableCap.StencilTest);
             GL.Enable(EnableCap.Blend);
 
+            string extensions = GetExtensions();
+
             Logger.Log($@"GL Initialized
                         GL Version:                 {GL.GetString(StringName.Version)}
                         GL Renderer:                {GL.GetString(StringName.Renderer)}
                         GL Shader Language version: {GL.GetString(StringName.ShadingLanguageVersion)}
                         GL Vendor:                  {GL.GetString(StringName.Vendor)}
-                        GL Extensions:              {GetExtensions()}");
+                        GL Extensions:              {extensions}");
 
             openGLSurface.ClearCurrent();
+
+            UseStructuredBuffers = extensions.Contains(@"GL_ARB_shader_storage_buffer_object") && !FrameworkEnvironment.NoStructuredBuffers;
 
             Logger.Log($"{nameof(UseStructuredBuffers)}: {UseStructuredBuffers}");
         }
