@@ -543,6 +543,8 @@ namespace osu.Framework.Graphics.Veldrid
             var veldridShader = (VeldridShader)Shader!;
 
             VeldridArrayBuffer<ShaderMaskingInfo> currentMaskingBuffer = (VeldridArrayBuffer<ShaderMaskingInfo>)MaskingBuffer!.CurrentBuffer;
+
+            veldridShader.BindUniformBlock("g_GlobalUniforms", GlobalUniformBuffer!);
             veldridShader.BindUniformBlock("g_MaskingBuffer", currentMaskingBuffer);
 
             pipeline.PrimitiveTopology = type;
@@ -736,8 +738,8 @@ namespace osu.Framework.Graphics.Veldrid
         protected override IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
             => new VeldridShaderPart(this, rawData, partType, store);
 
-        protected override IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer, ShaderCompilationStore compilationStore)
-            => new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), globalUniformBuffer, compilationStore);
+        protected override IShader CreateShader(string name, IShaderPart[] parts, ShaderCompilationStore compilationStore)
+            => new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), compilationStore);
 
         public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
             => new VeldridFrameBuffer(this, renderBufferFormats?.ToPixelFormats(), filteringMode.ToSamplerFilter());

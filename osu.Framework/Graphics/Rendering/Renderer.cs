@@ -9,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
-using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Vertices;
@@ -137,7 +136,8 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Stack<ShaderMaskingInfo> maskingBufferStack = new Stack<ShaderMaskingInfo>();
         private ShaderMaskingInfo currentMaskingBufferData => maskingBufferStack.Count == 0 ? default : maskingBufferStack.Peek();
 
-        private IUniformBuffer<GlobalUniformData>? globalUniformBuffer;
+        public IUniformBuffer<GlobalUniformData>? GlobalUniformBuffer { get; private set; }
+
         private IVertexBatch<TexturedVertex2D>? defaultQuadBatch;
         private IVertexBatch? currentActiveBatch;
         private MaskingInfo currentMaskingInfo;
@@ -196,8 +196,8 @@ namespace osu.Framework.Graphics.Rendering
             foreach (var source in flush_source_statistics)
                 source.Value = 0;
 
-            globalUniformBuffer ??= ((IRenderer)this).CreateUniformBuffer<GlobalUniformData>();
-            globalUniformBuffer.Data = globalUniformBuffer.Data with
+            GlobalUniformBuffer ??= ((IRenderer)this).CreateUniformBuffer<GlobalUniformData>();
+            GlobalUniformBuffer.Data = GlobalUniformBuffer.Data with
             {
                 IsDepthRangeZeroToOne = IsDepthRangeZeroToOne,
                 IsClipSpaceYInverted = IsClipSpaceYInverted,
@@ -608,7 +608,7 @@ namespace osu.Framework.Graphics.Rendering
 
             FlushCurrentBatch(FlushBatchSource.SetProjection);
 
-            globalUniformBuffer!.Data = globalUniformBuffer.Data with { ProjMatrix = matrix };
+            GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { ProjMatrix = matrix };
             ProjectionMatrix = matrix;
         }
 
@@ -866,14 +866,14 @@ namespace osu.Framework.Graphics.Rendering
             if (wrapModeS != CurrentWrapModeS)
             {
                 // Will flush the current batch internally.
-                globalUniformBuffer!.Data = globalUniformBuffer.Data with { WrapModeS = (int)wrapModeS };
+                GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { WrapModeS = (int)wrapModeS };
                 CurrentWrapModeS = wrapModeS;
             }
 
             if (wrapModeT != CurrentWrapModeT)
             {
                 // Will flush the current batch internally.
-                globalUniformBuffer!.Data = globalUniformBuffer.Data with { WrapModeT = (int)wrapModeT };
+                GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { WrapModeT = (int)wrapModeT };
                 CurrentWrapModeT = wrapModeT;
             }
 
@@ -951,7 +951,7 @@ namespace osu.Framework.Graphics.Rendering
 
             SetFrameBufferImplementation(frameBuffer);
 
-            globalUniformBuffer!.Data = globalUniformBuffer.Data with { BackbufferDraw = UsingBackbuffer };
+            GlobalUniformBuffer!.Data = GlobalUniformBuffer.Data with { BackbufferDraw = UsingBackbuffer };
 
             FrameBuffer = frameBuffer;
         }
@@ -1036,7 +1036,7 @@ namespace osu.Framework.Graphics.Rendering
         protected abstract IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType);
 
         /// <inheritdoc cref="IRenderer.CreateShader"/>
-        protected abstract IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer, ShaderCompilationStore compilationStore);
+        protected abstract IShader CreateShader(string name, IShaderPart[] parts, ShaderCompilationStore compilationStore);
 
         private IShader? mipmapShader;
 
@@ -1056,7 +1056,7 @@ namespace osu.Framework.Graphics.Rendering
             {
                 CreateShaderPart(store, "mipmap.vs", store.GetRawData("sh_mipmap.vs"), ShaderPartType.Vertex),
                 CreateShaderPart(store, "mipmap.fs", store.GetRawData("sh_mipmap.fs"), ShaderPartType.Fragment),
-            }, globalUniformBuffer.AsNonNull(), shaderCompilationStore);
+            }, shaderCompilationStore);
 
             return mipmapShader;
         }
@@ -1153,7 +1153,7 @@ namespace osu.Framework.Graphics.Rendering
         void IRenderer.PopQuadBatch() => PopQuadBatch();
         Image<Rgba32> IRenderer.TakeScreenshot() => TakeScreenshot();
         IShaderPart IRenderer.CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType) => CreateShaderPart(store, name, rawData, partType);
-        IShader IRenderer.CreateShader(string name, IShaderPart[] parts) => CreateShader(name, parts, globalUniformBuffer!, shaderCompilationStore);
+        IShader IRenderer.CreateShader(string name, IShaderPart[] parts) => CreateShader(name, parts, shaderCompilationStore);
 
         IVertexBatch<TVertex> IRenderer.CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
         {

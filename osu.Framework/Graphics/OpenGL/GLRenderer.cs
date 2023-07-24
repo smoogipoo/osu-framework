@@ -255,6 +255,7 @@ namespace osu.Framework.Graphics.OpenGL
             GLArrayBuffer<ShaderMaskingInfo> currentMaskingBuffer = (GLArrayBuffer<ShaderMaskingInfo>)MaskingBuffer!.CurrentBuffer;
             currentMaskingBuffer.Flush();
 
+            glShader.BindUniformBlock("g_GlobalUniforms", GlobalUniformBuffer!);
             glShader.BindUniformBlock("g_MaskingBuffer", currentMaskingBuffer);
 
             GL.DrawElements(type, indicesCount, DrawElementsType.UnsignedShort, (IntPtr)(indexStart * sizeof(ushort)));
@@ -384,8 +385,8 @@ namespace osu.Framework.Graphics.OpenGL
             return new GLShaderPart(this, name, rawData, glType, store);
         }
 
-        protected override IShader CreateShader(string name, IShaderPart[] parts, IUniformBuffer<GlobalUniformData> globalUniformBuffer, ShaderCompilationStore compilationStore)
-            => new GLShader(this, name, parts.Cast<GLShaderPart>().ToArray(), globalUniformBuffer, compilationStore);
+        protected override IShader CreateShader(string name, IShaderPart[] parts, ShaderCompilationStore compilationStore)
+            => new GLShader(this, name, parts.Cast<GLShaderPart>().ToArray(), compilationStore);
 
         public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
         {
