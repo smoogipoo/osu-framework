@@ -43,8 +43,8 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
             Type = type;
 
-            if (renderer.UseStructuredBuffers)
-                code = "#define OSU_FRAMEWORK_USE_SSBO\n";
+            if (!renderer.UseStructuredBuffers)
+                code = "#define OSU_GRAPHICS_NO_SSBO\n";
 
             // Load the shader files.
             code += loadFile(data, true);

@@ -26,7 +26,7 @@ struct MaskingInfo
 
 MaskingInfo g_MaskingInfo;
 
-#ifdef OSU_FRAMEWORK_USE_SSBO
+#ifndef OSU_GRAPHICS_NO_SSBO
 
 layout(std140, set = -2, binding = 0) readonly buffer g_MaskingBuffer
 {
@@ -38,7 +38,7 @@ void InitMasking(int index)
     g_MaskingInfo = MaskingBuffer.Data[index];
 }
 
-#else
+#else // OSU_GRAPHICS_NO_SSBO
 
 layout(std140, set = -2, binding = 0) uniform g_MaskingBuffer
 {
@@ -50,6 +50,5 @@ void InitMasking(int index)
     g_MaskingInfo = MaskingBuffer.Data[index];
 }
 
-#endif
-
-#endif
+#endif // OSU_GRAPHICS_NO_SSBO
+#endif // INTERNAL_MASKING_INFO_H

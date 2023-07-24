@@ -39,8 +39,8 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
             Name = name;
             Type = type;
 
-            if (renderer.UseStructuredBuffers)
-                shaderCodes.Add("#define OSU_FRAMEWORK_USE_SSBO\n");
+            if (!renderer.UseStructuredBuffers)
+                shaderCodes.Add("#define OSU_GRAPHICS_NO_SSBO\n");
 
             // Load the shader files.
             shaderCodes.Add(loadFile(data, true));
