@@ -11,6 +11,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     internal interface IGLUniformBuffer
     {
         int Id { get; }
+
+        void Flush();
     }
 
     internal class GLUniformBuffer<TData> : IUniformBuffer<TData>, IGLUniformBuffer
@@ -53,6 +55,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             GL.BindBuffer(BufferTarget.UniformBuffer, uboId);
             GL.BufferData(BufferTarget.UniformBuffer, size, ref data, BufferUsageHint.DynamicDraw);
             GL.BindBuffer(BufferTarget.UniformBuffer, 0);
+        }
+
+        public void Flush()
+        {
         }
 
         #region Disposal

@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -58,8 +59,7 @@ namespace osu.Framework.Graphics.OpenGL
 
         private int backbufferFramebuffer;
 
-        private readonly int[] lastBoundBuffers = new int[2];
-
+        private readonly Dictionary<int, int> boundUniformBuffers = new Dictionary<int, int>();
         private bool? lastBlendingEnabledState;
         private int lastBoundVertexArray;
 
@@ -115,8 +115,8 @@ namespace osu.Framework.Graphics.OpenGL
         protected internal override void BeginFrame(Vector2 windowSize)
         {
             lastBlendingEnabledState = null;
-            lastBoundBuffers.AsSpan().Clear();
             lastBoundVertexArray = 0;
+            boundUniformBuffers.Clear();
 
             // Seems to be required on some drivers as the context is lost from the draw thread.
             MakeCurrent();
@@ -147,17 +147,21 @@ namespace osu.Framework.Graphics.OpenGL
             return true;
         }
 
-        public bool BindBuffer(BufferTarget target, int buffer)
+        public void BindUniformBuffer(IGLUniformBuffer uniformBuffer, int bindingIndex)
         {
-            int bufferIndex = target - BufferTarget.ArrayBuffer;
-            if (lastBoundBuffers[bufferIndex] == buffer)
-                return false;
+            uniformBuffer.Flush();
 
-            lastBoundBuffers[bufferIndex] = buffer;
-            GL.BindBuffer(target, buffer);
+            if (boundUniformBuffers.TryGetValue(bindingIndex, out int boundUniformBuffer) && boundUniformBuffer == uniformBuffer.Id)
+                return;
 
-            FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
-            return true;
+            FlushCurrentBatch(FlushBatchSource.BindBuffer);
+
+            if (uniformBuffer is IGLArrayBuffer arrayBuffer && UseStructuredBuffers)
+                osuTK.Graphics.OpenGL.GL.BindBufferBase(osuTK.Graphics.OpenGL.BufferRangeTarget.ShaderStorageBuffer, bindingIndex, uniformBuffer.Id);
+            else
+                GL.BindBufferBase(BufferRangeTarget.UniformBuffer, bindingIndex, uniformBuffer.Id);
+
+            boundUniformBuffers[bindingIndex] = uniformBuffer.Id;
         }
 
         protected override void SetShaderImplementation(IShader shader) => GL.UseProgram((GLShader)shader);
@@ -259,7 +263,6 @@ namespace osu.Framework.Graphics.OpenGL
             var glShader = (GLShader)Shader!;
 
             GLArrayBuffer<ShaderMaskingInfo> currentMaskingBuffer = (GLArrayBuffer<ShaderMaskingInfo>)MaskingBuffer!.CurrentBuffer;
-            currentMaskingBuffer.Flush();
 
             glShader.BindUniformBlock("g_GlobalUniforms", GlobalUniformBuffer!);
             glShader.BindUniformBlock("g_MaskingBuffer", currentMaskingBuffer);
