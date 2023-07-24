@@ -7,19 +7,22 @@
 
 struct MaskingInfo
 {
-    mat3 ToMaskingSpace;
-    mat3 ToScissorSpace;
+    mat4 ToMaskingSpace;
+    mat4 ToScissorSpace;
 
     bool IsMasking;
     highp float CornerRadius;
     highp float CornerExponent;
     highp float BorderThickness;
+
     highp vec4 MaskingRect;
     highp vec4 ScissorRect;
+
     lowp mat4 BorderColour;
     mediump float MaskingBlendRange;
     lowp float AlphaExponent;
     highp vec2 EdgeOffset;
+
     bool DiscardInner;
     highp float InnerCornerRadius;
 };

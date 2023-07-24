@@ -22,10 +22,10 @@ void main(void)
     InitMasking(m_MaskingIndex);
 
     // Transform to position to masking space.
-    highp vec3 maskingPos = g_MaskingInfo.ToMaskingSpace * vec3(m_Position.xy, 1.0);
+    highp vec4 maskingPos = g_MaskingInfo.ToMaskingSpace * vec4(m_Position.xy, 1.0, 0.0);
     v_MaskingPosition = maskingPos.xy / maskingPos.z;
 
-    highp vec3 scissorPos = g_MaskingInfo.ToScissorSpace * vec3(m_Position.xy, 1.0);
+    highp vec4 scissorPos = g_MaskingInfo.ToScissorSpace * vec4(m_Position.xy, 1.0, 0.0);
     v_ScissorPosition = scissorPos.xy / scissorPos.z;
 
     v_TexRect = vec4(0.0);

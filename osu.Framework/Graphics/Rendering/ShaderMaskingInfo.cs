@@ -9,8 +9,8 @@ namespace osu.Framework.Graphics.Rendering
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public record struct ShaderMaskingInfo
     {
-        public UniformMatrix3 ToMaskingSpace;
-        public UniformMatrix3 ToScissorSpace;
+        public UniformMatrix4 ToMaskingSpace;
+        public UniformMatrix4 ToScissorSpace;
 
         public UniformBool IsMasking;
         public UniformFloat CornerRadius;
