@@ -90,6 +90,8 @@ namespace osu.Framework.Graphics.OpenGL
                         GL Extensions:              {GetExtensions()}");
 
             openGLSurface.ClearCurrent();
+
+            Logger.Log($"{nameof(UseStructuredBuffers)}: {UseStructuredBuffers}");
         }
 
         protected virtual string GetExtensions()

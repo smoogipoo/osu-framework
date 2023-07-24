@@ -229,6 +229,8 @@ namespace osu.Framework.Graphics.Veldrid
 
             pipeline.Outputs = Device.SwapchainFramebuffer.OutputDescription;
             pipeline.RasterizerState.ScissorTestEnabled = false;
+
+            Logger.Log($"{nameof(UseStructuredBuffers)}: {UseStructuredBuffers}");
         }
 
         private Vector2 currentSize;
