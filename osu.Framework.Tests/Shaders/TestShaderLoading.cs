@@ -32,10 +32,10 @@ namespace osu.Framework.Tests.Shaders
             var manager = new ShaderManager(new TestGLRenderer(), new NamespacedResourceStore<byte[]>(new DllResourceStore(typeof(Game).Assembly), @"Resources/Shaders"));
 
             // fetch existent shader.
-            Assert.That(lookup1 = manager.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE), Is.Not.Null);
+            Assert.That(lookup1 = manager.Load(VertexShaderDescriptor.TEXTURE_2_MASKING, FragmentShaderDescriptor.TEXTURE_MASKING), Is.Not.Null);
 
             // ensure cached
-            Assert.That(manager.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE), Is.SameAs(lookup1));
+            Assert.That(manager.Load(VertexShaderDescriptor.TEXTURE_2_MASKING, FragmentShaderDescriptor.TEXTURE_MASKING), Is.SameAs(lookup1));
         }
 
         private class TestGLRenderer : GLRenderer

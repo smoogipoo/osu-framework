@@ -131,7 +131,7 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Lazy<TextureWhitePixel> whitePixel;
         private readonly LockedWeakList<Texture> allTextures = new LockedWeakList<Texture>();
 
-        internal int CurrentMaskingIndex => MaskingBuffer!.CurrentOffset;
+        int IRenderer.CurrentMaskingIndex => MaskingBuffer!.CurrentOffset;
 
         public MaskingBuffer? MaskingBuffer { get; private set; }
         private readonly Stack<ShaderMaskingInfo> maskingBufferStack = new Stack<ShaderMaskingInfo>();

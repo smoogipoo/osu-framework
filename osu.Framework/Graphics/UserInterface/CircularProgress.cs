@@ -29,7 +29,7 @@ namespace osu.Framework.Graphics.UserInterface
         private void load(ShaderManager shaders, IRenderer renderer)
         {
             Texture ??= renderer.WhitePixel;
-            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, "CircularProgress");
+            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2_MASKING, "CircularProgress");
         }
 
         protected override void LoadComplete()

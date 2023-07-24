@@ -33,8 +33,8 @@ namespace osu.Framework.Graphics.Lines
         [BackgroundDependencyLoader]
         private void load(ShaderManager shaders)
         {
-            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
-            pathShader = shaders.Load(VertexShaderDescriptor.TEXTURE_3, FragmentShaderDescriptor.TEXTURE);
+            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2_MASKING, FragmentShaderDescriptor.TEXTURE_MASKING);
+            pathShader = shaders.Load(VertexShaderDescriptor.TEXTURE_3_MASKING, FragmentShaderDescriptor.TEXTURE_MASKING);
         }
 
         private readonly List<Vector2> vertices = new List<Vector2>();

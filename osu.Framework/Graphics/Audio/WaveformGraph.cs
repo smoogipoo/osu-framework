@@ -33,7 +33,7 @@ namespace osu.Framework.Graphics.Audio
         [BackgroundDependencyLoader]
         private void load(ShaderManager shaders, IRenderer renderer)
         {
-            shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
+            shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2_MASKING, FragmentShaderDescriptor.TEXTURE_MASKING);
             texture = renderer.WhitePixel;
         }
 

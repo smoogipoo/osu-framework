@@ -39,6 +39,9 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
             Name = name;
             Type = type;
 
+            if (renderer.UseStructuredBuffers)
+                shaderCodes.Add("#define OSU_FRAMEWORK_USE_SSBO\n");
+
             // Load the shader files.
             shaderCodes.Add(loadFile(data, true));
 
@@ -129,12 +132,6 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
                     string internalIncludes = loadFile(store.GetRawData("Internal/sh_Compatibility.h"), false) + "\n";
 
                     internalIncludes += loadFile(store.GetRawData("Internal/sh_GlobalUniforms.h"), false) + "\n";
-                    internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingInfo.h"), false) + "\n";
-
-                    if (renderer.UseStructuredBuffers)
-                        internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingBuffer_SSBO.h"), false) + "\n";
-                    else
-                        internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingBuffer_UBO.h"), false) + "\n";
 
                     if (Type == ShaderType.VertexShader)
                         internalIncludes += loadFile(store.GetRawData("Internal/sh_Vertex_Input.h"), false) + "\n";

@@ -149,13 +149,15 @@ namespace osu.Framework.Graphics.Shaders
     public static class VertexShaderDescriptor
     {
         public const string TEXTURE_2 = "Texture2D";
+        public const string TEXTURE_2_MASKING = "Texture2D_Masking";
         public const string TEXTURE_3 = "Texture3D";
+        public const string TEXTURE_3_MASKING = "Texture3D_Masking";
         public const string POSITION = "Position";
     }
 
     public static class FragmentShaderDescriptor
     {
-        public const string TEXTURE = "Texture";
+        public const string TEXTURE_MASKING = "Texture";
         public const string GLOW = "Glow";
         public const string BLUR = "Blur";
         public const string VIDEO = "Video";

@@ -1,6 +1,8 @@
 ﻿#ifndef MASKING_H
 #define MASKING_H
 
+#include "Internal/sh_MaskingInfo.h"
+
 layout(location = 0) in highp vec2 v_MaskingPosition;
 layout(location = 1) in lowp vec4 v_Colour;
 

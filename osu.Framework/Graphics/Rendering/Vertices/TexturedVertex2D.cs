@@ -27,11 +27,27 @@ namespace osu.Framework.Graphics.Rendering.Vertices
         [VertexMember(2, VertexAttribPointerType.Float)]
         public Vector2 BlendRange;
 
+        [VertexMember(1, VertexAttribPointerType.Int)]
+        private int maskingIndex;
+
+        [Obsolete("Do not default-initialise TexturedVertex2D.")]
+        public TexturedVertex2D()
+        {
+            this = default;
+        }
+
+        public TexturedVertex2D(IRenderer renderer)
+        {
+            this = default;
+            maskingIndex = renderer.CurrentMaskingIndex;
+        }
+
         public readonly bool Equals(TexturedVertex2D other) =>
             Position.Equals(other.Position)
             && TexturePosition.Equals(other.TexturePosition)
             && Colour.Equals(other.Colour)
             && TextureRect.Equals(other.TextureRect)
-            && BlendRange.Equals(other.BlendRange);
+            && BlendRange.Equals(other.BlendRange)
+            && maskingIndex == other.maskingIndex;
     }
 }

@@ -52,12 +52,10 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
             bool isNewVertex = vertexIndex > lastWrittenVertexIndex
                                || !currentVertex.Vertex.Equals(vertex)
-                               || currentVertex.BackbufferDrawDepth != renderer.BackbufferDrawDepth
-                               || currentVertex.MaskingIndex != renderer.CurrentMaskingIndex;
+                               || currentVertex.BackbufferDrawDepth != renderer.BackbufferDrawDepth;
 
             currentVertex.Vertex = vertex;
             currentVertex.BackbufferDrawDepth = renderer.BackbufferDrawDepth;
-            currentVertex.MaskingIndex = renderer.CurrentMaskingIndex;
 
             lastWrittenVertexIndex = Math.Max(lastWrittenVertexIndex, vertexIndex);
 

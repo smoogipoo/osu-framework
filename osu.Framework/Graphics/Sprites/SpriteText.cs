@@ -63,7 +63,7 @@ namespace osu.Framework.Graphics.Sprites
         {
             localisedText = localisation.GetLocalisedBindableString(text);
 
-            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
+            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2_MASKING, FragmentShaderDescriptor.TEXTURE_MASKING);
 
             // Pre-cache the characters in the texture store
             foreach (char character in localisedText.Value)

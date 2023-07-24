@@ -43,7 +43,6 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             {
                 Vertex = vertex,
                 BackbufferDrawDepth = renderer.BackbufferDrawDepth,
-                MaskingIndex = renderer.CurrentMaskingIndex
             };
 
             // we use a buffer with memory storage shared between the CPU and the GPU, therefore we don't need to do explicit synchronisation/updates (which is queued when returning true here).

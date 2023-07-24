@@ -29,7 +29,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
         private string header = string.Empty;
 
-        private readonly string code;
+        private readonly string code = string.Empty;
         private readonly VeldridRenderer renderer;
         private readonly IShaderStore store;
 
@@ -43,8 +43,11 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
             Type = type;
 
+            if (renderer.UseStructuredBuffers)
+                code = "#define OSU_FRAMEWORK_USE_SSBO\n";
+
             // Load the shader files.
-            code = loadFile(data, true);
+            code += loadFile(data, true);
 
             int lastInputIndex = 0;
 
@@ -125,12 +128,6 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                     string internalIncludes = loadFile(store.GetRawData("Internal/sh_Compatibility.h"), false) + "\n";
 
                     internalIncludes += loadFile(store.GetRawData("Internal/sh_GlobalUniforms.h"), false) + "\n";
-                    internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingInfo.h"), false) + "\n";
-
-                    if (renderer.UseStructuredBuffers)
-                        internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingBuffer_SSBO.h"), false) + "\n";
-                    else
-                        internalIncludes += loadFile(store.GetRawData("Internal/sh_MaskingBuffer_UBO.h"), false) + "\n";
 
                     if (Type == ShaderPartType.Vertex)
                         internalIncludes += loadFile(store.GetRawData("Internal/sh_Vertex_Input.h"), false) + "\n";
