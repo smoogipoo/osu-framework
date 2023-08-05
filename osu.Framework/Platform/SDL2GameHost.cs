@@ -36,6 +36,7 @@ namespace osu.Framework.Platform
         protected override IEnumerable<InputHandler> CreateAvailableInputHandlers() =>
             new InputHandler[]
             {
+                new WootingKeyboardHandler(),
                 new KeyboardHandler(),
                 // tablet should get priority over mouse to correctly handle cases where tablet drivers report as mice as well.
                 new OpenTabletDriverHandler(),
