@@ -27,10 +27,37 @@ namespace osu.Framework.Input.Handlers.Keyboard
             }
 
             Logger.Log("Wooting SDK initialised.", LoggingTarget.Input);
+
+            host.InputThread.Scheduler.AddDelayed(pollInput, 0, true);
             return true;
+        }
+
+        private short[] keyCodeBuffer = new short[256];
+        private float[] analogValueBuffer = new float[256];
+
+        private unsafe void pollInput()
+        {
+            fixed (short* keyCodePtr = &keyCodeBuffer[0])
+            {
+                fixed (float* valuePtr = &analogValueBuffer[0])
+                {
+                    int result = wooting_analog_read_full_buffer(keyCodePtr, valuePtr, keyCodeBuffer.Length);
+
+                    if (result < 0)
+                    {
+                        Logger.Log($"Failed to read Wooting analog key values ({result}).");
+                        return;
+                    }
+
+                    for (int i = 0; i < result; i++)
+                        Logger.Log($"Wooting key {keyCodeBuffer[i]} => {analogValueBuffer[i]}");
+                }
+            }
         }
 
         [DllImport("wooting_analog_wrapper")]
         private static extern int wooting_analog_initialise();
+
+        private static extern unsafe int wooting_analog_read_full_buffer(short* keyCodes, float* analogValues, int length);
     }
 }
