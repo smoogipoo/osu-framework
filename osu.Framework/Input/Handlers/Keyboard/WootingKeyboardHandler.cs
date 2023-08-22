@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Runtime.InteropServices;
+using osu.Framework.Input.StateChanges;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
 
@@ -35,6 +36,8 @@ namespace osu.Framework.Input.Handlers.Keyboard
         private short[] keyCodeBuffer = new short[256];
         private float[] analogValueBuffer = new float[256];
 
+        private bool[] lastKeyStates = new bool[256];
+
         private unsafe void pollInput()
         {
             fixed (short* keyCodePtr = &keyCodeBuffer[0])
@@ -50,7 +53,18 @@ namespace osu.Framework.Input.Handlers.Keyboard
                     }
 
                     for (int i = 0; i < result; i++)
-                        Logger.Log($"Wooting key {keyCodeBuffer[i]} => {analogValueBuffer[i]}");
+                    {
+                        if (analogValueBuffer[i] < 0.5 && lastKeyStates[keyCodeBuffer[i]])
+                        {
+                            Logger.Log($"Wooting key {keyCodeBuffer[i]} released");
+                            lastKeyStates[keyCodeBuffer[i]] = false;
+                        }
+                        else if (analogValueBuffer[i] >= 0.5 && !lastKeyStates[keyCodeBuffer[i]])
+                        {
+                            Logger.Log($"Wooting key {keyCodeBuffer[i]} pressed");
+                            lastKeyStates[keyCodeBuffer[i]] = true;
+                        }
+                    }
                 }
             }
         }
