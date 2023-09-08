@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Veldrid.Buffers.Staging;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Veldrid.Buffers
@@ -13,29 +14,28 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     {
         public int Size { get; }
 
-        private readonly TData[] data;
-        private readonly DeviceBuffer buffer;
+        private readonly IStagingBuffer<TData> stagingBuffer;
+        private readonly DeviceBuffer deviceBuffer;
         private readonly VeldridRenderer renderer;
-        private readonly uint elementSize;
 
         public VeldridShaderStorageBufferObject(VeldridRenderer renderer, int uboSize, int ssboSize)
         {
             this.renderer = renderer;
 
-            elementSize = (uint)Marshal.SizeOf(default(TData));
+            uint elementSize = (uint)Marshal.SizeOf(default(TData));
 
             if (renderer.UseStructuredBuffers)
             {
                 Size = ssboSize;
-                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, elementSize, true));
+                deviceBuffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, elementSize, true));
             }
             else
             {
                 Size = uboSize;
-                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+                deviceBuffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             }
 
-            data = new TData[Size];
+            stagingBuffer = renderer.CreateStagingBuffer<TData>((uint)Size);
         }
 
         private int changeBeginIndex = -1;
@@ -43,13 +43,13 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public TData this[int index]
         {
-            get => data[index];
+            get => stagingBuffer.Data[index];
             set
             {
-                if (data[index].Equals(value))
+                if (stagingBuffer.Data[index].Equals(value))
                     return;
 
-                data[index] = value;
+                stagingBuffer.Data[index] = value;
 
                 if (changeBeginIndex == -1)
                 {
@@ -76,7 +76,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             if (changeBeginIndex == -1)
                 return;
 
-            renderer.BufferUpdateCommands.UpdateBuffer(buffer, (uint)(changeBeginIndex * elementSize), data.AsSpan().Slice(changeBeginIndex, changeCount));
+            stagingBuffer.CopyTo(deviceBuffer, (uint)changeBeginIndex, (uint)changeBeginIndex, (uint)changeCount);
 
             changeBeginIndex = -1;
             changeCount = 0;
@@ -85,7 +85,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         public ResourceSet GetResourceSet(ResourceLayout layout)
         {
             flushChanges();
-            return renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+            return renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, deviceBuffer));
         }
 
         public void ResetCounters()
@@ -94,7 +94,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public void Dispose()
         {
-            buffer.Dispose();
+            deviceBuffer.Dispose();
         }
     }
 }
