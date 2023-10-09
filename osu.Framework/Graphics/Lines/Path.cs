@@ -201,15 +201,7 @@ namespace osu.Framework.Graphics.Lines
         public override bool ReceivePositionalInputAt(Vector2 screenSpacePos)
         {
             var localPos = ToLocalSpace(screenSpacePos);
-            float pathRadiusSquared = PathRadius * PathRadius;
-
-            foreach (var t in segments)
-            {
-                if (t.DistanceSquaredToPoint(localPos) <= pathRadiusSquared)
-                    return true;
-            }
-
-            return false;
+            return quadTree.TryGetClosest(localPos, out Vector2 closest) && (closest - localPos).LengthSquared <= PathRadius * PathRadius;
         }
 
         public Vector2 PositionInBoundingBox(Vector2 pos) => pos - vertexBounds.TopLeft;
@@ -240,16 +232,34 @@ namespace osu.Framework.Graphics.Lines
         private readonly List<Line> segmentsBacking = new List<Line>();
         private readonly Cached segmentsCache = new Cached();
         private List<Line> segments => segmentsCache.IsValid ? segmentsBacking : generateSegments();
+        private QuadTree quadTree = new QuadTree(RectangleF.Empty);
 
         private List<Line> generateSegments()
         {
             segmentsBacking.Clear();
 
+            quadTree = new QuadTree(vertexBounds.AABB);
+
             if (vertices.Count > 1)
             {
                 Vector2 offset = vertexBounds.TopLeft;
+
                 for (int i = 0; i < vertices.Count - 1; ++i)
-                    segmentsBacking.Add(new Line(vertices[i] - offset, vertices[i + 1] - offset));
+                {
+                    Line segment = new Line(vertices[i] - offset, vertices[i + 1] - offset);
+                    segmentsBacking.Add(segment);
+
+                    if (i == 0)
+                        quadTree.Insert(segment.StartPoint);
+
+                    int intermediatePoints = (int)(Math.Ceiling(segment.Rho / (PathRadius / 2)));
+                    Vector2 intermediateSegmentLength = segment.Direction / intermediatePoints;
+
+                    for (int x = 1; x <= intermediatePoints; x++)
+                        quadTree.Insert(segment.StartPoint + x * intermediateSegmentLength);
+
+                    quadTree.Insert(segment.EndPoint);
+                }
             }
 
             segmentsCache.Validate();
