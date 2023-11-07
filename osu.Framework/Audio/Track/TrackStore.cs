@@ -1,10 +1,15 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
+using osu.Framework.Audio.Mixing;
 using osu.Framework.IO.Stores;
 
 namespace osu.Framework.Audio.Track
@@ -12,17 +17,21 @@ namespace osu.Framework.Audio.Track
     internal class TrackStore : AudioCollectionManager<AdjustableAudioComponent>, ITrackStore
     {
         private readonly IResourceStore<byte[]> store;
+        private readonly AudioMixer mixer;
 
-        internal TrackStore(IResourceStore<byte[]> store)
+        internal TrackStore([NotNull] IResourceStore<byte[]> store, [NotNull] AudioMixer mixer)
         {
             this.store = store;
+            this.mixer = mixer;
+
+            (store as ResourceStore<byte[]>)?.AddExtension(@"mp3");
         }
 
-        public Track GetVirtual(double length = double.PositiveInfinity)
+        public Track GetVirtual(double length = double.PositiveInfinity, string name = "virtual")
         {
             if (IsDisposed) throw new ObjectDisposedException($"Cannot retrieve items for an already disposed {nameof(TrackStore)}");
 
-            var track = new TrackVirtual(length);
+            var track = new TrackVirtual(length, name);
             AddItem(track);
             return track;
         }
@@ -38,12 +47,16 @@ namespace osu.Framework.Audio.Track
             if (dataStream == null)
                 return null;
 
-            Track track = new TrackBass(dataStream);
-            AddItem(track);
-            return track;
+            TrackBass trackBass = new TrackBass(dataStream, name);
+
+            mixer.Add(trackBass);
+            AddItem(trackBass);
+
+            return trackBass;
         }
 
-        public Task<Track> GetAsync(string name) => Task.Run(() => Get(name));
+        public Task<Track> GetAsync(string name, CancellationToken cancellationToken = default) =>
+            Task.Run(() => Get(name), cancellationToken);
 
         public Stream GetStream(string name) => store.GetStream(name);
 

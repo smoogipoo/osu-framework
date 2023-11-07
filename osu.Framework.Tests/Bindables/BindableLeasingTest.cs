@@ -1,6 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using NUnit.Framework;
 using osu.Framework.Bindables;
@@ -31,7 +33,7 @@ namespace osu.Framework.Tests.Bindables
             Assert.AreEqual(original.Value, 2);
             Assert.AreEqual(original.Value, leased.Value);
 
-            leased.Return();
+            Assert.AreEqual(true, leased.Return());
 
             Assert.AreEqual(original.Value, revert ? 1 : 2);
         }
@@ -58,20 +60,28 @@ namespace osu.Framework.Tests.Bindables
         public void TestConsecutiveLeases()
         {
             var leased1 = original.BeginLease(false);
-            leased1.Return();
+            Assert.AreEqual(true, leased1.Return());
             var leased2 = original.BeginLease(false);
-            leased2.Return();
+            Assert.AreEqual(true, leased2.Return());
         }
 
         [Test]
         public void TestModifyAfterReturnFail()
         {
-            var leased1 = original.BeginLease(false);
-            leased1.Return();
+            var leased = original.BeginLease(false);
+            Assert.AreEqual(true, leased.Return());
 
-            Assert.Throws<InvalidOperationException>(() => leased1.Value = 2);
-            Assert.Throws<InvalidOperationException>(() => leased1.Disabled = true);
-            Assert.Throws<InvalidOperationException>(() => leased1.Return());
+            Assert.Throws<InvalidOperationException>(() => leased.Value = 2);
+            Assert.Throws<InvalidOperationException>(() => leased.Disabled = true);
+        }
+
+        [Test]
+        public void TestDoubleReturnSilentlyNoops()
+        {
+            var leased = original.BeginLease(false);
+
+            Assert.AreEqual(true, leased.Return());
+            Assert.AreEqual(false, leased.Return());
         }
 
         [Test]
@@ -89,7 +99,7 @@ namespace osu.Framework.Tests.Bindables
 
             // end a lease with an incorrect bindable
             original.BeginLease(true);
-            Assert.Throws<InvalidOperationException>(() => original.EndLease(original));
+            Assert.Throws<InvalidOperationException>(() => original.EndLease(new Bindable<int>().BeginLease(true)));
         }
 
         [Test]
@@ -125,7 +135,7 @@ namespace osu.Framework.Tests.Bindables
             Assert.IsTrue(original.Disabled);
             Assert.IsTrue(leased.Disabled);
 
-            leased.Return();
+            Assert.AreEqual(true, leased.Return());
 
             Assert.IsFalse(original.Disabled);
         }
@@ -181,7 +191,7 @@ namespace osu.Framework.Tests.Bindables
 
             var leased = original.BeginLease(revert);
 
-            leased.Return();
+            Assert.AreEqual(true, leased.Return());
 
             // regardless of revert specification, disabled should always be reverted to the original value.
             Assert.IsTrue(original.Disabled);
@@ -205,8 +215,8 @@ namespace osu.Framework.Tests.Bindables
 
             // value propagates everywhere
             Assert.AreEqual(original.Value, 2);
-            Assert.AreEqual(original.Value, leased.Value);
             Assert.AreEqual(original.Value, copy.Value);
+            Assert.AreEqual(original.Value, leased.Value);
 
             // bound copies of the lease still allow setting value / disabled.
             var leasedCopy = leased.GetBoundCopy();
@@ -214,13 +224,14 @@ namespace osu.Framework.Tests.Bindables
             leasedCopy.Value = 3;
 
             Assert.AreEqual(original.Value, 3);
-            Assert.AreEqual(original.Value, leased.Value);
             Assert.AreEqual(original.Value, copy.Value);
+            Assert.AreEqual(original.Value, leased.Value);
+            Assert.AreEqual(original.Value, leasedCopy.Value);
 
             leasedCopy.Disabled = false;
             leasedCopy.Disabled = true;
 
-            leased.Return();
+            Assert.AreEqual(true, leased.Return());
 
             original.Value = 1;
 
@@ -262,6 +273,23 @@ namespace osu.Framework.Tests.Bindables
             var leased = original.BeginLease(true);
             leased.UnbindAll();
             leased.UnbindAll();
+        }
+
+        [Test]
+        public void TestLeasedBoundToMultiple()
+        {
+            var leased = original.BeginLease(false);
+
+            var another = new Bindable<int>();
+            leased.BindTo(another);
+            another.Value = 3;
+            Assert.AreEqual(another.Value, 3);
+            Assert.AreEqual(another.Value, leased.Value);
+
+            leased.Value = 4;
+            Assert.AreEqual(original.Value, 4);
+            Assert.AreEqual(another.Value, 4);
+            Assert.AreEqual(original.Value, leased.Value);
         }
     }
 }

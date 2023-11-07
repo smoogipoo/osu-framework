@@ -1,4 +1,4 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
@@ -6,14 +6,14 @@ using System.Collections.Generic;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Sprites;
-using osu.Framework.MathUtils;
+using osu.Framework.Utils;
 using osu.Framework.Testing;
 using osuTK;
 using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Drawables
 {
-    public class TestScenePathApproximator : GridTestScene
+    public partial class TestScenePathApproximator : GridTestScene
     {
         public TestScenePathApproximator()
             : base(2, 2)
@@ -50,7 +50,7 @@ namespace osu.Framework.Tests.Visual.Drawables
             Colour = Color4.White,
         };
 
-        private class ApproximatedPathTest : SmoothPath
+        private partial class ApproximatedPathTest : SmoothPath
         {
             public delegate List<Vector2> ApproximatorFunc(ReadOnlySpan<Vector2> controlPoints);
 
@@ -63,6 +63,7 @@ namespace osu.Framework.Tests.Visual.Drawables
                 points[3] = new Vector2(200, 80);
                 points[4] = new Vector2(250, 50);
 
+                AutoSizeAxes = Axes.None;
                 RelativeSizeAxes = Axes.Both;
                 PathRadius = 2;
                 Vertices = approximator(points);

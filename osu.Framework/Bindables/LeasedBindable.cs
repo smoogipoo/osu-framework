@@ -1,6 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
@@ -12,7 +14,7 @@ namespace osu.Framework.Bindables
     /// Can only be retrieved via <see cref="Bindable{T}.BeginLease"/>.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class LeasedBindable<T> : Bindable<T>
+    public class LeasedBindable<T> : Bindable<T>, ILeasedBindable<T>
     {
         private readonly Bindable<T> source;
 
@@ -37,26 +39,24 @@ namespace osu.Framework.Bindables
             Disabled = true;
         }
 
-        public LeasedBindable(T value)
-            : base(value)
+        private LeasedBindable(T defaultValue = default)
+            : base(defaultValue)
         {
             // used for GetBoundCopy, where we don't want a source.
         }
 
         private bool hasBeenReturned;
 
-        /// <summary>
-        /// End the lease on the source <see cref="Bindable{T}"/>.
-        /// </summary>
-        public void Return()
+        public bool Return()
         {
+            if (hasBeenReturned)
+                return false;
+
             if (source == null)
                 throw new InvalidOperationException($"Must {nameof(Return)} from original leased source");
 
-            if (hasBeenReturned)
-                throw new InvalidOperationException($"This bindable has already been {nameof(Return)}ed.");
-
             UnbindAll();
+            return true;
         }
 
         public override T Value
@@ -70,6 +70,20 @@ namespace osu.Framework.Bindables
                 if (EqualityComparer<T>.Default.Equals(Value, value)) return;
 
                 SetValue(base.Value, value, true);
+            }
+        }
+
+        public override T Default
+        {
+            get => base.Default;
+            set
+            {
+                if (source != null)
+                    checkValid();
+
+                if (EqualityComparer<T>.Default.Equals(Default, value)) return;
+
+                SetDefaultValue(base.Default, value, true);
             }
         }
 
@@ -87,7 +101,7 @@ namespace osu.Framework.Bindables
             }
         }
 
-        public override void UnbindAll()
+        internal override void UnbindAllInternal()
         {
             if (source != null && !hasBeenReturned)
             {
@@ -100,8 +114,10 @@ namespace osu.Framework.Bindables
                 hasBeenReturned = true;
             }
 
-            base.UnbindAll();
+            base.UnbindAllInternal();
         }
+
+        protected override Bindable<T> CreateInstance() => new LeasedBindable<T>();
 
         private void checkValid()
         {

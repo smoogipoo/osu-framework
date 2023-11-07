@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using NUnit.Framework;
 using osu.Framework.Allocation;
@@ -11,8 +13,17 @@ using osu.Framework.Timing;
 namespace osu.Framework.Tests.Bindables
 {
     [TestFixture]
-    public class BindableBindingTest
+    public partial class BindableBindingTest
     {
+        [Test]
+        public void TestBindToAlreadyBound()
+        {
+            Bindable<string> bindable1 = new Bindable<string>("default");
+            Bindable<string> bindable2 = bindable1.GetBoundCopy();
+
+            Assert.Throws<ArgumentException>(() => bindable1.BindTo(bindable2));
+        }
+
         [Test]
         public void TestPropagation()
         {
@@ -60,6 +71,64 @@ namespace osu.Framework.Tests.Bindables
         }
 
         [Test]
+        public void TestDefaultChanged()
+        {
+            Bindable<string> bindable1 = new Bindable<string>("default");
+            Bindable<string> bindable2 = bindable1.GetBoundCopy();
+            Bindable<string> bindable3 = bindable2.GetBoundCopy();
+
+            int changed1 = 0, changed2 = 0, changed3 = 0;
+
+            bindable1.DefaultChanged += _ => changed1++;
+            bindable2.DefaultChanged += _ => changed2++;
+            bindable3.DefaultChanged += _ => changed3++;
+
+            bindable1.Default = "new value";
+
+            Assert.AreEqual(1, changed1);
+            Assert.AreEqual(1, changed2);
+            Assert.AreEqual(1, changed3);
+
+            bindable1.Default = "new value 2";
+
+            Assert.AreEqual(2, changed1);
+            Assert.AreEqual(2, changed2);
+            Assert.AreEqual(2, changed3);
+
+            // should not re-fire, as the value hasn't changed.
+            bindable1.Default = "new value 2";
+
+            Assert.AreEqual(2, changed1);
+            Assert.AreEqual(2, changed2);
+            Assert.AreEqual(2, changed3);
+        }
+
+        [Test]
+        public void TestDefaultChangedWithUpstreamRejection()
+        {
+            Bindable<string> bindable1 = new Bindable<string>("won't change");
+            Bindable<string> bindable2 = bindable1.GetBoundCopy();
+
+            int changed1 = 0, changed2 = 0;
+
+            bindable1.DefaultChanged += _ => changed1++;
+            bindable2.DefaultChanged += _ =>
+            {
+                bindable2.Default = "won't change";
+                changed2++;
+            };
+
+            bindable1.Default = "new value";
+
+            Assert.AreEqual("won't change", bindable1.Default);
+            Assert.AreEqual(bindable1.Default, bindable2.Default);
+
+            // bindable1 should only receive the final value changed, skipping the intermediary (overidden) one.
+            Assert.AreEqual(1, changed1);
+            Assert.AreEqual(2, changed2);
+        }
+
+        [Test]
         public void TestValueChanged()
         {
             Bindable<string> bindable1 = new Bindable<string>("default");
@@ -100,7 +169,7 @@ namespace osu.Framework.Tests.Bindables
 
             int changed1 = 0, changed2 = 0;
 
-            bindable1.ValueChanged += v => changed1++;
+            bindable1.ValueChanged += _ => changed1++;
             bindable2.ValueChanged += _ =>
             {
                 bindable2.Value = "won't change";
@@ -151,7 +220,7 @@ namespace osu.Framework.Tests.Bindables
 
             int changed1 = 0, changed2 = 0;
 
-            bindable1.DisabledChanged += v => changed1++;
+            bindable1.DisabledChanged += _ => changed1++;
             bindable2.DisabledChanged += _ =>
             {
                 bindable2.Disabled = false;
@@ -200,7 +269,7 @@ namespace osu.Framework.Tests.Bindables
 
             int changed1 = 0, changed2 = 0;
 
-            bindable1.MinValueChanged += v => changed1++;
+            bindable1.MinValueChanged += _ => changed1++;
             bindable2.MinValueChanged += _ =>
             {
                 bindable2.MinValue = 1337;
@@ -249,7 +318,7 @@ namespace osu.Framework.Tests.Bindables
 
             int changed1 = 0, changed2 = 0;
 
-            bindable1.MaxValueChanged += v => changed1++;
+            bindable1.MaxValueChanged += _ => changed1++;
             bindable2.MaxValueChanged += _ =>
             {
                 bindable2.MaxValue = 1337;
@@ -310,7 +379,7 @@ namespace osu.Framework.Tests.Bindables
         }
 
         [Test]
-        public void TestUnbindOnDrawableDisposeProperty()
+        public void TestUnbindOnDrawableDoNotDisposeDelegatingProperty()
         {
             var bindable = new Bindable<int>();
 
@@ -323,9 +392,30 @@ namespace osu.Framework.Tests.Bindables
             Assert.IsTrue(valueChanged, "bound correctly");
 
             drawable.Dispose();
+
+            valueChanged = false;
+            bindable.Value = 2;
+            Assert.IsTrue(valueChanged, "bound correctly");
+
+            valueChanged = false;
+            drawable.SetValue(3);
+            Assert.IsTrue(valueChanged, "bound correctly");
+        }
+
+        [Test]
+        public void TestUnbindOnDrawableDisposeAutoProperty()
+        {
+            bool valueChanged = false;
+            var drawable = new TestDrawable3();
+            drawable.Bindable.ValueChanged += _ => valueChanged = true;
+
+            drawable.Bindable.Value = 1;
+            Assert.IsTrue(valueChanged, "bound correctly");
+
+            drawable.Dispose();
             valueChanged = false;
 
-            drawable.SetValue(2);
+            drawable.Bindable.Value = 2;
             Assert.IsFalse(valueChanged, "unbound correctly");
         }
 
@@ -352,6 +442,46 @@ namespace osu.Framework.Tests.Bindables
             bindable1.Value = 10;
 
             Assert.AreNotEqual(bindable1.Value, bindable2.Value);
+        }
+
+        [Test]
+        public void TestUnbindEvents()
+        {
+            var bindable = new BindableInt
+            {
+                Value = 0,
+                Default = 0,
+                MinValue = -5,
+                MaxValue = 5,
+                Precision = 1,
+                Disabled = false
+            };
+
+            bool valueChanged = false;
+            bool defaultChanged = false;
+            bool disabledChanged = false;
+            bool minValueChanged = false;
+            bool maxValueChanged = false;
+            bool precisionChanged = false;
+
+            bindable.ValueChanged += _ => valueChanged = true;
+            bindable.DefaultChanged += _ => defaultChanged = true;
+            bindable.DisabledChanged += _ => disabledChanged = true;
+            bindable.MinValueChanged += _ => minValueChanged = true;
+            bindable.MaxValueChanged += _ => maxValueChanged = true;
+            bindable.PrecisionChanged += _ => precisionChanged = true;
+
+            bindable.UnbindEvents();
+
+            bindable.Value = 5;
+            bindable.Default = 5;
+            bindable.MinValue = 0;
+            bindable.MaxValue = 10;
+            bindable.Precision = 5;
+            bindable.Disabled = true;
+
+            Assert.That(!valueChanged && !defaultChanged && !disabledChanged &&
+                        !minValueChanged && !maxValueChanged && !precisionChanged);
         }
 
         [Test]
@@ -383,7 +513,20 @@ namespace osu.Framework.Tests.Bindables
             Assert.AreEqual(2, event2.NewValue);
         }
 
-        private class TestDrawable : Drawable
+        [Test]
+        public void TestCustomUnbindFromCalledFromUnbindAll()
+        {
+            var bindable1 = new Bindable<int>();
+            var bindable2 = new TestCustomBindable();
+
+            bindable2.BindTo(bindable1);
+            Assert.That(bindable2.IsBound, Is.True);
+
+            bindable2.UnbindAll();
+            Assert.That(bindable2.IsBound, Is.False);
+        }
+
+        private partial class TestDrawable : Drawable
         {
             public bool ValueChanged;
 
@@ -400,7 +543,7 @@ namespace osu.Framework.Tests.Bindables
             public virtual void SetValue(int value) => bindable.Value = value;
         }
 
-        private class TestSubDrawable : TestDrawable
+        private partial class TestSubDrawable : TestDrawable
         {
             public bool ValueChanged2;
 
@@ -418,7 +561,7 @@ namespace osu.Framework.Tests.Bindables
             }
         }
 
-        private class TestDrawable2 : Drawable
+        private partial class TestDrawable2 : Drawable
         {
             public Func<Bindable<int>> GetBindable;
             private Bindable<int> bindable => GetBindable();
@@ -430,6 +573,36 @@ namespace osu.Framework.Tests.Bindables
             }
 
             public void SetValue(int value) => bindable.Value = value;
+        }
+
+        private partial class TestDrawable3 : Drawable
+        {
+            public Bindable<int> Bindable { get; } = new Bindable<int>();
+
+            public TestDrawable3()
+            {
+                // because we are run outside of a game instance but need the cached disposal methods.
+                Load(new FramedClock(), new DependencyContainer());
+            }
+        }
+
+        private class TestCustomBindable : Bindable<int>
+        {
+            public bool IsBound { get; private set; }
+
+            public override void BindTo(Bindable<int> them)
+            {
+                base.BindTo(them);
+                IsBound = true;
+            }
+
+            public override void UnbindFrom(IUnbindable them)
+            {
+                base.UnbindFrom(them);
+                IsBound = false;
+            }
+
+            protected override Bindable<int> CreateInstance() => new TestCustomBindable();
         }
     }
 }

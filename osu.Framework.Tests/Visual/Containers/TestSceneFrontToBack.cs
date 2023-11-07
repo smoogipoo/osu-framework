@@ -1,24 +1,27 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
+#nullable disable
+
 using osu.Framework.Allocation;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Graphics.OpenGL;
-using osu.Framework.Graphics.OpenGL.Vertices;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
-using osu.Framework.MathUtils;
+using osu.Framework.Utils;
 using osu.Framework.Testing;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
+using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Veldrid;
 
 namespace osu.Framework.Tests.Visual.Containers
 {
-    public class TestSceneFrontToBack : GridTestScene
+    public partial class TestSceneFrontToBack : GridTestScene
     {
         private SpriteText labelDrawables;
         private QueryingCompositeDrawableDrawNode drawNode;
@@ -36,16 +39,16 @@ namespace osu.Framework.Tests.Visual.Containers
         }
 
         [BackgroundDependencyLoader]
-        private void load(FrameworkDebugConfigManager debugConfig)
+        private void load(FrameworkDebugConfigManager debugConfig, TextureStore store, IRenderer renderer)
         {
-            AddStep("add more drawables", addMoreDrawables);
-            AddToggleStep("disable front to back", val =>
-            {
-                debugConfig.Set(DebugSetting.BypassFrontToBackPass, val);
-                Invalidate(Invalidation.DrawNode); // reset counts
-            });
+            var texture = store.Get(@"sample-texture");
+            var repeatedTexture = store.Get(@"sample-texture", WrapMode.Repeat, WrapMode.Repeat);
+            var edgeClampedTexture = store.Get(@"sample-texture", WrapMode.ClampToEdge, WrapMode.ClampToEdge);
+            var borderClampedTexture = store.Get(@"sample-texture", WrapMode.ClampToBorder, WrapMode.ClampToBorder);
 
-            Add(new Container
+            Container content;
+
+            Add(content = new Container
             {
                 AutoSizeAxes = Axes.Both,
                 Depth = float.NegativeInfinity,
@@ -58,7 +61,7 @@ namespace osu.Framework.Tests.Visual.Containers
                     {
                         Colour = Color4.Black,
                         RelativeSizeAxes = Axes.Both,
-                        Alpha = 0.8f
+                        Alpha = 0.8f,
                     },
                     new FillFlowContainer
                     {
@@ -74,6 +77,33 @@ namespace osu.Framework.Tests.Visual.Containers
                     },
                 }
             });
+
+            if (renderer is VeldridRenderer)
+            {
+                content.Hide();
+
+                Add(new SpriteText
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Text = "Veldrid currently has no support for occlusion queries.",
+                    Font = FontUsage.Default.With(size: 32),
+                });
+
+                return;
+            }
+
+            AddStep("add sprites", () => addMoreDrawables(texture, new RectangleF(0, 0, 1, 1)));
+            AddStep("add sprites with shrink", () => addMoreDrawables(texture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
+            AddStep("add sprites with repeat", () => addMoreDrawables(repeatedTexture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
+            AddStep("add sprites with edge clamp", () => addMoreDrawables(edgeClampedTexture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
+            AddStep("add sprites with border clamp", () => addMoreDrawables(borderClampedTexture, new RectangleF(0.25f, 0.25f, 0.5f, 0.5f)));
+            AddStep("add boxes", () => addMoreDrawables(renderer.WhitePixel, new RectangleF(0, 0, 1, 1)));
+            AddToggleStep("disable front to back", val =>
+            {
+                debugConfig.SetValue(DebugSetting.BypassFrontToBackPass, val);
+                Invalidate(Invalidation.DrawNode); // reset counts
+            });
         }
 
         protected override void Update()
@@ -88,17 +118,19 @@ namespace osu.Framework.Tests.Visual.Containers
             }
         }
 
-        private void addMoreDrawables()
+        private void addMoreDrawables(Texture texture, RectangleF textureRect)
         {
             for (int i = 0; i < 100; i++)
             {
-                Cell(i % cell_count).Add(new Box
+                Cell(i % cell_count).Add(new Sprite
                 {
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
                     Colour = new Color4(RNG.NextSingle(1), RNG.NextSingle(1), RNG.NextSingle(1), 1),
                     RelativeSizeAxes = Axes.Both,
-                    Scale = new Vector2(currentScale)
+                    Scale = new Vector2(currentScale),
+                    Texture = texture,
+                    TextureRectangle = textureRect,
                 });
 
                 currentScale -= 0.001f;
@@ -119,10 +151,16 @@ namespace osu.Framework.Tests.Visual.Containers
             {
             }
 
-            internal override void DrawOpaqueInteriorSubTree(DepthValue depthValue, Action<TexturedVertex2D> vertexAction)
+            internal override void DrawOpaqueInteriorSubTree(IRenderer renderer, DepthValue depthValue)
             {
+                if (renderer is VeldridRenderer)
+                {
+                    base.DrawOpaqueInteriorSubTree(renderer, depthValue);
+                    return;
+                }
+
                 startQuery();
-                base.DrawOpaqueInteriorSubTree(depthValue, vertexAction);
+                base.DrawOpaqueInteriorSubTree(renderer, depthValue);
                 DrawOpaqueInteriorSubTreeSamples = endQuery();
             }
 
@@ -133,10 +171,16 @@ namespace osu.Framework.Tests.Visual.Containers
                 base.ApplyState();
             }
 
-            public override void Draw(Action<TexturedVertex2D> vertexAction)
+            public override void Draw(IRenderer renderer)
             {
+                if (renderer is VeldridRenderer)
+                {
+                    base.Draw(renderer);
+                    return;
+                }
+
                 startQuery();
-                base.Draw(vertexAction);
+                base.Draw(renderer);
                 DrawSamples = endQuery();
             }
 

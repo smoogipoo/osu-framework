@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using osu.Framework.Bindables;
+using osu.Framework.Localisation;
 
 namespace osu.Framework.Graphics.UserInterface
 {
@@ -12,12 +13,12 @@ namespace osu.Framework.Graphics.UserInterface
         /// <summary>
         /// The text which this <see cref="MenuItem"/> displays.
         /// </summary>
-        public readonly Bindable<string> Text = new Bindable<string>(string.Empty);
+        public readonly Bindable<LocalisableString> Text = new Bindable<LocalisableString>(string.Empty);
 
         /// <summary>
         /// The <see cref="Action"/> that is performed when this <see cref="MenuItem"/> is clicked.
         /// </summary>
-        public readonly Bindable<Action> Action = new Bindable<Action>();
+        public readonly Bindable<Action?> Action = new Bindable<Action?>();
 
         /// <summary>
         /// A list of items which are to be displayed in a sub-menu originating from this <see cref="MenuItem"/>.
@@ -28,7 +29,7 @@ namespace osu.Framework.Graphics.UserInterface
         /// Creates a new <see cref="MenuItem"/>.
         /// </summary>
         /// <param name="text">The text to display.</param>
-        public MenuItem(string text)
+        public MenuItem(LocalisableString text)
         {
             Text.Value = text;
         }
@@ -36,9 +37,18 @@ namespace osu.Framework.Graphics.UserInterface
         /// <summary>
         /// Creates a new <see cref="MenuItem"/>.
         /// </summary>
+        /// <param name="action">The <see cref="Action"/> to perform when clicked.</param>
+        protected MenuItem(Action action)
+        {
+            Action.Value = action;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="MenuItem"/>.
+        /// </summary>
         /// <param name="text">The text to display.</param>
         /// <param name="action">The <see cref="Action"/> to perform when clicked.</param>
-        public MenuItem(string text, Action action)
+        public MenuItem(LocalisableString text, Action? action)
             : this(text)
         {
             Action.Value = action;

@@ -8,8 +8,8 @@ using osu.Framework.Graphics.Shapes;
 
 namespace osu.Framework.Graphics.UserInterface
 {
-    public class BasicSliderBar<T> : SliderBar<T>
-        where T : struct, IComparable, IConvertible
+    public partial class BasicSliderBar<T> : SliderBar<T>
+        where T : struct, IComparable<T>, IConvertible, IEquatable<T>
     {
         public Color4 BackgroundColour
         {

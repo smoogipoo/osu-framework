@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using osu.Framework.Logging;
 
 namespace osu.Framework.Threading
 {
@@ -20,6 +21,14 @@ namespace osu.Framework.Threading
 
         private readonly ImmutableArray<Thread> threads;
 
+        private readonly string name;
+
+        private bool isDisposed;
+
+        private int runningTaskCount;
+
+        public string GetStatusString() => $"{name} concurrency:{MaximumConcurrencyLevel} running:{runningTaskCount} pending:{pendingTaskCount}";
+
         /// <summary>
         /// Initializes a new instance of the StaTaskScheduler class with the specified concurrency level.
         /// </summary>
@@ -30,13 +39,14 @@ namespace osu.Framework.Threading
             if (numberOfThreads < 1)
                 throw new ArgumentOutOfRangeException(nameof(numberOfThreads));
 
+            this.name = name;
             tasks = new BlockingCollection<Task>();
 
-            threads = Enumerable.Range(0, numberOfThreads).Select(i =>
+            threads = Enumerable.Range(0, numberOfThreads).Select(_ =>
             {
                 var thread = new Thread(processTasks)
                 {
-                    Name = $"ThreadedTaskScheduler ({name})",
+                    Name = $"{nameof(ThreadedTaskScheduler)} ({name})",
                     IsBackground = true
                 };
 
@@ -52,14 +62,38 @@ namespace osu.Framework.Threading
         /// </summary>
         private void processTasks()
         {
-            foreach (var t in tasks.GetConsumingEnumerable()) TryExecuteTask(t);
+            try
+            {
+                foreach (var t in tasks.GetConsumingEnumerable())
+                {
+                    Interlocked.Increment(ref runningTaskCount);
+                    TryExecuteTask(t);
+                    Interlocked.Decrement(ref runningTaskCount);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // tasks may have been disposed. there's no easy way to check on this other than catch for it.
+            }
         }
 
         /// <summary>
         /// Queues a Task to be executed by this scheduler.
         /// </summary>
         /// <param name="task">The task to be executed.</param>
-        protected override void QueueTask(Task task) => tasks.Add(task);
+        protected override void QueueTask(Task task)
+        {
+            try
+            {
+                tasks.Add(task);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
+            {
+                // tasks may have been disposed. there's no easy way to check on this other than catch for it.
+                Logger.Log($"Task was queued for execution on a {nameof(ThreadedTaskScheduler)} ({name}) after it was disposed. The task will be executed inline.");
+                TryExecuteTask(task);
+            }
+        }
 
         /// <summary>
         /// Provides a list of the scheduled tasks for the debugger to consume.
@@ -78,16 +112,37 @@ namespace osu.Framework.Threading
         /// <summary>Gets the maximum concurrency level supported by this scheduler.</summary>
         public override int MaximumConcurrencyLevel => threads.Length;
 
+        private int pendingTaskCount
+        {
+            get
+            {
+                try
+                {
+                    return tasks.Count;
+                }
+                catch (ObjectDisposedException)
+                {
+                    // tasks may have been disposed. there's no easy way to check on this other than catch for it.
+                    return 0;
+                }
+            }
+        }
+
         /// <summary>
         /// Cleans up the scheduler by indicating that no more tasks will be queued.
         /// This method blocks until all threads successfully shutdown.
         /// </summary>
         public void Dispose()
         {
+            if (isDisposed)
+                return;
+
+            isDisposed = true;
+
             tasks.CompleteAdding();
 
             foreach (var thread in threads)
-                thread.Join();
+                thread.Join(TimeSpan.FromSeconds(10));
 
             tasks.Dispose();
         }

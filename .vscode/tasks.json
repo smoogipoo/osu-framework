@@ -9,11 +9,10 @@
             "command": "dotnet",
             "args": [
                 "build",
-                "--no-restore",
-                "/p:GenerateFullPaths=true",
-                "/m",
-                "/verbosity:m",
-                "osu-framework.sln"
+                "-p:GenerateFullPaths=true",
+                "-m",
+                "-verbosity:m",
+                "osu.Framework.Tests"
             ],
             "group": "build",
             "problemMatcher": "$msCompile"
@@ -24,25 +23,58 @@
             "command": "dotnet",
             "args": [
                 "build",
-                "--no-restore",
-                "/p:Configuration=Release",
-                "/p:GenerateFullPaths=true",
-                "/m",
-                "/verbosity:m",
-                "osu-framework.sln"
+                "-p:Configuration=Release",
+                "-p:GenerateFullPaths=true",
+                "-m",
+                "-verbosity:m",
+                "osu.Framework.Tests"
             ],
             "group": "build",
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "Restore",
+            "label": "Build SampleGame (Debug)",
             "type": "shell",
             "command": "dotnet",
             "args": [
-                "restore",
-                "osu-framework.sln"
+                "build",
+                "-p:GenerateFullPaths=true",
+                "-m",
+                "-verbosity:m",
+                "SampleGame.Desktop"
             ],
-            "problemMatcher": []
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build SampleGame (Release)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "-p:Configuration=Release",
+                "-p:GenerateFullPaths=true",
+                "-m",
+                "-verbosity:m",
+                "SampleGame.Desktop"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build Benchmarks",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "-p:Configuration=Release",
+                "-p:GenerateFullPaths=true",
+                "-m",
+                "-verbosity:m",
+                "osu.Framework.Benchmarks"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile"
         }
     ]
 }

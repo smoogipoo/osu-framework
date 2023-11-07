@@ -14,55 +14,18 @@ namespace osu.Framework.Input
     /// can be created to handle events that should trigger specifically on a focused drawable.
     /// Will send repeat events by default.
     /// </summary>
-    public class PlatformActionContainer : KeyBindingContainer<PlatformAction>, IHandleGlobalInput
+    public partial class PlatformActionContainer : KeyBindingContainer<PlatformAction>, IHandleGlobalKeyboardInput
     {
         [Resolved]
-        private GameHost host { get; set; }
+        private GameHost host { get; set; } = null!;
 
         public PlatformActionContainer()
             : base(SimultaneousBindingMode.None, KeyCombinationMatchingMode.Modifiers)
         {
         }
 
-        public override IEnumerable<KeyBinding> DefaultKeyBindings => host.PlatformKeyBindings;
+        public override IEnumerable<IKeyBinding> DefaultKeyBindings => host.PlatformKeyBindings;
 
         protected override bool Prioritised => true;
-
-        protected override bool SendRepeats => true;
-    }
-
-    public struct PlatformAction
-    {
-        public PlatformActionType ActionType;
-        public PlatformActionMethod? ActionMethod;
-
-        public PlatformAction(PlatformActionType actionType, PlatformActionMethod? actionMethod = null)
-        {
-            ActionType = actionType;
-            ActionMethod = actionMethod;
-        }
-    }
-
-    public enum PlatformActionType
-    {
-        Cut,
-        Copy,
-        Paste,
-        SelectAll,
-        CharPrevious,
-        CharNext,
-        WordPrevious,
-        WordNext,
-        LineStart,
-        LineEnd,
-        DocumentPrevious,
-        DocumentNext
-    }
-
-    public enum PlatformActionMethod
-    {
-        Move,
-        Select,
-        Delete
     }
 }

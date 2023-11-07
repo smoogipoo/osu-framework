@@ -1,46 +1,46 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Platform;
+using osu.Framework.Testing;
 
 namespace osu.Framework.Tests.IO
 {
     /// <summary>
-    /// Ad headless host for testing purposes. Contains an arbitrary game that is running after construction.
+    /// A headless host for testing purposes. Contains an arbitrary game that is running after construction.
     /// </summary>
-    public class BackgroundGameHeadlessGameHost : HeadlessGameHost
+    public partial class BackgroundGameHeadlessGameHost : TestRunHeadlessGameHost
     {
-        private TestGame testGame;
-
-        public BackgroundGameHeadlessGameHost(string gameName = @"", bool bindIPC = false, bool realtime = true, bool portableInstallation = false)
-            : base(gameName, bindIPC, realtime, portableInstallation)
+        public BackgroundGameHeadlessGameHost(string gameName = null, HostOptions options = null, bool realtime = true)
+            : base(gameName, options, realtime: realtime)
         {
-            Task.Run(() =>
-            {
-                try
-                {
-                    Run(testGame = new TestGame());
-                }
-                catch
-                {
-                    // may throw an unobserved exception if we don't handle here.
-                }
-            });
+            var testGame = new TestGame();
 
-            while (testGame?.HasProcessed != true)
-                Thread.Sleep(10);
+            Task.Factory.StartNew(() => Run(testGame), TaskCreationOptions.LongRunning);
+
+            if (!testGame.HasProcessed.Wait(10000))
+                throw new TimeoutException("Game took too long to process a frame");
         }
 
-        private class TestGame : Game
+        private partial class TestGame : Game
         {
-            public bool HasProcessed;
+            internal readonly ManualResetEventSlim HasProcessed = new ManualResetEventSlim(false);
 
             protected override void Update()
             {
                 base.Update();
-                HasProcessed = true;
+                HasProcessed.Set();
+            }
+
+            protected override void Dispose(bool isDisposing)
+            {
+                HasProcessed.Dispose();
+                base.Dispose(isDisposing);
             }
         }
 

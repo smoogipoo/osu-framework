@@ -3,33 +3,43 @@
 
 using System;
 using osu.Framework.Platform.MacOS.Native;
+using SixLabors.ImageSharp;
 
 namespace osu.Framework.Platform.MacOS
 {
     public class MacOSClipboard : Clipboard
     {
-        private NSPasteboard generalPasteboard = NSPasteboard.GeneralPasteboard();
+        private readonly NSPasteboard generalPasteboard = NSPasteboard.GeneralPasteboard();
 
-        public override string GetText()
+        public override string? GetText() => Cocoa.FromNSString(getFromPasteboard(Class.Get("NSString")));
+
+        public override Image<TPixel>? GetImage<TPixel>() => Cocoa.FromNSImage<TPixel>(getFromPasteboard(Class.Get("NSImage")));
+
+        public override void SetText(string text) => setToPasteboard(Cocoa.ToNSString(text));
+
+        public override bool SetImage(Image image) => setToPasteboard(Cocoa.ToNSImage(image));
+
+        private IntPtr getFromPasteboard(IntPtr @class)
         {
-            NSArray classArray = NSArray.ArrayWithObject(Class.Get("NSString"));
+            NSArray classArray = NSArray.ArrayWithObject(@class);
 
-            if (!generalPasteboard.CanReadObjectForClasses(classArray, null)) return string.Empty;
+            if (!generalPasteboard.CanReadObjectForClasses(classArray, null))
+                return IntPtr.Zero;
 
             var result = generalPasteboard.ReadObjectsForClasses(classArray, null);
-
             var objects = result?.ToArray();
 
-            if (objects?.Length > 0 && objects[0] != IntPtr.Zero)
-                return Cocoa.FromNSString(objects[0]);
-
-            return string.Empty;
+            return objects?.Length > 0 ? objects[0] : IntPtr.Zero;
         }
 
-        public override void SetText(string selectedText)
+        private bool setToPasteboard(IntPtr handle)
         {
+            if (handle == IntPtr.Zero)
+                return false;
+
             generalPasteboard.ClearContents();
-            generalPasteboard.WriteObjects(NSArray.ArrayWithObject(Cocoa.ToNSString(selectedText)));
+            generalPasteboard.WriteObjects(NSArray.ArrayWithObject(handle));
+            return true;
         }
     }
 }

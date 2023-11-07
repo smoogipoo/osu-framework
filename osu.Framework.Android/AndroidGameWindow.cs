@@ -1,52 +1,72 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using osu.Framework.Configuration;
-using osu.Framework.Platform;
-using osuTK.Graphics;
 using System;
 using System.Collections.Generic;
+using osu.Framework.Bindables;
+using osu.Framework.Configuration;
+using osu.Framework.Platform;
+using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Framework.Android
 {
-    public class AndroidGameWindow : GameWindow
+    internal class AndroidGameWindow : OsuTKWindow
     {
-        public override IGraphicsContext Context
-            => View.GraphicsContext;
+        private readonly AndroidGameView view;
 
-        internal static AndroidGameView View;
+        public override IGraphicsContext Context => view.GraphicsContext;
 
-        public override bool Focused
-            => true;
+        public override bool Focused => IsActive.Value;
 
-        public override osuTK.WindowState WindowState {
-            get => osuTK.WindowState.Normal;
+        public override IBindable<bool> IsActive { get; }
+
+        public override Platform.WindowState WindowState
+        {
+            get => Platform.WindowState.Normal;
             set { }
         }
 
-        public AndroidGameWindow() : base(View)
+        public event Action? CursorStateChanged;
+
+        public override CursorState CursorState
         {
+            get => base.CursorState;
+            set
+            {
+                // cursor should always be confined on mobile platforms, to have UserInputManager confine the cursor to window bounds
+                base.CursorState = value | CursorState.Confined;
+                CursorStateChanged?.Invoke();
+            }
+        }
+
+        public AndroidGameWindow(AndroidGameView view)
+            : base(view)
+        {
+            this.view = view;
+            IsActive = view.Activity.IsActive.GetBoundCopy();
         }
 
         public override void SetupWindow(FrameworkConfigManager config)
         {
-            // Let's just say the cursor is always in the window.
-            CursorInWindow = true;
+            CursorState |= CursorState.Confined;
+            SafeAreaPadding.BindTo(view.SafeAreaPadding);
         }
 
-        protected override IEnumerable<WindowMode> DefaultSupportedWindowModes => new WindowMode[]
+        public override IEnumerable<WindowMode> SupportedWindowModes => new[]
         {
             Configuration.WindowMode.Fullscreen,
         };
 
         public override void Run()
         {
-            View.Run();
+            view.Run();
         }
 
-        public override void Run(double updateRate)
+        protected override DisplayDevice CurrentDisplayDevice
         {
-            View.Run(updateRate);
+            get => DisplayDevice.Default;
+            set => throw new InvalidOperationException();
         }
     }
 }

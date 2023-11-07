@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using osu.Framework.Audio;
+using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Effects;
 using osuTK;
@@ -17,8 +18,8 @@ namespace osu.Framework.Graphics.Containers
     /// <remarks>
     /// This is a bare-minimal implementation of a container, so it may be required to be nested inside a <see cref="Container"/> for some use cases.
     /// </remarks>
-    /// <typeparam name="T">The tyoe of <see cref="Drawable"/>.</typeparam>
-    public class AudioContainer<T> : DrawableAudioWrapper, IContainerEnumerable<T>, IContainerCollection<T>, ICollection<T>, IReadOnlyList<T>
+    /// <typeparam name="T">The type of <see cref="Drawable"/>.</typeparam>
+    public partial class AudioContainer<T> : DrawableAudioWrapper, IContainerEnumerable<T>, IContainerCollection<T>, ICollection<T>, IReadOnlyList<T>
         where T : Drawable
     {
         private readonly Container<T> container;
@@ -40,8 +41,8 @@ namespace osu.Framework.Graphics.Containers
             set
             {
                 base.Size = new Vector2(
-                    RelativeSizeAxes.HasFlag(Axes.X) ? 1 : value.X,
-                    RelativeSizeAxes.HasFlag(Axes.Y) ? 1 : value.Y);
+                    RelativeSizeAxes.HasFlagFast(Axes.X) ? 1 : value.X,
+                    RelativeSizeAxes.HasFlagFast(Axes.Y) ? 1 : value.Y);
 
                 container.Size = value;
             }
@@ -97,7 +98,8 @@ namespace osu.Framework.Graphics.Containers
             set => container.Children = value;
         }
 
-        public int RemoveAll(Predicate<T> match) => container.RemoveAll(match);
+        public int RemoveAll(Predicate<T> match, bool disposeImmediately) =>
+            container.RemoveAll(match, disposeImmediately);
 
         public T Child
         {
@@ -132,14 +134,17 @@ namespace osu.Framework.Graphics.Containers
             container.AddRange(collection);
         }
 
-        public bool Remove(T drawable) => container.Remove(drawable);
+        public bool Remove(T drawable, bool disposeImmediately) => container.Remove(drawable, disposeImmediately);
+
+        bool ICollection<T>.Remove(T item) => container.Remove(item, true);
+
         int ICollection<T>.Count => container.Count;
 
         public bool IsReadOnly => container.IsReadOnly;
 
-        public void RemoveRange(IEnumerable<T> range)
+        public void RemoveRange(IEnumerable<T> range, bool disposeImmediately)
         {
-            container.RemoveRange(range);
+            container.RemoveRange(range, disposeImmediately);
         }
 
         int IReadOnlyCollection<T>.Count => container.Count;
@@ -153,7 +158,7 @@ namespace osu.Framework.Graphics.Containers
     /// <remarks>
     /// This is a bare-minimal implementation of a container, so it may be required to be nested inside a <see cref="Container"/> for some use cases.
     /// </remarks>
-    public class AudioContainer : AudioContainer<Drawable>
+    public partial class AudioContainer : AudioContainer<Drawable>
     {
     }
 }

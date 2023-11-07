@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using NUnit.Framework;
 using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Graphics;
@@ -8,14 +10,14 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Events;
-using osu.Framework.MathUtils;
+using osu.Framework.Utils;
 using osuTK;
 using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Containers
 {
     [System.ComponentModel.Description("potentially challenging size calculations")]
-    public class TestSceneSizing : FrameworkTestScene
+    public partial class TestSceneSizing : FrameworkTestScene
     {
         private Container testContainer;
 
@@ -1061,7 +1063,7 @@ namespace osu.Framework.Tests.Visual.Containers
             });
         }
 
-        private class NegativeSizingContainer : Container
+        private partial class NegativeSizingContainer : Container
         {
             private const float size = 200;
 
@@ -1115,11 +1117,9 @@ namespace osu.Framework.Tests.Visual.Containers
         }
     }
 
-    internal class InfofulBoxAutoSize : Container
+    internal partial class InfofulBoxAutoSize : Container
     {
-        protected override Container<Drawable> Content => content;
-
-        private readonly Container<Drawable> content;
+        protected override Container<Drawable> Content { get; }
 
         public InfofulBoxAutoSize()
         {
@@ -1134,7 +1134,7 @@ namespace osu.Framework.Tests.Visual.Containers
                     RelativeSizeAxes = Axes.Both,
                     Depth = float.MaxValue,
                 },
-                content = new Container
+                Content = new Container
                 {
                     AutoSizeAxes = Axes.Both,
                 }
@@ -1143,33 +1143,26 @@ namespace osu.Framework.Tests.Visual.Containers
 
         public bool AllowDrag = true;
 
-        protected override bool OnDrag(DragEvent e)
+        protected override void OnDrag(DragEvent e)
         {
-            if (!AllowDrag) return false;
+            if (!AllowDrag) return;
 
             Position += e.Delta;
-            return true;
         }
-
-        protected override bool OnDragEnd(DragEndEvent e) => true;
 
         protected override bool OnDragStart(DragStartEvent e) => AllowDrag;
     }
 
-    internal class InfofulBox : Container
+    internal partial class InfofulBox : Container
     {
-        public bool Chameleon = false;
         public bool AllowDrag = true;
 
-        protected override bool OnDrag(DragEvent e)
+        protected override void OnDrag(DragEvent e)
         {
-            if (!AllowDrag) return false;
+            if (!AllowDrag) return;
 
             Position += e.Delta;
-            return true;
         }
-
-        protected override bool OnDragEnd(DragEndEvent e) => true;
 
         protected override bool OnDragStart(DragStartEvent e) => AllowDrag;
 
@@ -1180,46 +1173,6 @@ namespace osu.Framework.Tests.Visual.Containers
                 RelativeSizeAxes = Axes.Both,
                 Depth = float.MaxValue,
             });
-        }
-
-        private int lastSwitch;
-
-        protected override void Update()
-        {
-            if (Chameleon && (int)Time.Current / 1000 != lastSwitch)
-            {
-                lastSwitch = (int)Time.Current / 1000;
-
-                switch (lastSwitch % 6)
-                {
-                    case 0:
-                        Anchor = (Anchor)((int)Anchor + 1);
-                        Origin = (Anchor)((int)Origin + 1);
-                        break;
-
-                    case 1:
-                        this.MoveTo(new Vector2(0, 0), 800, Easing.Out);
-                        break;
-
-                    case 2:
-                        this.MoveTo(new Vector2(200, 0), 800, Easing.Out);
-                        break;
-
-                    case 3:
-                        this.MoveTo(new Vector2(200, 200), 800, Easing.Out);
-                        break;
-
-                    case 4:
-                        this.MoveTo(new Vector2(0, 200), 800, Easing.Out);
-                        break;
-
-                    case 5:
-                        this.MoveTo(new Vector2(0, 0), 800, Easing.Out);
-                        break;
-                }
-            }
-
-            base.Update();
         }
     }
 }

@@ -1,9 +1,8 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using CoreGraphics;
 using Foundation;
 using osu.Framework.Graphics.Textures;
@@ -20,24 +19,30 @@ namespace osu.Framework.iOS.Graphics.Textures
         {
         }
 
-        protected override unsafe Image<TPixel> ImageFromStream<TPixel>(Stream stream)
+        protected override Image<TPixel> ImageFromStream<TPixel>(Stream stream)
         {
-            using (var uiImage = UIImage.LoadFromData(NSData.FromStream(stream)))
+            using (var nativeData = NSData.FromStream(stream))
             {
-                int width = (int)uiImage.Size.Width;
-                int height = (int)uiImage.Size.Height;
+                if (nativeData == null)
+                    throw new ArgumentException($"{nameof(Image)} could not be created from {nameof(stream)}.");
 
-                IntPtr data = Marshal.AllocHGlobal(width * height * 4);
-                using (CGBitmapContext textureContext = new CGBitmapContext(data, width, height, 8, width * 4, uiImage.CGImage.ColorSpace, CGImageAlphaInfo.PremultipliedLast))
-                    textureContext.DrawImage(new CGRect(0, 0, width, height), uiImage.CGImage);
+                using (var uiImage = UIImage.LoadFromData(nativeData))
+                {
+                    if (uiImage == null) throw new ArgumentException($"{nameof(Image)} could not be created from {nameof(stream)}.");
 
-                // NOTE: this will probably only be correct for Rgba32, will need to look into other pixel formats
-                var image = Image.LoadPixelData<TPixel>(
-                    new ReadOnlySpan<byte>(data.ToPointer(), width * height * 4),
-                    width, height);
+                    int width = (int)uiImage.Size.Width;
+                    int height = (int)uiImage.Size.Height;
 
-                Marshal.FreeHGlobal(data);
-                return image;
+                    // TODO: Use pool/memory when builds success with Xamarin.
+                    // Probably at .NET Core 3.1 time frame.
+                    byte[] data = new byte[width * height * 4];
+                    using (CGBitmapContext textureContext = new CGBitmapContext(data, width, height, 8, width * 4, CGColorSpace.CreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast))
+                        textureContext.DrawImage(new CGRect(0, 0, width, height), uiImage.CGImage);
+
+                    var image = Image.LoadPixelData<TPixel>(data, width, height);
+
+                    return image;
+                }
             }
         }
     }

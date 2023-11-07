@@ -1,18 +1,22 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Performance;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Logging;
 using osu.Framework.Timing;
 
 namespace osu.Framework.Tests.Visual.Containers
 {
-    public class TestSceneLifetimeManagementContainer : FrameworkTestScene
+    public partial class TestSceneLifetimeManagementContainer : FrameworkTestScene
     {
         private ManualClock manualClock;
         private TestContainer container;
@@ -53,7 +57,7 @@ namespace osu.Framework.Tests.Visual.Containers
         }
 
         [Test]
-        public void Basic()
+        public void TestBasic()
         {
             AddStep("Add children", () =>
             {
@@ -76,7 +80,19 @@ namespace osu.Framework.Tests.Visual.Containers
         }
 
         [Test]
-        public void DynamicChange()
+        public void TestAddLoadedDrawable()
+        {
+            TestChild child = null;
+
+            AddStep("add child", () => container.AddInternal(child = new TestChild(0, 2)));
+            skipTo(1);
+            AddStep("remove child", () => container.RemoveInternal(child, false));
+            AddStep("add same child", () => container.AddInternal(child));
+            validate(1);
+        }
+
+        [Test]
+        public void TestDynamicChange()
         {
             TestChild a = null, b = null, c = null, d = null;
             AddStep("Add children", () =>
@@ -116,7 +132,7 @@ namespace osu.Framework.Tests.Visual.Containers
         }
 
         [Test]
-        public void BoundaryCrossing()
+        public void TestBoundaryCrossing()
         {
             TestChild a = null, b = null, c = null;
             AddStep("Add children", () =>
@@ -153,7 +169,7 @@ namespace osu.Framework.Tests.Visual.Containers
         }
 
         [Test]
-        public void LifetimeChangeOnCallback()
+        public void TestLifetimeChangeOnCallback()
         {
             AddStep("Add children", () =>
             {
@@ -181,8 +197,28 @@ namespace osu.Framework.Tests.Visual.Containers
             validate(1);
         }
 
+        [Test]
+        public void TestLifetimeMutatingChildren()
+        {
+            AddStep("detach container", () => Remove(container, false));
+
+            TestLifetimeMutatingChild first = null, second = null;
+            AddStep("add children", () =>
+            {
+                container.AddInternal(first = new TestLifetimeMutatingChild(3, 5));
+                container.AddInternal(second = new TestLifetimeMutatingChild(3, 5));
+            });
+
+            AddStep("process single frame when children alive", () =>
+            {
+                manualClock.CurrentTime = 4;
+                container.UpdateSubTree();
+            });
+            AddAssert("both children processed", () => first.Processed && second.Processed);
+        }
+
         [Test, Ignore("Takes too long. Unignore when you changed relevant code.")]
-        public void Fuzz()
+        public void TestFuzz()
         {
             var rng = new Random(2222);
 
@@ -192,27 +228,20 @@ namespace osu.Framework.Tests.Visual.Containers
                 r = rng.Next(5);
 
                 if (l > r)
-                {
-                    var l1 = l;
-                    l = r;
-                    r = l1;
-                }
+                    (l, r) = (r, l);
 
                 ++r;
             }
 
-            void checkAll()
+            void checkAll() => Schedule(() =>
             {
-                Schedule(() =>
-                {
-                    foreach (var child in container.InternalChildren)
-                        Assert.AreEqual(child.ShouldBeAlive, child.IsAlive, $"Aliveness is invalid for {child}");
-                });
-            }
+                foreach (var child in container.InternalChildren)
+                    Assert.AreEqual(child.ShouldBeAlive, child.IsAlive, $"Aliveness is invalid for {child}");
+            });
 
             void addChild()
             {
-                randomLifetime(out var l, out var r);
+                randomLifetime(out double l, out double r);
                 container.AddInternal(new TestChild(l, r));
                 checkAll();
             }
@@ -220,24 +249,27 @@ namespace osu.Framework.Tests.Visual.Containers
             void removeChild()
             {
                 var child = container.InternalChildren[rng.Next(container.InternalChildren.Count)];
-                Console.WriteLine($"removeChild: {child.ChildID}");
-                container.RemoveInternal(child);
+                Logger.Log($"removeChild: {child.ChildID}");
+                container.RemoveInternal(child, true);
             }
 
             void changeLifetime()
             {
                 var child = container.InternalChildren[rng.Next(container.InternalChildren.Count)];
-                randomLifetime(out var l, out var r);
-                Console.WriteLine($"changeLifetime: {child.ChildID}, {l}, {r}");
+                randomLifetime(out double l, out double r);
+                Logger.Log($"changeLifetime: {child.ChildID}, {l}, {r}");
                 child.LifetimeStart = l;
                 child.LifetimeEnd = r;
+
+                // This is called from boundary crossing events and results in timing issues if the LTMC is not updated in time. Force an update here to prevent such issues.
+                container.UpdateSubTree();
                 checkAll();
             }
 
             void changeTime()
             {
                 int time = rng.Next(6);
-                Console.WriteLine($"changeTime: {time}");
+                Logger.Log($"changeTime: {time}");
                 manualClock.CurrentTime = time;
                 checkAll();
             }
@@ -247,7 +279,7 @@ namespace osu.Framework.Tests.Visual.Containers
                 addChild();
                 container.OnCrossing += e =>
                 {
-                    Console.WriteLine($"OnCrossing({e})");
+                    Logger.Log($"OnCrossing({e})");
                     changeLifetime();
                 };
             });
@@ -283,7 +315,7 @@ namespace osu.Framework.Tests.Visual.Containers
             }
         }
 
-        public class TestChild : SpriteText
+        public partial class TestChild : SpriteText
         {
             public override bool RemoveWhenNotAlive => false;
             public List<LifetimeBoundaryCrossedEvent> Crossings = new List<LifetimeBoundaryCrossedEvent>();
@@ -309,7 +341,25 @@ namespace osu.Framework.Tests.Visual.Containers
             }
         }
 
-        public class TestContainer : LifetimeManagementContainer
+        public partial class TestLifetimeMutatingChild : TestChild
+        {
+            public bool Processed { get; private set; }
+
+            public TestLifetimeMutatingChild(double lifetimeStart, double lifetimeEnd)
+                : base(lifetimeStart, lifetimeEnd)
+            {
+            }
+
+            protected override void Update()
+            {
+                base.Update();
+
+                LifetimeEnd = LifetimeStart;
+                Processed = true;
+            }
+        }
+
+        public partial class TestContainer : LifetimeManagementContainer
         {
             public event Action<LifetimeBoundaryCrossedEvent> OnCrossing;
 
@@ -328,6 +378,10 @@ namespace osu.Framework.Tests.Visual.Containers
 
                 OnCrossing?.Invoke(e);
             }
+
+            public new void UpdateSubTree() => base.UpdateSubTree();
+
+            public new void AddInternal(Drawable child) => base.AddInternal(child);
         }
     }
 }

@@ -1,22 +1,26 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
+#nullable disable
+
+using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osu.Framework.Input.Handlers.Mouse;
 using osuTK;
 using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Input
 {
-    public class TestSceneInputManager : FrameworkTestScene
+    public partial class TestSceneInputManager : FrameworkTestScene
     {
         public TestSceneInputManager()
         {
@@ -56,7 +60,7 @@ namespace osu.Framework.Tests.Visual.Input
             });
         }
 
-        public class SmallText : SpriteText
+        public partial class SmallText : SpriteText
         {
             public SmallText()
             {
@@ -64,7 +68,7 @@ namespace osu.Framework.Tests.Visual.Input
             }
         }
 
-        public class ContainingInputManagerStatusText : Container
+        public partial class ContainingInputManagerStatusText : Container
         {
             private readonly SpriteText inputManagerStatus,
                                         mouseStatus,
@@ -112,9 +116,9 @@ namespace osu.Framework.Tests.Visual.Input
                 var currentState = inputManager.CurrentState;
                 var mouse = currentState.Mouse;
                 inputManagerStatus.Text = $"{inputManager}";
-                mouseStatus.Text = $"Mouse: {mouse.Position} {mouse.Scroll} " + String.Join(" ", mouse.Buttons);
-                keyboardStatus.Text = "Keyboard: " + String.Join(" ", currentState.Keyboard.Keys);
-                joystickStatus.Text = "Joystick: " + String.Join(" ", currentState.Joystick.Buttons);
+                mouseStatus.Text = $"Mouse: {mouse.Position} {mouse.Scroll} " + string.Join(' ', mouse.Buttons);
+                keyboardStatus.Text = "Keyboard: " + string.Join(' ', currentState.Keyboard.Keys);
+                joystickStatus.Text = "Joystick: " + string.Join(' ', currentState.Joystick.Buttons);
                 base.Update();
             }
 
@@ -129,11 +133,11 @@ namespace osu.Framework.Tests.Visual.Input
 
             public int MouseUpCount;
 
-            protected override bool OnMouseUp(MouseUpEvent e)
+            protected override void OnMouseUp(MouseUpEvent e)
             {
                 ++MouseUpCount;
                 onMouseUpStatus.Text = $"OnMouseUp {MouseUpCount}: Position={e.MousePosition}, MouseDownPosition={e.MouseDownPosition}";
-                return base.OnMouseUp(e);
+                base.OnMouseUp(e);
             }
 
             public int MouseMoveCount;
@@ -173,30 +177,83 @@ namespace osu.Framework.Tests.Visual.Input
         [Resolved]
         private FrameworkConfigManager config { get; set; }
 
+        [Resolved]
+        private GameHost host { get; set; }
+
         [BackgroundDependencyLoader]
         private void load()
         {
-            AddSliderStep("Cursor sensivity", 0.5, 5, 1, setCursorSensivityConfig);
-            setCursorSensivityConfig(1);
-            AddToggleStep("Toggle raw input", setRawInputConfig);
-            setRawInputConfig(false);
-            AddToggleStep("Toggle ConfineMouseMode", setConfineMouseModeConfig);
-            setConfineMouseModeConfig(false);
+            AddSliderStep("Cursor sensitivity", 0.5, 5, 1, setCursorSensitivityConfig);
+            setCursorSensitivityConfig(1);
+            AddToggleStep("Toggle relative mode", setRelativeMode);
+            AddStep("Set confine to Never", () => setConfineMouseModeConfig(ConfineMouseMode.Never));
+            AddStep("Set confine to Fullscreen", () => setConfineMouseModeConfig(ConfineMouseMode.Fullscreen));
+            AddStep("Set confine to Always", () => setConfineMouseModeConfig(ConfineMouseMode.Always));
+            AddToggleStep("Toggle cursor visibility", setCursorVisibility);
+            AddToggleStep("Toggle cursor confine rect", setCursorConfineRect);
+
+            setRelativeMode(false);
+            setConfineMouseModeConfig(ConfineMouseMode.Never);
+            setCursorConfineRect(false);
+
+            AddStep("Reset handlers", () => host.ResetInputHandlers());
         }
 
-        private void setCursorSensivityConfig(double x)
+        private void setCursorSensitivityConfig(double sensitivity)
         {
-            config.Set(FrameworkSetting.CursorSensitivity, x);
+            var mouseHandler = getMouseHandler();
+
+            if (mouseHandler == null)
+                return;
+
+            mouseHandler.Sensitivity.Value = sensitivity;
         }
 
-        private void setRawInputConfig(bool x)
+        private void setRelativeMode(bool enabled)
         {
-            config.Set(FrameworkSetting.IgnoredInputHandlers, x ? nameof(OsuTKMouseHandler) : nameof(OsuTKRawMouseHandler));
+            var mouseHandler = getMouseHandler();
+
+            if (mouseHandler == null)
+                return;
+
+            mouseHandler.UseRelativeMode.Value = enabled;
         }
 
-        private void setConfineMouseModeConfig(bool x)
+        private MouseHandler getMouseHandler()
         {
-            config.Set(FrameworkSetting.ConfineMouseMode, x ? ConfineMouseMode.Always : ConfineMouseMode.Fullscreen);
+            return host.AvailableInputHandlers.OfType<MouseHandler>().FirstOrDefault();
+        }
+
+        private void setCursorVisibility(bool visible)
+        {
+            if (host.Window == null)
+                return;
+
+            if (visible)
+                host.Window.CursorState &= ~CursorState.Hidden;
+            else
+                host.Window.CursorState |= CursorState.Hidden;
+        }
+
+        private void setConfineMouseModeConfig(ConfineMouseMode mode)
+        {
+            config.SetValue(FrameworkSetting.ConfineMouseMode, mode);
+        }
+
+        private void setCursorConfineRect(bool enabled)
+        {
+            if (host.Window == null)
+                return;
+
+            host.Window.CursorConfineRect = enabled
+                ? new RectangleF
+                {
+                    X = host.Window.ClientSize.Width / 6f,
+                    Y = host.Window.ClientSize.Height / 6f,
+                    Width = host.Window.ClientSize.Width * 2 / 3f,
+                    Height = host.Window.ClientSize.Height * 2 / 3f,
+                }
+                : null;
         }
     }
 }

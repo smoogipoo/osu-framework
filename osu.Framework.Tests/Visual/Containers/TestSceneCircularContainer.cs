@@ -1,16 +1,18 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
-using osu.Framework.MathUtils;
+using osu.Framework.Utils;
 using osuTK;
 
 namespace osu.Framework.Tests.Visual.Containers
 {
     [System.ComponentModel.Description(@"Checking for bugged corner radius")]
-    public class TestSceneCircularContainer : FrameworkTestScene
+    public partial class TestSceneCircularContainer : FrameworkTestScene
     {
         private SingleUpdateCircularContainer container;
 
@@ -35,7 +37,7 @@ namespace osu.Framework.Tests.Visual.Containers
             });
         }
 
-        private class SingleUpdateCircularContainer : CircularContainer
+        private partial class SingleUpdateCircularContainer : CircularContainer
         {
             private bool firstUpdate = true;
 

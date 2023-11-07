@@ -1,7 +1,10 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using osu.Framework.Extensions.TypeExtensions;
+using osu.Framework.Input.StateChanges;
 using osuTK;
 using osuTK.Input;
 
@@ -16,6 +19,11 @@ namespace osu.Framework.Input.States
         public Vector2 Position { get; set; }
 
         public bool IsPositionValid { get; set; } = true;
+
+        /// <summary>
+        /// The last input source to make a change to the state.
+        /// </summary>
+        public IInput LastSource { get; set; }
 
         public bool IsPressed(MouseButton button) => Buttons.IsPressed(button);
         public void SetPressed(MouseButton button, bool pressed) => Buttons.SetPressed(button, pressed);

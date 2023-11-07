@@ -1,23 +1,43 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using osu.Framework.Graphics.OpenGL;
+using System;
+using osu.Framework.Graphics.Rendering;
 
 namespace osu.Framework.Graphics.Shaders
 {
     public class Uniform<T> : IUniformWithValue<T>
-        where T : struct
+        where T : unmanaged, IEquatable<T>
     {
-        public Shader Owner { get; }
+        public IShader Owner { get; }
         public string Name { get; }
         public int Location { get; }
 
         public bool HasChanged { get; private set; } = true;
 
-        public T Value;
+        private T val;
 
-        public Uniform(Shader owner, string name, int uniformLocation)
+        public T Value
         {
+            get => val;
+            set
+            {
+                if (value.Equals(val))
+                    return;
+
+                val = value;
+                HasChanged = true;
+
+                if (Owner.IsBound)
+                    Update();
+            }
+        }
+
+        private readonly IRenderer renderer;
+
+        public Uniform(IRenderer renderer, IShader owner, string name, int uniformLocation)
+        {
+            this.renderer = renderer;
             Owner = owner;
             Name = name;
             Location = uniformLocation;
@@ -25,10 +45,10 @@ namespace osu.Framework.Graphics.Shaders
 
         public void UpdateValue(ref T newValue)
         {
-            if (newValue.Equals(Value))
+            if (newValue.Equals(val))
                 return;
 
-            Value = newValue;
+            val = newValue;
             HasChanged = true;
 
             if (Owner.IsBound)
@@ -39,11 +59,11 @@ namespace osu.Framework.Graphics.Shaders
         {
             if (!HasChanged) return;
 
-            GLWrapper.SetUniform(this);
+            renderer.SetUniform(this);
             HasChanged = false;
         }
 
-        ref T IUniformWithValue<T>.GetValueByRef() => ref Value;
-        T IUniformWithValue<T>.GetValue() => Value;
+        ref T IUniformWithValue<T>.GetValueByRef() => ref val;
+        T IUniformWithValue<T>.GetValue() => val;
     }
 }

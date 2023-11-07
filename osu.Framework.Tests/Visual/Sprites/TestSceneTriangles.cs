@@ -11,7 +11,7 @@ using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Sprites
 {
-    public class TestSceneTriangles : FrameworkTestScene
+    public partial class TestSceneTriangles : FrameworkTestScene
     {
         private readonly Container testContainer;
 
@@ -167,19 +167,16 @@ namespace osu.Framework.Tests.Visual.Sprites
         }
     }
 
-    internal class DraggableTriangle : Triangle
+    internal partial class DraggableTriangle : Triangle
     {
         public bool AllowDrag = true;
 
-        protected override bool OnDrag(DragEvent e)
+        protected override void OnDrag(DragEvent e)
         {
-            if (!AllowDrag) return false;
+            if (!AllowDrag) return;
 
             Position += e.Delta;
-            return true;
         }
-
-        protected override bool OnDragEnd(DragEndEvent e) => true;
 
         protected override bool OnDragStart(DragStartEvent e) => AllowDrag;
     }

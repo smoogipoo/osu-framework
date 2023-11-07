@@ -1,6 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using JetBrains.Annotations;
 
@@ -70,24 +72,10 @@ namespace osu.Framework.Graphics.Sprites
 
         public override string ToString() => $"Icon={Icon} Font={FontName}";
 
-        public bool Equals(IconUsage other) => Equals(Icon, other.Icon) && string.Equals(Family, other.Family) && string.Equals(Weight, other.Weight);
+        public bool Equals(IconUsage other) => Icon == other.Icon && Family == other.Family && Weight == other.Weight;
 
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
+        public override bool Equals(object obj) => obj is IconUsage other && Equals(other);
 
-            return obj is IconUsage other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                var hashCode = Family != null ? Family.GetHashCode() : 0;
-                hashCode = (hashCode * 397) ^ Icon.GetHashCode();
-                hashCode = (hashCode * 397) ^ (Weight != null ? Weight.GetHashCode() : 0);
-                return hashCode;
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(Family, Icon, Weight);
     }
 }

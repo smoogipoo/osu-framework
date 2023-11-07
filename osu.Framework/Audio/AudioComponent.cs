@@ -1,10 +1,13 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using osu.Framework.Development;
+using osu.Framework.Platform;
 using osu.Framework.Statistics;
 
 namespace osu.Framework.Audio
@@ -22,13 +25,19 @@ namespace osu.Framework.Audio
         private bool acceptingActions = true;
 
         /// <summary>
+        /// Whether an audio thread specific action can be performed inline.
+        /// </summary>
+        protected bool CanPerformInline =>
+            ThreadSafety.IsAudioThread || (ThreadSafety.ExecutionMode == ExecutionMode.SingleThread && ThreadSafety.IsUpdateThread);
+
+        /// <summary>
         /// Enqueues an action to be performed on the audio thread.
         /// </summary>
         /// <param name="action">The action to perform.</param>
         /// <returns>A task which can be used for continuation logic. May return a <see cref="Task.CompletedTask"/> if called while already on the audio thread.</returns>
         protected Task EnqueueAction(Action action)
         {
-            if (ThreadSafety.IsAudioThread)
+            if (CanPerformInline)
             {
                 action();
                 return Task.CompletedTask;
@@ -63,6 +72,7 @@ namespace osu.Framework.Audio
         public void Update()
         {
             ThreadSafety.EnsureNotUpdateThread();
+
             if (IsDisposed)
                 throw new ObjectDisposedException(ToString(), "Can not update disposed audio components.");
 
@@ -95,22 +105,19 @@ namespace osu.Framework.Audio
 
         #region IDisposable Support
 
-        ~AudioComponent()
-        {
-            Dispose(false);
-        }
-
         protected volatile bool IsDisposed;
+
+        public void Dispose()
+        {
+            acceptingActions = false;
+            PendingActions.Enqueue(new Task(() => Dispose(true)));
+
+            GC.SuppressFinalize(this);
+        }
 
         protected virtual void Dispose(bool disposing)
         {
             IsDisposed = true;
-        }
-
-        public virtual void Dispose()
-        {
-            acceptingActions = false;
-            PendingActions.Enqueue(new Task(() => Dispose(true)));
         }
 
         #endregion

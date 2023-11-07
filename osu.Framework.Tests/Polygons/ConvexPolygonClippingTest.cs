@@ -1,11 +1,11 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
 using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.MathUtils.Clipping;
+using osu.Framework.Utils;
 using osuTK;
 
 namespace osu.Framework.Tests.Polygons
@@ -192,6 +192,34 @@ namespace osu.Framework.Tests.Polygons
         }
 
         [Test]
+        public void TestTriangleClipping()
+        {
+            assertPolygonEquals(new SimpleConvexPolygon(new[] { Vector2.Zero, new Vector2(0, 1), new Vector2(1, 0) }),
+                new SimpleConvexPolygon(clip(new Quad(Vector2.Zero, Vector2.Zero, new Vector2(1, 0), new Vector2(0, 1)), new Quad(0, 0, 10, 10)).ToArray()),
+                false);
+        }
+
+        [Test]
+        public void TestLineClipping()
+        {
+            assertPolygonEquals(new SimpleConvexPolygon(Array.Empty<Vector2>()),
+                new SimpleConvexPolygon(clip(new Quad(25, 25, 0, 10), new Quad(0, 0, 100, 100)).ToArray()),
+                false);
+
+            assertPolygonEquals(new SimpleConvexPolygon(Array.Empty<Vector2>()),
+                new SimpleConvexPolygon(clip(new Quad(25, 25, 10, 0), new Quad(0, 0, 100, 100)).ToArray()),
+                false);
+        }
+
+        [Test]
+        public void TestPointClipping()
+        {
+            assertPolygonEquals(new SimpleConvexPolygon(Array.Empty<Vector2>()),
+                new SimpleConvexPolygon(clip(new Quad(25, 25, 0, 0), new Quad(0, 0, 100, 100)).ToArray()),
+                false);
+        }
+
+        [Test]
         public void TestEmptyClip()
         {
             var quad = new Quad(0, 0, 1, 1);
@@ -213,13 +241,71 @@ namespace osu.Framework.Tests.Polygons
                 false);
         }
 
+        private static object[] fuzzedEdgeCases => new object[]
+        {
+            new object[]
+            {
+                new[] { new Vector2(0, 0.5f), new Vector2(100, 1), new Vector2(2, 2), new Vector2(1, 2) },
+                new[] { new Vector2(0, 0.5f), new Vector2(100, 0), new Vector2(0.5f, 100) },
+            },
+            new object[]
+            {
+                new[] { new Vector2(0, 1), new Vector2(100, 0), new Vector2(100, 2), new Vector2(2, 2) },
+                new[] { new Vector2(1, 100), new Vector2(2, 0.5f), new Vector2(100, 2) },
+            },
+            new object[]
+            {
+                new[] { new Vector2(0, 1), new Vector2(2, 0.5f), new Vector2(100, 0), new Vector2(1, 2) },
+                new[] { new Vector2(1, 0.5f), new Vector2(100, 0), new Vector2(1, 100) },
+            },
+            new object[]
+            {
+                new[] { new Vector2(0, 1), new Vector2(0, 0), new Vector2(2, 1), new Vector2(1, 2) },
+                new[] { new Vector2(0.5f, 2), new Vector2(100, 0.5f), new Vector2(1, 0.5f), new Vector2(100, 2) },
+            },
+            new object[]
+            {
+                new[] { new Vector2(2, float.MinValue), new Vector2(float.MaxValue, 0.5f), new Vector2(float.MaxValue, float.NegativeInfinity), new Vector2(1, float.MaxValue) },
+                new[] { new Vector2(0, 1), new Vector2(0, float.NegativeInfinity), new Vector2(float.Epsilon, 1), new Vector2(1, 0.5f) },
+            },
+            new object[]
+            {
+                new[] { new Vector2(float.Epsilon, 0.5f), new Vector2(float.Epsilon, 100), new Vector2(float.MaxValue, float.NegativeInfinity), new Vector2(1, float.MaxValue) },
+                new[] { new Vector2(0, 1), new Vector2(0, float.NegativeInfinity), new Vector2(float.Epsilon, 1), new Vector2(1, 0.5f) },
+            },
+            new object[]
+            {
+                new[] { new Vector2(-0.1f, 2), new Vector2(0, 0), new Vector2(0.5f, -0.1f) },
+                new[] { new Vector2(-10, 2), new Vector2(-0.5f, 0.1f), new Vector2(0.5f, 0.5f) }
+            },
+            new object[]
+            {
+                new[] { new Vector2(-10, 1), new Vector2(0.1f, 0), new Vector2(-0.5f, 2) },
+                new[] { new Vector2(-1, 2), new Vector2(-0.1f, -0.5f), new Vector2(0.1f, 0) }
+            },
+            new object[]
+            {
+                new[] { new Vector2(-1, 0.5f), new Vector2(0.1f, 0.1f), new Vector2(0, 1) },
+                new[] { new Vector2(-2, -0.5f), new Vector2(0.1f, 0.1f), new Vector2(-0.1f, 1) }
+            }
+        };
+
+        [TestCaseSource(nameof(fuzzedEdgeCases))]
+        public void TestFuzzedEdgeCases(Vector2[] clipVertices, Vector2[] subjectVertices)
+        {
+            var clipPolygon = new SimpleConvexPolygon(clipVertices);
+            var subjectPolygon = new SimpleConvexPolygon(subjectVertices);
+
+            clip(clipPolygon, subjectPolygon);
+        }
+
         private Span<Vector2> clip(SimpleConvexPolygon clipPolygon, SimpleConvexPolygon subjectPolygon)
-            => new ConvexPolygonClipper<SimpleConvexPolygon, SimpleConvexPolygon>(ref clipPolygon, ref subjectPolygon).Clip();
+            => new ConvexPolygonClipper<SimpleConvexPolygon, SimpleConvexPolygon>(clipPolygon, subjectPolygon).Clip();
 
         private Span<Vector2> clip<TClip, TSubject>(TClip clipPolygon, TSubject subjectPolygon)
             where TClip : IConvexPolygon
             where TSubject : IConvexPolygon
-            => new ConvexPolygonClipper<TClip, TSubject>(ref clipPolygon, ref subjectPolygon).Clip();
+            => new ConvexPolygonClipper<TClip, TSubject>(clipPolygon, subjectPolygon).Clip();
 
         private void assertPolygonEquals(IPolygon expected, IPolygon actual, bool reverse)
             => Assert.That(Vector2Extensions.GetOrientation(actual.GetVertices()),

@@ -1,119 +1,59 @@
-<Project>
+﻿<Project>
   <PropertyGroup>
-    <DefaultMtouchExtraArgs>--nolinkaway -gcc_flags "-lstdc++ -framework AudioToolbox -framework SystemConfiguration -framework CFNetwork -framework Accelerate</DefaultMtouchExtraArgs>
-    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\iPhoneSimulator\Debug</OutputPath>
-    <DefineConstants>DEBUG;ENABLE_TEST_CLOUD;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
-    <MtouchDebug>true</MtouchDebug>
-    <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
-    <MtouchFastDev>true</MtouchFastDev>
-    <IOSDebuggerPort>25823</IOSDebuggerPort>
-    <MtouchLink>None</MtouchLink>
-    <MtouchArch>x86_64</MtouchArch>
-    <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <DeviceSpecificBuild>false</DeviceSpecificBuild>
-    <MtouchVerbosity></MtouchVerbosity>
-    <LangVersion>Default</LangVersion>
-    <MtouchExtraArgs>$(DefaultMtouchExtraArgs) -force_load $(OutputPath)\libbass.a -force_load $(OutputPath)\libbass_fx.a"</MtouchExtraArgs>
-    <OptimizePNGs>false</OptimizePNGs>
-    <MtouchI18n>cjk,mideast,other,rare,west</MtouchI18n>
+    <NullabilityInfoContextSupport>true</NullabilityInfoContextSupport>
+    <!-- MT7091 occurs when referencing a .framework bundle that consists of a static library.
+         It only warns about not copying the library to the app bundle to save space,
+         so there's nothing to be worried about. -->
+    <NoWarn>$(NoWarn);MT7091</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\iPhone\Release</OutputPath>
-    <DefineConstants></DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodesignKey>iPhone Developer</CodesignKey>
-    <MtouchUseLlvm>true</MtouchUseLlvm>
-    <MtouchFloat32>true</MtouchFloat32>
-    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
-    <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchArch>ARM64</MtouchArch>
-    <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchVerbosity></MtouchVerbosity>
-    <LangVersion>Default</LangVersion>
-    <MtouchExtraArgs>$(DefaultMtouchExtraArgs) -force_load $(OutputPath)\libbass.a -force_load $(OutputPath)\libbass_fx.a"</MtouchExtraArgs>
-    <OptimizePNGs>false</OptimizePNGs>
-    <MtouchI18n>cjk,mideast,other,rare,west</MtouchI18n>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!-- On debug configurations, we use Mono interpreter for faster compilation. -->
+    <UseInterpreter>true</UseInterpreter>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhoneSimulator' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\iPhoneSimulator\Release</OutputPath>
-    <DefineConstants></DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodesignKey>iPhone Developer</CodesignKey>
-    <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
-    <MtouchLink>None</MtouchLink>
-    <MtouchArch>x86_64</MtouchArch>
-    <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchVerbosity></MtouchVerbosity>
-    <LangVersion>Default</LangVersion>
-    <MtouchExtraArgs>$(DefaultMtouchExtraArgs) -force_load $(OutputPath)\libbass.a -force_load $(OutputPath)\libbass_fx.a"</MtouchExtraArgs>
-    <OptimizePNGs>false</OptimizePNGs>
-    <MtouchI18n>cjk,mideast,other,rare,west</MtouchI18n>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- On release configurations, we use AOT compiler for optimal performance. -->
+    <UseInterpreter>false</UseInterpreter>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhone' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\iPhone\Debug</OutputPath>
-    <DefineConstants>DEBUG;ENABLE_TEST_CLOUD;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodesignKey>iPhone Developer</CodesignKey>
-    <DeviceSpecificBuild>true</DeviceSpecificBuild>
-    <MtouchDebug>true</MtouchDebug>
-    <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
-    <MtouchFloat32>true</MtouchFloat32>
-    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
-    <IOSDebuggerPort>28126</IOSDebuggerPort>
-    <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchArch>ARM64</MtouchArch>
-    <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchVerbosity></MtouchVerbosity>
-    <LangVersion>Default</LangVersion>
-    <MtouchExtraArgs>$(DefaultMtouchExtraArgs) -force_load $(OutputPath)\libbass.a -force_load $(OutputPath)\libbass_fx.a"</MtouchExtraArgs>
-    <OptimizePNGs>false</OptimizePNGs>
-    <MtouchI18n>cjk,mideast,other,rare,west</MtouchI18n>
+  <PropertyGroup Condition="'$(Platform)' == 'iPhone'">
+    <RuntimeIdentifier>ios-arm64</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'iPhoneSimulator'">
+    <RuntimeIdentifiers>iossimulator-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Core" />
-    <Reference Include="Xamarin.iOS" />
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="mscorlib" />
+    <!-- Dependency for osuTK.iOS, removing will fail loading the AOT module -->
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2"/>
   </ItemGroup>
-  <ItemGroup Label="Package References">
-    <PackageReference Include="Markdig" Version="0.17.0" />
-    <PackageReference Include="FFmpeg.AutoGen" Version="4.1.0.4" />
-    <PackageReference Include="SharpFNT" Version="1.1.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0006" />
-    <PackageReference Include="System.Drawing.Common" Version="4.5.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.0.0" />
-    <PackageReference Include="ppy.osuTK.NS20" Version="1.0.101" />
-    <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
-    <PackageReference Include="ppy.Microsoft.Diagnostics.Runtime" Version="0.9.180305.1" />
-    <PackageReference Include="NUnit" Version="3.12.0" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="ManagedBass" Version="2.0.4" />
-    <PackageReference Include="ManagedBass.Fx" Version="2.0.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.3.0" />
-    <PackageReference Include="JetBrains.Annotations" Version="2019.1.1" />
+  <ItemGroup>
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\bass.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\bass_fx.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\bassmix.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\libavcodec.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\libavdevice.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\libavformat.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\libavutil.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\libswresample.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\libswscale.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
+    <NativeReference Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\runtimes\ios\native\metal-mono-workaround.xcframework" Kind="Framework" SmartLink="false" ForceLoad="true" />
   </ItemGroup>
+  <!-- Veldrid references libraries which cannot be AOT'd on iOS, replace them with stub assemblies.
+       See: https://github.com/mellinoe/veldrid/issues/472#issuecomment-1356461410 -->
+  <Target Name="OsuFrameworkIOSCopyStubAssemblies" BeforeTargets="_AOTCompile">
+    <ItemGroup>
+      <StubFiles Include="$(MSBuildThisFileDirectory)osu.Framework.iOS\stubs\*" />
+    </ItemGroup>
+    <Copy Condition="'$(Platform)' == 'AnyCPU'" SourceFiles="@(StubFiles)" DestinationFolder="obj\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\linked\" />
+    <Copy Condition="'$(Platform)' != 'AnyCPU'" SourceFiles="@(StubFiles)" DestinationFolder="obj\$(Platform)\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\linked\" />
+  </Target>
+  <!-- OpenTabletDriver contains P/Invokes to the "Quartz" framework for native macOS code.
+       This leads iOS linker into attempting to include that framework, despite not existing on such platform.
+       See: https://github.com/OpenTabletDriver/OpenTabletDriver/issues/2524 / https://github.com/xamarin/xamarin-macios/issues/15118#issuecomment-1141893683 -->
+  <!-- There's also P/Invokes for "ApplicationServices" framework somewhere in the referenced libraries... -->
+  <Target Name="OsuFrameworkIOSRemoveMacOSFrameworks" BeforeTargets="_ComputeLinkNativeExecutableInputs" AfterTargets="_LoadLinkerOutput">
+    <ItemGroup>
+      <_LinkerFrameworks Remove="Quartz"/>
+      <_LinkerFrameworks Remove="ApplicationServices"/>
+    </ItemGroup>
+  </Target>
 </Project>

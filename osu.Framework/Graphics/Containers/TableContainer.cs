@@ -1,18 +1,21 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using JetBrains.Annotations;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Localisation;
 
 namespace osu.Framework.Graphics.Containers
 {
     /// <summary>
     /// A container which tabulates <see cref="Drawable"/>s.
     /// </summary>
-    public class TableContainer : CompositeDrawable
+    public partial class TableContainer : CompositeDrawable
     {
         private readonly GridContainer grid;
 
@@ -57,7 +60,7 @@ namespace osu.Framework.Graphics.Containers
             [CanBeNull]
             set
             {
-                value = value ?? Array.Empty<TableColumn>();
+                value ??= Array.Empty<TableColumn>();
 
                 if (columns == value)
                     return;
@@ -80,7 +83,7 @@ namespace osu.Framework.Graphics.Containers
             [CanBeNull]
             set
             {
-                value = value ?? new Dimension();
+                value ??= new Dimension();
 
                 if (rowSize == value)
                     return;
@@ -185,12 +188,14 @@ namespace osu.Framework.Graphics.Containers
             var result = new Drawable[rowCount, columnCount];
 
             for (int row = 0; row < rowCount; row++)
-            for (int col = 0; col < columnCount; col++)
             {
-                if (row == 0)
-                    result[row, col] = CreateHeader(col, col >= Columns?.Length ? null : Columns?[col]);
-                else if (col < content.GetLength(1))
-                    result[row, col] = content[row - 1, col];
+                for (int col = 0; col < columnCount; col++)
+                {
+                    if (row == 0)
+                        result[row, col] = CreateHeader(col, col >= Columns?.Length ? null : Columns?[col]);
+                    else if (col < content.GetLength(1))
+                        result[row, col] = content[row - 1, col];
+                }
             }
 
             return result;
@@ -259,9 +264,9 @@ namespace osu.Framework.Graphics.Containers
     public class TableColumn
     {
         /// <summary>
-        /// The text to be displayed in the cell.
+        /// The localisable text to be displayed in the cell.
         /// </summary>
-        public readonly string Header;
+        public readonly LocalisableString Header;
 
         /// <summary>
         /// The anchor of all cells in this column of the <see cref="TableContainer"/>.
@@ -276,12 +281,12 @@ namespace osu.Framework.Graphics.Containers
         /// <summary>
         /// Constructs a new <see cref="TableColumn"/>.
         /// </summary>
-        /// <param name="header">The text to be displayed in the cell.</param>
+        /// <param name="header">The localisable text to be displayed in the cell.</param>
         /// <param name="anchor">The anchor of all cells in this column of the <see cref="TableContainer"/>.</param>
         /// <param name="dimension">The dimension of the column in the table.</param>
-        public TableColumn(string header = null, Anchor anchor = Anchor.TopLeft, Dimension dimension = null)
+        public TableColumn(LocalisableString? header = null, Anchor anchor = Anchor.TopLeft, Dimension dimension = null)
         {
-            Header = header ?? "";
+            Header = header ?? string.Empty;
             Anchor = anchor;
             Dimension = dimension ?? new Dimension();
         }

@@ -1,39 +1,46 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Collections.Generic;
+#nullable disable
+
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
+using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.UserInterface;
+using osuTK;
 using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace osu.Framework.Tests.Visual.UserInterface
 {
-    public class TestSceneCircularProgress : FrameworkTestScene
+    public partial class TestSceneCircularProgress : FrameworkTestScene
     {
-        public override IReadOnlyList<Type> RequiredTypes => new[] { typeof(CircularProgress), typeof(CircularProgressDrawNode) };
+        [Resolved]
+        private IRenderer renderer { get; set; }
 
-        private readonly CircularProgress clock;
+        private CircularProgress clock;
 
         private int rotateMode;
         private const double period = 4000;
         private const double transition_period = 2000;
 
-        private readonly Texture gradientTextureHorizontal;
-        private readonly Texture gradientTextureVertical;
-        private readonly Texture gradientTextureBoth;
+        private Texture gradientTextureHorizontal;
+        private Texture gradientTextureVertical;
+        private Texture gradientTextureBoth;
 
-        public TestSceneCircularProgress()
+        [BackgroundDependencyLoader]
+        private void load()
         {
             const int width = 128;
 
             var image = new Image<Rgba32>(width, 1);
 
-            gradientTextureHorizontal = new Texture(width, 1, true);
+            gradientTextureHorizontal = renderer.CreateTexture(width, 1, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -45,7 +52,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             image = new Image<Rgba32>(width, 1);
 
-            gradientTextureVertical = new Texture(1, width, true);
+            gradientTextureVertical = renderer.CreateTexture(1, width, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -57,7 +64,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             image = new Image<Rgba32>(width, width);
 
-            gradientTextureBoth = new Texture(width, width, true);
+            gradientTextureBoth = renderer.CreateTexture(width, width, true);
 
             for (int i = 0; i < width; ++i)
             {
@@ -75,23 +82,37 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             gradientTextureBoth.SetData(new TextureUpload(image));
 
+            Box background;
+            Container maskingContainer;
+
             Children = new Drawable[]
             {
-                clock = new CircularProgress
+                background = new Box
                 {
-                    Width = 0.8f,
-                    Height = 0.8f,
+                    Colour = FrameworkColour.GreenDark,
                     RelativeSizeAxes = Axes.Both,
+                    Alpha = 0f,
+                },
+                maskingContainer = new Container
+                {
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
-                },
+                    Size = new Vector2(250),
+                    CornerRadius = 20,
+                    Child = clock = new CircularProgress
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        Size = new Vector2(400)
+                    }
+                }
             };
 
-            AddStep("Forward", delegate { rotateMode = 1; });
-            AddStep("Backward", delegate { rotateMode = 2; });
-            AddStep("Transition Focus", delegate { rotateMode = 3; });
-            AddStep("Transition Focus 2", delegate { rotateMode = 4; });
-            AddStep("Forward/Backward", delegate { rotateMode = 0; });
+            AddStep("Forward", delegate { setRotationMode(1); });
+            AddStep("Backward", delegate { setRotationMode(2); });
+            AddStep("Transition Focus", delegate { setRotationMode(3); });
+            AddStep("Transition Focus 2", delegate { setRotationMode(4); });
+            AddStep("Forward/Backward", delegate { setRotationMode(0); });
 
             AddStep("Horizontal Gradient Texture", delegate { setTexture(1); });
             AddStep("Vertical Gradient Texture", delegate { setTexture(2); });
@@ -104,7 +125,17 @@ namespace osu.Framework.Tests.Visual.UserInterface
             AddStep("2D Gradient Colour", delegate { setColour(4); });
             AddStep("White Colour", delegate { setColour(0); });
 
-            AddSliderStep("Fill", 0, 10, 10, fill => clock.InnerRadius = fill / 10f);
+            AddStep("Forward Transform", delegate { transform(0); });
+            AddStep("Backward Transform", delegate { transform(1); });
+            AddStep("Fwd/Bwd Transform", delegate { transform(2); });
+            AddStep("Easing Transform", delegate { transform(3); });
+
+            AddToggleStep("Toggle masking", m => maskingContainer.Masking = m);
+            AddToggleStep("Toggle rounded caps", r => clock.RoundedCaps = r);
+            AddToggleStep("Toggle aspect ratio", r => clock.Size = r ? new Vector2(600, 400) : new Vector2(400));
+            AddToggleStep("Toggle background", b => background.Alpha = b ? 1 : 0);
+            AddSliderStep("Scale", 0f, 2f, 1f, s => clock.Scale = new Vector2(s));
+            AddSliderStep("Fill", 0f, 1f, 0.5f, f => clock.InnerRadius = f);
         }
 
         protected override void Update()
@@ -135,12 +166,18 @@ namespace osu.Framework.Tests.Visual.UserInterface
             }
         }
 
+        private void setRotationMode(int mode)
+        {
+            clock.ClearTransforms();
+            rotateMode = mode;
+        }
+
         private void setTexture(int textureMode)
         {
             switch (textureMode)
             {
                 case 0:
-                    clock.Texture = Texture.WhitePixel;
+                    clock.Texture = renderer.WhitePixel;
                     break;
 
                 case 1:
@@ -166,7 +203,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
                     break;
 
                 case 1:
-                    clock.Colour = new Color4(255, 128, 128, 255);
+                    clock.Colour = new Color4(255, 88, 88, 255);
                     break;
 
                 case 2:
@@ -197,6 +234,30 @@ namespace osu.Framework.Tests.Visual.UserInterface
                         BottomLeft = new Color4(128, 128, 255, 255),
                         BottomRight = new Color4(255, 255, 255, 255),
                     };
+                    break;
+            }
+        }
+
+        private void transform(int tf)
+        {
+            setRotationMode(-1);
+
+            switch (tf)
+            {
+                case 0:
+                    clock.FillTo(0).Then().FillTo(1, 1000).Loop();
+                    break;
+
+                case 1:
+                    clock.FillTo(1).Then().FillTo(0, 1000).Loop();
+                    break;
+
+                case 2:
+                    clock.FillTo(0, 1000).Then().FillTo(1, 1000).Loop();
+                    break;
+
+                case 3:
+                    clock.FillTo(0).Then().FillTo(1, 1000, Easing.InOutQuart).Loop();
                     break;
             }
         }

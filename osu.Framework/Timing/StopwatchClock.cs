@@ -27,7 +27,7 @@ namespace osu.Framework.Timing
                 Start();
         }
 
-        public double CurrentTime => stopwatchCurrentTime + seekOffset;
+        public virtual double CurrentTime => stopwatchCurrentTime + seekOffset;
 
         /// <summary>
         /// The current time, represented solely by the accumulated <see cref="Stopwatch"/> time.
@@ -52,9 +52,21 @@ namespace osu.Framework.Timing
             }
         }
 
+        public new void Reset()
+        {
+            resetAccumulatedRate();
+            base.Reset();
+        }
+
+        public new void Restart()
+        {
+            resetAccumulatedRate();
+            base.Restart();
+        }
+
         public void ResetSpeedAdjustments() => Rate = 1;
 
-        public bool Seek(double position)
+        public virtual bool Seek(double position)
         {
             // Determine the offset that when added to stopwatchCurrentTime; results in the requested time value
             seekOffset = position - stopwatchCurrentTime;
@@ -62,5 +74,11 @@ namespace osu.Framework.Timing
         }
 
         public override string ToString() => $@"{GetType().ReadableName()} ({Math.Truncate(CurrentTime)}ms)";
+
+        private void resetAccumulatedRate()
+        {
+            rateChangeAccumulated = 0;
+            rateChangeUsed = 0;
+        }
     }
 }

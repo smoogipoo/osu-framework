@@ -11,22 +11,33 @@ namespace osu.Framework.Statistics
         internal readonly Dictionary<PerformanceCollectionType, double> CollectedTimes = new Dictionary<PerformanceCollectionType, double>(NUM_STATISTICS_COUNTER_TYPES);
         internal readonly Dictionary<StatisticsCounterType, long> Counts = new Dictionary<StatisticsCounterType, long>(NUM_STATISTICS_COUNTER_TYPES);
         internal readonly List<int> GarbageCollections = new List<int>();
+        public double FramesPerSecond { get; set; }
 
-        internal static readonly int NUM_STATISTICS_COUNTER_TYPES = Enum.GetValues(typeof(StatisticsCounterType)).Length;
-        internal static readonly int NUM_PERFORMANCE_COLLECTION_TYPES = Enum.GetValues(typeof(PerformanceCollectionType)).Length;
+        internal static readonly int NUM_STATISTICS_COUNTER_TYPES = Enum.GetValues<StatisticsCounterType>().Length;
+        internal static readonly int NUM_PERFORMANCE_COLLECTION_TYPES = Enum.GetValues<PerformanceCollectionType>().Length;
 
         internal static readonly long[] COUNTERS = new long[NUM_STATISTICS_COUNTER_TYPES];
+
+        public double Jitter;
 
         internal void Clear()
         {
             CollectedTimes.Clear();
             GarbageCollections.Clear();
             Counts.Clear();
+            FramesPerSecond = 0;
+            Jitter = 0;
         }
 
         internal static void Increment(StatisticsCounterType type) => ++COUNTERS[(int)type];
 
-        internal static void Add(StatisticsCounterType type, long amount) => COUNTERS[(int)type] += amount;
+        internal static void Add(StatisticsCounterType type, long amount)
+        {
+            if (amount < 0)
+                throw new ArgumentException($"Statistics counter {type} was attempted to be decremented via {nameof(Add)} call.", nameof(amount));
+
+            COUNTERS[(int)type] += amount;
+        }
     }
 
     internal enum PerformanceCollectionType
@@ -38,7 +49,7 @@ namespace osu.Framework.Statistics
         Sleep,
         Scheduler,
         IPC,
-        GLReset,
+        DrawReset,
     }
 
     internal enum StatisticsCounterType
@@ -52,17 +63,19 @@ namespace osu.Framework.Statistics
         PositionalIQ,
 
         /// <summary>
-        /// See <see cref="osu.Framework.Graphics.Containers.CompositeDrawable.CheckChildrenLife"/>.
+        /// See <see cref="Graphics.Containers.CompositeDrawable.CheckChildrenLife"/>.
         /// </summary>
         CCL,
 
         VBufBinds,
         VBufOverflow,
         TextureBinds,
+        FBORedraw,
         DrawCalls,
         ShaderBinds,
         VerticesDraw,
         VerticesUpl,
+        UniformUpl,
         Pixels,
 
         TasksRun,
@@ -70,9 +83,13 @@ namespace osu.Framework.Statistics
         Samples,
         SChannels,
         Components,
+        MixChannels,
 
         MouseEvents,
         KeyEvents,
         JoystickEvents,
+        MidiEvents,
+        TabletEvents,
+        TouchEvents,
     }
 }

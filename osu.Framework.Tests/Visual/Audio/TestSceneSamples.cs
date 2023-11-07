@@ -1,9 +1,12 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System.Linq;
 using osu.Framework.Allocation;
-using osu.Framework.Audio.Track;
+using osu.Framework.Audio;
+using osu.Framework.Audio.Sample;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Audio;
@@ -15,7 +18,7 @@ using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Audio
 {
-    public class TestSceneSamples : FrameworkTestScene
+    public partial class TestSceneSamples : FrameworkTestScene
     {
         private readonly AudioContainer samples;
         private readonly TrackingLine tracking;
@@ -89,7 +92,7 @@ namespace osu.Framework.Tests.Visual.Audio
             }
         }
 
-        private class TrackingLine : CompositeDrawable
+        private partial class TrackingLine : CompositeDrawable
         {
             public TrackingLine()
             {
@@ -98,7 +101,7 @@ namespace osu.Framework.Tests.Visual.Audio
                 Size = new Vector2(4, notes);
                 Colour = Color4.SkyBlue;
 
-                Blending = BlendingMode.Additive;
+                Blending = BlendingParameters.Additive;
 
                 InternalChildren = new Drawable[]
                 {
@@ -111,7 +114,7 @@ namespace osu.Framework.Tests.Visual.Audio
             }
         }
 
-        public class Grid : CompositeDrawable
+        public partial class Grid : CompositeDrawable
         {
             public Grid(int beats, int notes)
             {
@@ -143,7 +146,7 @@ namespace osu.Framework.Tests.Visual.Audio
             }
         }
 
-        private class DraggableSample : CompositeDrawable
+        private partial class DraggableSample : CompositeDrawable
         {
             public DraggableSample(int beat, int pitch)
             {
@@ -180,10 +183,9 @@ namespace osu.Framework.Tests.Visual.Audio
 
             protected override bool OnDragStart(DragStartEvent e) => true;
 
-            protected override bool OnDrag(DragEvent e)
+            protected override void OnDrag(DragEvent e)
             {
                 Y = (int)(e.MousePosition.Y / (Parent.DrawHeight / notes));
-                return true;
             }
 
             public void Reset()
@@ -196,8 +198,9 @@ namespace osu.Framework.Tests.Visual.Audio
                 Played = true;
                 circle.ScaleTo(1.8f).ScaleTo(1, 600, Easing.OutQuint);
 
-                sample.Frequency.Value = 1 + Y / notes;
-                sample.Play();
+                var channel = sample.GetChannel();
+                channel.Frequency.Value = 1 + Y / notes;
+                channel.Play();
             }
         }
     }

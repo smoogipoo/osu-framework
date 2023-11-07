@@ -1,16 +1,22 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using Markdig;
 using Markdig.Extensions.AutoIdentifiers;
+using Markdig.Extensions.Footnotes;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using osu.Framework.Allocation;
 using osu.Framework.Caching;
+using osu.Framework.Extensions.EnumExtensions;
+using osu.Framework.Graphics.Containers.Markdown.Footnotes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Utils;
 using osuTK;
 
 namespace osu.Framework.Graphics.Containers.Markdown
@@ -18,9 +24,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// <summary>
     /// Visualises a markdown text document.
     /// </summary>
-    [Cached(Type = typeof(IMarkdownTextComponent))]
-    [Cached(Type = typeof(IMarkdownTextFlowComponent))]
-    public class MarkdownContainer : CompositeDrawable, IMarkdownTextComponent, IMarkdownTextFlowComponent
+    public partial class MarkdownContainer : CompositeDrawable, IMarkdownTextComponent, IMarkdownTextFlowComponent
     {
         private const int root_level = 0;
 
@@ -37,7 +41,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
             get => base.AutoSizeAxes;
             set
             {
-                if (value.HasFlag(Axes.X))
+                if (value.HasFlagFast(Axes.X))
                     throw new ArgumentException($"{nameof(MarkdownContainer)} does not support an {nameof(AutoSizeAxes)} of {value}");
 
                 base.AutoSizeAxes = value;
@@ -136,7 +140,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
             }
         }
 
-        private Cached contentCache = new Cached();
+        private readonly Cached contentCache = new Cached();
 
         private readonly FillFlowContainer document;
 
@@ -164,14 +168,19 @@ namespace osu.Framework.Graphics.Containers.Markdown
         {
             if (!contentCache.IsValid)
             {
-                var markdownText = Text;
+                string markdownText = Text;
                 var pipeline = CreateBuilder();
                 var parsed = Markdig.Markdown.Parse(markdownText, pipeline);
 
                 // Turn all relative URIs in the document into absolute URIs
                 foreach (var link in parsed.Descendants().OfType<LinkInline>())
                 {
-                    if (!Uri.TryCreate(link.Url, UriKind.RelativeOrAbsolute, out Uri linkUri))
+                    string url = link.Url;
+
+                    if (string.IsNullOrEmpty(url))
+                        continue;
+
+                    if (!Validation.TryParseUri(url, out Uri linkUri))
                         continue;
 
                     if (linkUri.IsAbsoluteUri)
@@ -179,13 +188,10 @@ namespace osu.Framework.Graphics.Containers.Markdown
 
                     if (documentUri != null)
                     {
-                        if (rootUri != null && link.Url.StartsWith("/"))
-                        {
+                        link.Url = rootUri != null && url.StartsWith('/')
                             // Ensure the URI is document-relative by removing all trailing slashes
-                            link.Url = new Uri(rootUri, new Uri(link.Url.TrimStart('/'), UriKind.Relative)).AbsoluteUri;
-                        }
-                        else
-                            link.Url = new Uri(documentUri, linkUri).AbsoluteUri;
+                            ? new Uri(rootUri, new Uri(url.TrimStart('/'), UriKind.Relative)).AbsoluteUri
+                            : new Uri(documentUri, new Uri(url, UriKind.Relative)).AbsoluteUri;
                     }
                 }
 
@@ -255,12 +261,24 @@ namespace osu.Framework.Graphics.Containers.Markdown
                         AddMarkdownComponent(single, container, level);
                     break;
 
-                case HtmlBlock _:
+                case HtmlBlock:
                     // HTML is not supported
                     break;
 
-                case LinkReferenceDefinitionGroup _:
+                case LinkReferenceDefinitionGroup:
                     // Link reference doesn't need to be displayed.
+                    break;
+
+                case FootnoteGroup footnoteGroup:
+                    var footnoteGroupContainer = CreateFootnoteGroup(footnoteGroup);
+                    container.Add(footnoteGroupContainer);
+                    foreach (var single in footnoteGroup)
+                        AddMarkdownComponent(single, footnoteGroupContainer, level);
+                    break;
+
+                case Footnote footnote:
+                    var footnoteContainer = CreateFootnote(footnote);
+                    container.Add(footnoteContainer);
                     break;
 
                 default:
@@ -317,6 +335,16 @@ namespace osu.Framework.Graphics.Containers.Markdown
         /// </summary>
         /// <returns>The visualiser.</returns>
         protected virtual MarkdownSeparator CreateSeparator(ThematicBreakBlock thematicBlock) => new MarkdownSeparator();
+
+        /// <summary>
+        /// Creates the visualiser for a <see cref="FootnoteGroup"/>.
+        /// </summary>
+        protected virtual MarkdownFootnoteGroup CreateFootnoteGroup(FootnoteGroup footnoteGroup) => new MarkdownFootnoteGroup();
+
+        /// <summary>
+        /// Creates the visualiser for a <see cref="Footnote"/>.
+        /// </summary>
+        protected virtual MarkdownFootnote CreateFootnote(Footnote footnote) => new MarkdownFootnote(footnote);
 
         /// <summary>
         /// Creates the visualiser for an element that isn't implemented.

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using System.Reflection;
@@ -9,14 +11,15 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
-using osu.Framework.MathUtils;
+using osu.Framework.Localisation;
+using osu.Framework.Utils;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Layout
 {
-    public class TestSceneFillFlowContainer : FrameworkTestScene
+    public partial class TestSceneFillFlowContainer : FrameworkTestScene
     {
         private FillDirectionDropdown selectionDropdown;
 
@@ -131,7 +134,7 @@ namespace osu.Framework.Tests.Visual.Layout
             var method =
                 GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).SingleOrDefault(m => m.GetCustomAttribute<FlowTestCaseAttribute>()?.TestType == testType);
             if (method != null)
-                method.Invoke(this, new object[0]);
+                method.Invoke(this, Array.Empty<object>());
         }
 
         private void buildTest()
@@ -374,11 +377,11 @@ namespace osu.Framework.Tests.Visual.Layout
             fillContainer.Spacing = new Vector2(5, 5);
         }
 
-        private class TestSceneDropdownHeader : DropdownHeader
+        private partial class TestSceneDropdownHeader : DropdownHeader
         {
             private readonly SpriteText label;
 
-            protected internal override string Label
+            protected internal override LocalisableString Label
             {
                 get => label.Text;
                 set => label.Text = value;
@@ -396,30 +399,14 @@ namespace osu.Framework.Tests.Visual.Layout
             }
         }
 
-        private class AnchorDropdown : BasicDropdown<Anchor>
+        private partial class AnchorDropdown : BasicDropdown<Anchor>
         {
             protected override DropdownHeader CreateHeader() => new TestSceneDropdownHeader();
         }
 
-        private class AnchorDropdownMenuItem : DropdownMenuItem<Anchor>
-        {
-            public AnchorDropdownMenuItem(Anchor anchor)
-                : base(anchor.ToString(), anchor)
-            {
-            }
-        }
-
-        private class FillDirectionDropdown : BasicDropdown<FlowTestType>
+        private partial class FillDirectionDropdown : BasicDropdown<FlowTestType>
         {
             protected override DropdownHeader CreateHeader() => new TestSceneDropdownHeader();
-        }
-
-        private class FillDirectionDropdownMenuItem : DropdownMenuItem<FlowTestType>
-        {
-            public FillDirectionDropdownMenuItem(FlowTestType testType)
-                : base(testType.ToString(), testType)
-            {
-            }
         }
 
         [AttributeUsage(AttributeTargets.Method)]

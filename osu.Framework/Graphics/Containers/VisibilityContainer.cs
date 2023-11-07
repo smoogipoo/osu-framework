@@ -8,12 +8,14 @@ namespace osu.Framework.Graphics.Containers
     /// <summary>
     /// A container which adds a basic visibility state.
     /// </summary>
-    public abstract class VisibilityContainer : Container
+    public abstract partial class VisibilityContainer : Container
     {
         /// <summary>
         /// The current visibility state.
         /// </summary>
         public readonly Bindable<Visibility> State = new Bindable<Visibility>();
+
+        private bool didInitialHide;
 
         /// <summary>
         /// Whether we should be in a hidden state when first displayed.
@@ -22,22 +24,28 @@ namespace osu.Framework.Graphics.Containers
         /// </summary>
         protected virtual bool StartHidden => State.Value == Visibility.Hidden;
 
-        protected override void LoadComplete()
+        protected override void LoadAsyncComplete()
         {
+            base.LoadAsyncComplete();
+
             if (StartHidden)
             {
                 // do this without triggering the StateChanged event, since hidden is a default.
                 PopOut();
                 FinishTransforms(true);
+                didInitialHide = true;
             }
+        }
 
-            State.BindValueChanged(updateState, State.Value != Visibility.Hidden);
+        protected override void LoadComplete()
+        {
+            State.BindValueChanged(UpdateState, State.Value == Visibility.Visible || !didInitialHide);
 
             base.LoadComplete();
         }
 
         /// <summary>
-        /// Hide this container by setting its visibility to <see cref="Visibility.Visible"/>.
+        /// Show this container by setting its visibility to <see cref="Visibility.Visible"/>.
         /// </summary>
         public override void Show() => State.Value = Visibility.Visible;
 
@@ -65,9 +73,14 @@ namespace osu.Framework.Graphics.Containers
         /// </summary>
         protected abstract void PopOut();
 
-        private void updateState(ValueChangedEvent<Visibility> e)
+        /// <summary>
+        /// Called whenever <see cref="State"/> is changed.
+        /// Used to update this container's elements according to the new visibility state.
+        /// </summary>
+        /// <param name="state">The <see cref="ValueChangedEvent{T}"/> provided by <see cref="State"/></param>
+        protected virtual void UpdateState(ValueChangedEvent<Visibility> state)
         {
-            switch (e.NewValue)
+            switch (state.NewValue)
             {
                 case Visibility.Hidden:
                     PopOut();

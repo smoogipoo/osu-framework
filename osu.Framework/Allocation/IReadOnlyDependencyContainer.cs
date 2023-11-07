@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 
 namespace osu.Framework.Allocation
@@ -31,7 +33,7 @@ namespace osu.Framework.Allocation
         /// </summary>
         /// <typeparam name="T">The type of the instance to inject dependencies into.</typeparam>
         /// <param name="instance">The instance to inject dependencies into.</param>
-        void Inject<T>(T instance) where T : class;
+        void Inject<T>(T instance) where T : class, IDependencyInjectionCandidate;
     }
 
     public static class ReadOnlyDependencyContainerExtensions
@@ -75,11 +77,10 @@ namespace osu.Framework.Allocation
         /// <returns>The requested dependency, or default(<typeparamref name="T"/>) if not found.</returns>
         internal static T GetValue<T>(this IReadOnlyDependencyContainer container, CacheInfo info)
         {
-            var result = container.Get(typeof(T), info);
-            if (result == null)
-                return default;
+            if (container.Get(typeof(T), info) is T value)
+                return value;
 
-            return (T)container.Get(typeof(T), info);
+            return default;
         }
 
         /// <summary>

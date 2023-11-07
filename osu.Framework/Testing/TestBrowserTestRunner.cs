@@ -1,17 +1,20 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Logging;
 using osu.Framework.Platform;
 
 namespace osu.Framework.Testing
 {
-    public class TestBrowserTestRunner : CompositeDrawable
+    public partial class TestBrowserTestRunner : CompositeDrawable
     {
         private const double time_between_tests = 200;
 
@@ -41,13 +44,9 @@ namespace osu.Framework.Testing
         {
             base.LoadComplete();
 
-            host.MaximumDrawHz = int.MaxValue;
-            host.MaximumUpdateHz = int.MaxValue;
-            host.MaximumInactiveHz = int.MaxValue;
-
             AddInternal(browser);
 
-            Console.WriteLine($@"{(int)Time.Current}: Running {browser.TestTypes.Count} visual test cases...");
+            Logger.Log($@"Running {browser.TestTypes.Count} visual test cases...");
 
             runNext();
         }
@@ -71,11 +70,13 @@ namespace osu.Framework.Testing
             }
 
             if (browser.CurrentTest?.GetType() != loadableTestType)
+            {
                 browser.LoadTest(loadableTestType, () =>
                 {
                     testIndex++;
                     Scheduler.AddDelayed(runNext, time_between_tests);
                 });
+            }
         }
     }
 }

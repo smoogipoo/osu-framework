@@ -1,11 +1,13 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using osu.Framework.Allocation;
-using osu.Framework.Caching;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.IO.Stores;
+using osu.Framework.Layout;
 using osuTK;
 using osuTK.Graphics;
 
@@ -13,17 +15,22 @@ namespace osu.Framework.Graphics.Sprites
 {
     /// <summary>
     /// A sprite representing an icon.
-    /// Ues <see cref="FontStore"/> to perform character lookups.
+    /// Uses <see cref="FontStore"/> to perform character lookups.
     /// </summary>
-    public class SpriteIcon : CompositeDrawable
+    public partial class SpriteIcon : CompositeDrawable
     {
         private Sprite spriteShadow;
         private Sprite spriteMain;
 
-        private Cached layout = new Cached();
+        private readonly LayoutValue layout = new LayoutValue(Invalidation.Colour, conditions: (s, _) => ((SpriteIcon)s).Shadow);
         private Container shadowVisibility;
 
         private FontStore store;
+
+        public SpriteIcon()
+        {
+            AddLayout(layout);
+        }
 
         [BackgroundDependencyLoader]
         private void load(FontStore store)
@@ -43,8 +50,8 @@ namespace osu.Framework.Graphics.Sprites
                         Origin = Anchor.Centre,
                         RelativeSizeAxes = Axes.Both,
                         FillMode = FillMode.Fit,
-                        Y = 2,
-                        Colour = new Color4(0f, 0f, 0f, 0.2f),
+                        Position = shadowOffset,
+                        Colour = shadowColour
                     },
                     Alpha = shadow ? 1 : 0,
                 },
@@ -64,6 +71,7 @@ namespace osu.Framework.Graphics.Sprites
         {
             base.LoadComplete();
             updateTexture();
+            updateShadow();
         }
 
         private IconUsage loadedIcon;
@@ -72,24 +80,20 @@ namespace osu.Framework.Graphics.Sprites
         {
             var loadableIcon = icon;
 
-            if (Equals(loadableIcon, loadedIcon)) return;
+            if (loadableIcon.Equals(loadedIcon)) return;
 
-            var texture = store.GetCharacter(loadableIcon.FontName, Icon.Icon);
+            var glyph = store.Get(loadableIcon.FontName, Icon.Icon);
 
-            spriteMain.Texture = texture;
-            spriteShadow.Texture = texture;
+            if (glyph != null)
+            {
+                spriteMain.Texture = glyph.Texture;
+                spriteShadow.Texture = glyph.Texture;
 
-            if (Size == Vector2.Zero)
-                Size = new Vector2(texture?.DisplayWidth ?? 0, texture?.DisplayHeight ?? 0);
+                if (Size == Vector2.Zero)
+                    Size = new Vector2(glyph.Width, glyph.Height);
+            }
 
             loadedIcon = loadableIcon;
-        }
-
-        public override bool Invalidate(Invalidation invalidation = Invalidation.All, Drawable source = null, bool shallPropagate = true)
-        {
-            if ((invalidation & Invalidation.Colour) > 0 && Shadow)
-                layout.Invalidate();
-            return base.Invalidate(invalidation, source, shallPropagate);
         }
 
         protected override void Update()
@@ -100,7 +104,7 @@ namespace osu.Framework.Graphics.Sprites
                 //squared result for quadratic fall-off seems to give the best result.
                 var avgColour = (Color4)DrawColourInfo.Colour.AverageColour;
 
-                spriteShadow.Alpha = (float)Math.Pow(Math.Max(Math.Max(avgColour.R, avgColour.G), avgColour.B), 2);
+                spriteShadow.Alpha = MathF.Pow(Math.Max(Math.Max(avgColour.R, avgColour.G), avgColour.B), 2);
 
                 layout.Validate();
             }
@@ -114,9 +118,51 @@ namespace osu.Framework.Graphics.Sprites
             set
             {
                 shadow = value;
-                if (shadowVisibility != null)
-                    shadowVisibility.Alpha = value ? 1 : 0;
+
+                if (IsLoaded)
+                    updateShadow();
             }
+        }
+
+        private Color4 shadowColour = new Color4(0f, 0f, 0f, 0.2f);
+
+        /// <summary>
+        /// The colour of the shadow displayed around the icon. A shadow will only be displayed if the <see cref="Shadow"/> property is set to true.
+        /// </summary>
+        public Color4 ShadowColour
+        {
+            get => shadowColour;
+            set
+            {
+                shadowColour = value;
+
+                if (IsLoaded)
+                    updateShadow();
+            }
+        }
+
+        private Vector2 shadowOffset = new Vector2(0, 2f);
+
+        /// <summary>
+        /// The offset of the shadow displayed around the icon. A shadow will only be displayed if the <see cref="Shadow"/> property is set to true.
+        /// </summary>
+        public Vector2 ShadowOffset
+        {
+            get => shadowOffset;
+            set
+            {
+                shadowOffset = value;
+
+                if (IsLoaded)
+                    updateShadow();
+            }
+        }
+
+        private void updateShadow()
+        {
+            shadowVisibility.Alpha = shadow ? 1 : 0;
+            spriteShadow.Colour = shadowColour;
+            spriteShadow.Position = shadowOffset;
         }
 
         private IconUsage icon;
@@ -126,10 +172,10 @@ namespace osu.Framework.Graphics.Sprites
             get => icon;
             set
             {
-                if (Equals(icon, value)) return;
+                if (icon.Equals(value)) return;
 
                 icon = value;
-                if (LoadState == LoadState.Loaded)
+                if (IsLoaded)
                     updateTexture();
             }
         }

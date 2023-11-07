@@ -1,8 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Collections.Generic;
+#nullable disable
+
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing.Drawables.Steps;
@@ -10,20 +10,8 @@ using osuTK;
 
 namespace osu.Framework.Tests.Visual.Testing
 {
-    public class TestSceneStepButton : FrameworkTestScene
+    public partial class TestSceneStepButton : FrameworkTestScene
     {
-        public override IReadOnlyList<Type> RequiredTypes => new[]
-        {
-            typeof(StepButton),
-            typeof(LabelStep),
-            typeof(AssertButton),
-            typeof(SingleStepButton),
-            typeof(ToggleStepButton),
-            typeof(UntilStepButton),
-            typeof(RepeatStepButton),
-            typeof(StepSlider<>)
-        };
-
         public TestSceneStepButton()
         {
             Child = new FillFlowContainer

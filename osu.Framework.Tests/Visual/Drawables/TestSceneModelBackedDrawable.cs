@@ -14,9 +14,9 @@ using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Drawables
 {
-    public class TestSceneModelBackedDrawable : FrameworkTestScene
+    public partial class TestSceneModelBackedDrawable : FrameworkTestScene
     {
-        private TestModelBackedDrawable backedDrawable;
+        private TestModelBackedDrawable backedDrawable = null!;
 
         private void createModelBackedDrawable(bool hasIntermediate, bool showNullModel = false) =>
             Child = backedDrawable = new TestModelBackedDrawable
@@ -32,13 +32,14 @@ namespace osu.Framework.Tests.Visual.Drawables
         public void TestEmptyDefaultState()
         {
             AddStep("setup", () => createModelBackedDrawable(false));
-            AddAssert("nothing shown", () => backedDrawable.DisplayedDrawable == null);
+            AddUntilStep("wait for load", () => backedDrawable.DelayedLoadFinished);
+            AddAssert("nothing shown", () => backedDrawable.DisplayedDrawable, () => Is.Null.Or.InstanceOf(Empty().GetType()));
         }
 
         [Test]
         public void TestModelDefaultState()
         {
-            TestDrawableModel drawableModel = null;
+            TestDrawableModel drawableModel = null!;
 
             AddStep("setup", () =>
             {
@@ -53,8 +54,8 @@ namespace osu.Framework.Tests.Visual.Drawables
         [TestCase(true)]
         public void TestChangeModel(bool hasIntermediate)
         {
-            TestDrawableModel firstModel = null;
-            TestDrawableModel secondModel = null;
+            TestDrawableModel firstModel = null!;
+            TestDrawableModel secondModel = null!;
 
             AddStep("setup", () =>
             {
@@ -75,9 +76,9 @@ namespace osu.Framework.Tests.Visual.Drawables
         [TestCase(true)]
         public void TestChangeModelDuringLoad(bool hasIntermediate)
         {
-            TestDrawableModel firstModel = null;
-            TestDrawableModel secondModel = null;
-            TestDrawableModel thirdModel = null;
+            TestDrawableModel firstModel = null!;
+            TestDrawableModel secondModel = null!;
+            TestDrawableModel thirdModel = null!;
 
             AddStep("setup", () =>
             {
@@ -104,8 +105,8 @@ namespace osu.Framework.Tests.Visual.Drawables
         [TestCase(true)]
         public void TestOutOfOrderLoad(bool hasIntermediate)
         {
-            TestDrawableModel firstModel = null;
-            TestDrawableModel secondModel = null;
+            TestDrawableModel firstModel = null!;
+            TestDrawableModel secondModel = null!;
 
             AddStep("setup", () =>
             {
@@ -128,7 +129,7 @@ namespace osu.Framework.Tests.Visual.Drawables
         [Test]
         public void TestSetNullModel()
         {
-            TestDrawableModel drawableModel = null;
+            TestDrawableModel drawableModel = null!;
 
             AddStep("setup", () =>
             {
@@ -140,6 +141,31 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             AddStep("set null model", () => backedDrawable.Model = null);
             AddUntilStep("null model shown", () => backedDrawable.DisplayedDrawable is TestNullDrawableModel);
+        }
+
+        [Test]
+        public void TestInsideBufferedContainer()
+        {
+            TestDrawableModel drawableModel = null!;
+
+            AddStep("setup", () =>
+            {
+                Child = new BufferedContainer
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Size = new Vector2(200),
+                    Child = backedDrawable = new TestModelBackedDrawable
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        HasIntermediate = false,
+                        ShowNullModel = false,
+                        Model = new TestModel(drawableModel = new TestDrawableModel(1).With(d => d.AllowLoad.Set()))
+                    }
+                };
+            });
+
+            assertDrawableVisibility(1, () => drawableModel);
         }
 
         private void assertIntermediateVisibility(bool hasIntermediate, Func<Drawable> getLastFunc)
@@ -165,7 +191,7 @@ namespace osu.Framework.Tests.Visual.Drawables
             }
         }
 
-        private class TestDrawableModel : CompositeDrawable
+        private partial class TestDrawableModel : CompositeDrawable
         {
             private readonly int id;
 
@@ -226,7 +252,7 @@ namespace osu.Framework.Tests.Visual.Drawables
             }
         }
 
-        private class TestNullDrawableModel : TestDrawableModel
+        private partial class TestNullDrawableModel : TestDrawableModel
         {
             protected override Color4 BackgroundColour => Color4.SlateGray;
 
@@ -237,13 +263,13 @@ namespace osu.Framework.Tests.Visual.Drawables
             }
         }
 
-        private class TestModelBackedDrawable : ModelBackedDrawable<TestModel>
+        private partial class TestModelBackedDrawable : ModelBackedDrawable<TestModel>
         {
             public bool ShowNullModel;
-
             public bool HasIntermediate;
+            public bool DelayedLoadFinished;
 
-            protected override Drawable CreateDrawable(TestModel model)
+            protected override Drawable? CreateDrawable(TestModel? model)
             {
                 if (model == null && ShowNullModel)
                     return new TestNullDrawableModel();
@@ -251,14 +277,26 @@ namespace osu.Framework.Tests.Visual.Drawables
                 return model?.DrawableModel;
             }
 
-            public new Drawable DisplayedDrawable => base.DisplayedDrawable;
+            public new Drawable? DisplayedDrawable => base.DisplayedDrawable;
 
-            public new TestModel Model
+            public new TestModel? Model
             {
                 set => base.Model = value;
             }
 
             protected override bool TransformImmediately => HasIntermediate;
+
+            protected override void OnLoadStarted()
+            {
+                base.OnLoadStarted();
+                DelayedLoadFinished = false;
+            }
+
+            protected override void OnLoadFinished()
+            {
+                base.OnLoadFinished();
+                DelayedLoadFinished = true;
+            }
         }
     }
 }

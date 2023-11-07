@@ -1,11 +1,18 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
+using osu.Framework.Allocation;
+using osu.Framework.Bindables;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Visualisation;
+using osu.Framework.Platform;
 using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Performance
@@ -13,9 +20,13 @@ namespace osu.Framework.Graphics.Performance
     /// <summary>
     /// Tracks global game statistics.
     /// </summary>
-    internal class GlobalStatisticsDisplay : ToolWindow
+    internal partial class GlobalStatisticsDisplay : ToolWindow
     {
         private readonly FillFlowContainer<StatisticsGroup> groups;
+
+        private DotNetRuntimeListener listener;
+
+        private Bindable<bool> performanceLogging;
 
         public GlobalStatisticsDisplay()
             : base("Global Statistics", "(Ctrl+F2 to toggle)")
@@ -32,13 +43,46 @@ namespace osu.Framework.Graphics.Performance
             };
         }
 
+        [BackgroundDependencyLoader]
+        private void load(GameHost host)
+        {
+            performanceLogging = host.PerformanceLogging.GetBoundCopy();
+        }
+
         protected override void LoadComplete()
         {
             base.LoadComplete();
 
-            GlobalStatistics.Statistics.ItemsAdded += add;
-            GlobalStatistics.Statistics.ItemsRemoved += remove;
-            add(GlobalStatistics.Statistics);
+            GlobalStatistics.StatisticsChanged += (_, e) =>
+            {
+                switch (e.Action)
+                {
+                    case NotifyCollectionChangedAction.Add:
+                        add(e.NewItems.AsNonNull().Cast<IGlobalStatistic>());
+                        break;
+
+                    case NotifyCollectionChangedAction.Remove:
+                        remove(e.OldItems.AsNonNull().Cast<IGlobalStatistic>());
+                        break;
+                }
+            };
+
+            add(GlobalStatistics.GetStatistics());
+
+            State.BindValueChanged(visibilityChanged, true);
+        }
+
+        private void visibilityChanged(ValueChangedEvent<Visibility> state)
+        {
+            performanceLogging.Value = state.NewValue == Visibility.Visible;
+
+            if (state.NewValue == Visibility.Visible)
+            {
+                GlobalStatistics.OutputToLog();
+                listener = new DotNetRuntimeListener();
+            }
+            else
+                listener?.Dispose();
         }
 
         private void remove(IEnumerable<IGlobalStatistic> stats) => Schedule(() =>
@@ -59,7 +103,7 @@ namespace osu.Framework.Graphics.Performance
             }
         });
 
-        private class StatisticsGroup : CompositeDrawable, IAlphabeticalSort
+        private partial class StatisticsGroup : CompositeDrawable, IAlphabeticalSort
         {
             public string GroupName { get; }
 
@@ -111,7 +155,7 @@ namespace osu.Framework.Graphics.Performance
                 items.FirstOrDefault(s => s.Statistic == stat)?.Expire();
             }
 
-            private class StatisticsItem : CompositeDrawable, IAlphabeticalSort
+            private partial class StatisticsItem : CompositeDrawable, IAlphabeticalSort
             {
                 public readonly IGlobalStatistic Statistic;
 
@@ -150,7 +194,7 @@ namespace osu.Framework.Graphics.Performance
                 protected override void Update()
                 {
                     base.Update();
-                    valueText.Text = Statistic.DisplayValue.Value;
+                    valueText.Text = Statistic.DisplayValue;
                 }
             }
 
@@ -162,9 +206,15 @@ namespace osu.Framework.Graphics.Performance
             string SortString { get; }
         }
 
-        private class AlphabeticalFlow<T> : FillFlowContainer<T> where T : Drawable, IAlphabeticalSort
+        private partial class AlphabeticalFlow<T> : FillFlowContainer<T> where T : Drawable, IAlphabeticalSort
         {
             public override IEnumerable<Drawable> FlowingChildren => base.FlowingChildren.Cast<T>().OrderBy(d => d.SortString);
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            listener?.Dispose();
         }
     }
 }

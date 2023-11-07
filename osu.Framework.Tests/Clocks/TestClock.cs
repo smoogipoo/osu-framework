@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using osu.Framework.Timing;
 
 namespace osu.Framework.Tests.Clocks
@@ -10,12 +11,16 @@ namespace osu.Framework.Tests.Clocks
         public double CurrentTime { get; set; }
         public double Rate { get; set; } = 1;
 
-        private bool isRunning;
-        public bool IsRunning => isRunning;
+        public bool IsRunning { get; private set; }
 
-        public void Reset() => throw new System.NotImplementedException();
-        public void Start() => isRunning = true;
-        public void Stop() => isRunning = false;
+        public void Reset()
+        {
+            CurrentTime = 0;
+            IsRunning = false;
+        }
+
+        public void Start() => IsRunning = true;
+        public void Stop() => IsRunning = false;
 
         public virtual bool Seek(double position)
         {
@@ -23,6 +28,6 @@ namespace osu.Framework.Tests.Clocks
             return true;
         }
 
-        public void ResetSpeedAdjustments() => throw new System.NotImplementedException();
+        public void ResetSpeedAdjustments() => throw new NotImplementedException();
     }
 }

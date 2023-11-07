@@ -2,23 +2,18 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Globalization;
 
 namespace osu.Framework.Bindables
 {
     public class BindableFloat : BindableNumber<float>
     {
-        public override bool IsDefault => Math.Abs(Value - Default) < Precision;
-
-        protected override float DefaultMinValue => float.MinValue;
-        protected override float DefaultMaxValue => float.MaxValue;
-        protected override float DefaultPrecision => float.Epsilon;
-
-        public BindableFloat(float value = 0)
-            : base(value)
+        public BindableFloat(float defaultValue = 0)
+            : base(defaultValue)
         {
         }
 
-        public override string ToString() => Value.ToString("0.0###", NumberFormatInfo.InvariantInfo);
+        public override string ToString(string? format, IFormatProvider formatProvider) => base.ToString(format ?? "0.0###", formatProvider);
+
+        protected override Bindable<float> CreateInstance() => new BindableFloat();
     }
 }

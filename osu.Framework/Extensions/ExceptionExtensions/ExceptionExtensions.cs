@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
@@ -20,7 +22,7 @@ namespace osu.Framework.Extensions.ExceptionExtensions
         }
 
         /// <summary>
-        /// Rethrows the <see cref="AggregateException.InnerException"/> of an <see cref="AggregateException"/> if it exists,
+        /// Rethrows the <see cref="Exception.InnerException"/> of an <see cref="AggregateException"/> if it exists,
         /// otherwise, rethrows <paramref name="aggregateException"/>.
         /// This preserves the stack trace of the exception that is rethrown, and will not include the point of rethrow.
         /// </summary>

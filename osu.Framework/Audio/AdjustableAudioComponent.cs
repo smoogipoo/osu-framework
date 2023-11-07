@@ -8,61 +8,105 @@ namespace osu.Framework.Audio
     /// <summary>
     /// An audio component which allows for basic bindable adjustments to be applied.
     /// </summary>
-    public class AdjustableAudioComponent : AudioComponent, IAggregateAudioAdjustment, IAdjustableAudioComponent
+    public class AdjustableAudioComponent : AudioComponent, IAdjustableAudioComponent
     {
-        private readonly AudioAdjustments adjustments = new AudioAdjustments();
+        private static readonly object adjustments_acquisition_lock = new object();
+
+        private volatile AudioAdjustments? adjustments;
+
+        protected internal AudioAdjustments Adjustments
+        {
+            get
+            {
+                if (adjustments != null)
+                    return adjustments;
+
+                lock (adjustments_acquisition_lock)
+                {
+                    if (adjustments != null)
+                        return adjustments;
+
+                    var adj = new AudioAdjustments();
+
+                    adj.AggregateVolume.ValueChanged += InvalidateState;
+                    adj.AggregateBalance.ValueChanged += InvalidateState;
+                    adj.AggregateFrequency.ValueChanged += InvalidateState;
+                    adj.AggregateTempo.ValueChanged += InvalidateState;
+
+                    adjustments = adj;
+                }
+
+                return adjustments;
+            }
+        }
 
         /// <summary>
         /// The volume of this component.
         /// </summary>
-        public BindableDouble Volume => adjustments.Volume;
+        public BindableNumber<double> Volume => Adjustments.Volume;
 
         /// <summary>
         /// The playback balance of this sample (-1 .. 1 where 0 is centered)
         /// </summary>
-        public BindableDouble Balance => adjustments.Balance;
+        public BindableNumber<double> Balance => Adjustments.Balance;
 
         /// <summary>
         /// Rate at which the component is played back (affects pitch). 1 is 100% playback speed, or default frequency.
         /// </summary>
-        public BindableDouble Frequency => adjustments.Frequency;
+        public BindableNumber<double> Frequency => Adjustments.Frequency;
 
-        protected AdjustableAudioComponent()
+        /// <summary>
+        /// Rate at which the component is played back (does not affect pitch). 1 is 100% playback speed.
+        /// </summary>
+        public BindableNumber<double> Tempo => Adjustments.Tempo;
+
+        public void AddAdjustment(AdjustableProperty type, IBindable<double> adjustBindable) =>
+            Adjustments.AddAdjustment(type, adjustBindable);
+
+        public void RemoveAdjustment(AdjustableProperty type, IBindable<double> adjustBindable) =>
+            Adjustments.RemoveAdjustment(type, adjustBindable);
+
+        public void RemoveAllAdjustments(AdjustableProperty type) => Adjustments.RemoveAllAdjustments(type);
+
+        private bool invalidationPending;
+
+        internal void InvalidateState(ValueChangedEvent<double>? valueChangedEvent = null)
         {
-            AggregateVolume.ValueChanged += InvalidateState;
-            AggregateBalance.ValueChanged += InvalidateState;
-            AggregateFrequency.ValueChanged += InvalidateState;
+            if (CanPerformInline)
+                OnStateChanged();
+            else
+                invalidationPending = true;
         }
-
-        public void AddAdjustment(AdjustableProperty type, BindableDouble adjustBindable) =>
-            adjustments.AddAdjustment(type, adjustBindable);
-
-        public void RemoveAdjustment(AdjustableProperty type, BindableDouble adjustBindable) =>
-            adjustments.RemoveAdjustment(type, adjustBindable);
-
-        internal void InvalidateState(ValueChangedEvent<double> valueChangedEvent = null) => EnqueueAction(OnStateChanged);
 
         internal virtual void OnStateChanged()
         {
         }
 
-        /// <summary>
-        /// Bind all adjustments to another component's aggregated results.
-        /// </summary>
-        /// <param name="component">The other component (generally a direct parent).</param>
-        internal void BindAdjustments(IAggregateAudioAdjustment component) => adjustments.BindAdjustments(component);
+        protected override void UpdateState()
+        {
+            base.UpdateState();
 
-        /// <summary>
-        /// Unbind all adjustments from another component's aggregated results.
-        /// </summary>
-        /// <param name="component">The other component (generally a direct parent).</param>
-        internal void UnbindAdjustments(IAggregateAudioAdjustment component) => adjustments.UnbindAdjustments(component);
+            if (invalidationPending)
+            {
+                invalidationPending = false;
+                OnStateChanged();
+            }
+        }
 
-        public IBindable<double> AggregateVolume => adjustments.AggregateVolume;
+        public void BindAdjustments(IAggregateAudioAdjustment component)
+        {
+            Adjustments.BindAdjustments(component);
+        }
 
-        public IBindable<double> AggregateBalance => adjustments.AggregateBalance;
+        public void UnbindAdjustments(IAggregateAudioAdjustment component) => adjustments?.UnbindAdjustments(component);
 
-        public IBindable<double> AggregateFrequency => adjustments.AggregateFrequency;
+        public IBindable<double> AggregateVolume => Adjustments.AggregateVolume;
+
+        public IBindable<double> AggregateBalance => Adjustments.AggregateBalance;
+
+        public IBindable<double> AggregateFrequency => Adjustments.AggregateFrequency;
+
+        public IBindable<double> AggregateTempo => Adjustments.AggregateTempo;
 
         protected override void Dispose(bool disposing)
         {
@@ -71,6 +115,7 @@ namespace osu.Framework.Audio
             AggregateVolume.UnbindAll();
             AggregateBalance.UnbindAll();
             AggregateFrequency.UnbindAll();
+            AggregateTempo.UnbindAll();
         }
     }
 
@@ -78,6 +123,7 @@ namespace osu.Framework.Audio
     {
         Volume,
         Balance,
-        Frequency
+        Frequency,
+        Tempo
     }
 }

@@ -1,15 +1,16 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using osu.Framework.Platform;
 using System.Linq;
 using System.Threading;
 using osu.Framework.Development;
+using osu.Framework.Platform;
 using osu.Framework.Statistics;
 using osu.Framework.Threading;
 
@@ -60,7 +61,13 @@ namespace osu.Framework.Logging
         public static Storage Storage
         {
             private get => storage;
-            set => storage = value ?? throw new ArgumentNullException(nameof(value));
+            set
+            {
+                storage = value ?? throw new ArgumentNullException(nameof(value));
+
+                // clear static loggers so they are correctly purged at the new storage location.
+                static_loggers.Clear();
+            }
         }
 
         /// <summary>
@@ -78,9 +85,11 @@ namespace osu.Framework.Logging
         /// </summary>
         public string Filename => $@"{Name}.log";
 
+        public int TotalLogOperations => logCount.Value;
+
         private readonly GlobalStatistic<int> logCount;
 
-        private static readonly HashSet<string> reserved_names = new HashSet<string>(Enum.GetNames(typeof(LoggingTarget)).Select(n => n.ToLower()));
+        private static readonly HashSet<string> reserved_names = new HashSet<string>(Enum.GetNames<LoggingTarget>().Select(n => n.ToLowerInvariant()));
 
         private Logger(LoggingTarget target = LoggingTarget.Runtime)
             : this(target.ToString(), false)
@@ -90,7 +99,7 @@ namespace osu.Framework.Logging
 
         private Logger(string name, bool checkedReserved)
         {
-            name = name.ToLower();
+            name = name.ToLowerInvariant();
 
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("The name of a logger must be non-null and may not contain only white space.", nameof(name));
@@ -245,7 +254,7 @@ namespace osu.Framework.Logging
         {
             lock (static_sync_lock)
             {
-                var nameLower = name.ToLower();
+                string nameLower = name.ToLowerInvariant();
 
                 if (!static_loggers.TryGetValue(nameLower, out Logger l))
                 {
@@ -261,9 +270,11 @@ namespace osu.Framework.Logging
         /// Logs a new message with the <see cref="LogLevel.Debug"/> and will only be logged if your project is built in the Debug configuration. Please note that the default setting for <see cref="Level"/> is <see cref="LogLevel.Verbose"/> so unless you increase the <see cref="Level"/> to <see cref="LogLevel.Debug"/> messages printed with this method will not appear in the output.
         /// </summary>
         /// <param name="message">The message that should be logged.</param>
-        [Conditional("DEBUG")]
         public void Debug(string message = @"")
         {
+            if (!DebugUtils.IsDebugBuild)
+                return;
+
             Add(message, LogLevel.Debug);
         }
 
@@ -278,6 +289,8 @@ namespace osu.Framework.Logging
             add(message, level, exception, outputToListeners && OutputToListeners);
 
         private readonly RollingTime debugOutputRollingTime = new RollingTime(50, 10000);
+
+        private readonly Queue<string> pendingFileOutput = new Queue<string>();
 
         private void add(string message = @"", LogLevel level = LogLevel.Verbose, Exception exception = null, bool outputToListeners = true)
         {
@@ -299,7 +312,7 @@ namespace osu.Framework.Logging
             IEnumerable<string> lines = logOutput
                                         .Replace(@"\r\n", @"\n")
                                         .Split('\n')
-                                        .Select(s => $@"{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss", CultureInfo.InvariantCulture)}: {s.Trim()}");
+                                        .Select(s => $@"{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} [{level.ToString().ToLowerInvariant()}]: {s.Trim()}");
 
             if (outputToListeners)
             {
@@ -314,7 +327,7 @@ namespace osu.Framework.Logging
 
                 if (DebugUtils.IsDebugBuild)
                 {
-                    void consoleLog(string msg)
+                    static void consoleLog(string msg)
                     {
                         // fire to all debug listeners (like visual studio's output window)
                         System.Diagnostics.Debug.Print(msg);
@@ -324,11 +337,11 @@ namespace osu.Framework.Logging
 
                     bool bypassRateLimit = level >= LogLevel.Verbose;
 
-                    foreach (var line in lines)
+                    foreach (string line in lines)
                     {
                         if (bypassRateLimit || debugOutputRollingTime.RequestEntry())
                         {
-                            consoleLog($"[{Name}:{level.ToString().ToLower()}] {line}");
+                            consoleLog($"[{Name.ToLowerInvariant()}] {line}");
 
                             if (!bypassRateLimit && debugOutputRollingTime.IsAtLimit)
                                 consoleLog($"Console output is being limited. Please check {Filename} for full logs.");
@@ -349,21 +362,39 @@ namespace osu.Framework.Logging
                 if (!Enabled)
                     return;
 
-                scheduler.Add(delegate
+                lock (pendingFileOutput)
                 {
-                    try
-                    {
-                        using (var stream = Storage.GetStream(Filename, FileAccess.Write, FileMode.Append))
-                        using (var writer = new StreamWriter(stream))
-                            foreach (var line in lines)
-                                writer.WriteLine(line);
-                    }
-                    catch
-                    {
-                    }
-                });
+                    foreach (string l in lines)
+                        pendingFileOutput.Enqueue(l);
+                }
+
+                scheduler.AddOnce(writePendingLines);
 
                 writer_idle.Reset();
+            }
+        }
+
+        private void writePendingLines()
+        {
+            string[] lines;
+
+            lock (pendingFileOutput)
+            {
+                lines = pendingFileOutput.ToArray();
+                pendingFileOutput.Clear();
+            }
+
+            try
+            {
+                using (var stream = Storage.GetStream(Filename, FileAccess.Write, FileMode.Append))
+                using (var writer = new StreamWriter(stream))
+                {
+                    foreach (string line in lines)
+                        writer.WriteLine(line);
+                }
+            }
+            catch
+            {
             }
         }
 
@@ -385,7 +416,17 @@ namespace osu.Framework.Logging
         {
             lock (flush_sync_lock)
             {
-                scheduler.Add(() => Storage.Delete(Filename));
+                scheduler.Add(() =>
+                {
+                    try
+                    {
+                        Storage.Delete(Filename);
+                    }
+                    catch
+                    {
+                        // may fail if the file/directory was already cleaned up, ie. during test runs.
+                    }
+                });
                 writer_idle.Reset();
             }
         }
@@ -400,8 +441,8 @@ namespace osu.Framework.Logging
 
             add("----------------------------------------------------------", outputToListeners: false);
             add($"{Name} Log for {UserIdentifier} (LogLevel: {Level})", outputToListeners: false);
-            add($"{GameIdentifier} {VersionIdentifier}", outputToListeners: false);
-            add($"Running on {Environment.OSVersion}, {Environment.ProcessorCount} cores", outputToListeners: false);
+            add($"Running {GameIdentifier} {VersionIdentifier} on .NET {Environment.Version}", outputToListeners: false);
+            add($"Environment: {RuntimeInfo.OS} ({Environment.OSVersion}), {Environment.ProcessorCount} cores ", outputToListeners: false);
             add("----------------------------------------------------------", outputToListeners: false);
         }
 
@@ -527,6 +568,11 @@ namespace osu.Framework.Logging
         /// <summary>
         /// Logging target for database-related events.
         /// </summary>
-        Database
+        Database,
+
+        /// <summary>
+        /// Logging target for input-related information.
+        /// </summary>
+        Input
     }
 }

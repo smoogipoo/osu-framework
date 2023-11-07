@@ -1,9 +1,12 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -19,7 +22,7 @@ using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Platform
 {
-    public class TestSceneResourceStores : FrameworkTestScene
+    public partial class TestSceneResourceStores : FrameworkTestScene
     {
         private FillFlowContainer<ResourceDisplay> flow;
 
@@ -51,40 +54,50 @@ namespace osu.Framework.Tests.Visual.Platform
         }
 
         [Test]
-        public void TestFontStore() => showResources(fontStore.GetAvailableResources(), fontStore.Get);
+        public void TestFontStore() => showResources(() => fontStore.GetAvailableResources(), l => fontStore.Get(l));
 
         [Test]
-        public void TestStorageBackedResourceStore() => showResources(new StorageBackedResourceStore(storage));
+        public void TestStorageBackedResourceStore() => showResources(() => new StorageBackedResourceStore(storage));
 
         [Test]
-        public void TestGetTextureStore() => showResources(textureStore.GetAvailableResources(), textureStore.Get);
+        public void TestGetTextureStore() => showResources(() => textureStore.GetAvailableResources(), l => textureStore.Get(l));
 
         [Test]
-        public void TestGetTrackManager() => showResources(audioManager.Tracks);
+        public void TestGetTrackManager() => showResources(() => audioManager.Tracks);
 
-        private void showResources<T>(IResourceStore<T> store) => showResources(store.GetAvailableResources(), store.Get);
+        private void showResources<T>(Func<IResourceStore<T>> store)
+            where T : class
+            => showResources(() => store().GetAvailableResources(), l =>
+            {
+                try
+                {
+                    return store().Get(l);
+                }
+                catch
+                {
+                    // This is iterating over all files in the game storage, which may include files that are actively being written to (ie. log files).
+                    // On windows, this can lead to file access errors, but we don't really care about that.
+                    return null;
+                }
+            });
 
-        private void showResources<T>(IEnumerable<string> resources, Func<string, T> fetch)
+        private void showResources<T>(Func<IEnumerable<string>> getResourceNames, Func<string, T> getResource)
         {
             AddStep("list resources", () =>
             {
                 flow.Clear();
 
-                foreach (var resourceName in resources)
-                    flow.Add(new ResourceDisplay(resourceName, fetch(resourceName)));
+                foreach (string resourceName in getResourceNames())
+                    flow.Add(new ResourceDisplay(resourceName, getResource(resourceName)));
             });
 
-            AddAssert("ensure all loaded", () => flow.Children.All(rd => rd.Resource != null));
+            AddAssert("ensure some loaded", () => flow.Children.Any());
         }
 
-        private class ResourceDisplay : Container
+        private partial class ResourceDisplay : Container
         {
-            public readonly object Resource;
-
-            public ResourceDisplay(string name, object resource)
+            public ResourceDisplay(string name, [CanBeNull] object resource)
             {
-                Resource = resource;
-
                 AutoSizeAxes = Axes.Y;
                 RelativeSizeAxes = Axes.X;
 
@@ -126,7 +139,7 @@ namespace osu.Framework.Tests.Visual.Platform
                         };
 
                     default:
-                        return new SpriteText { Text = resource.ToString() };
+                        return new SpriteText { Text = resource?.ToString() ?? "null" };
                 }
             }
         }

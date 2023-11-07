@@ -1,20 +1,22 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using osu.Framework.Graphics.Sprites;
 using osuTK.Graphics;
 
 namespace osu.Framework.Graphics.UserInterface
 {
-    public class BasicTabControl<T> : TabControl<T>
+    public partial class BasicTabControl<T> : TabControl<T>
     {
         protected override Dropdown<T> CreateDropdown()
-            => new BasicDropdown<T>();
+            => new BasicTabControlDropdown();
 
         protected override TabItem<T> CreateTabItem(T value)
             => new BasicTabItem(value);
 
-        public class BasicTabItem : TabItem<T>
+        public partial class BasicTabItem : TabItem<T>
         {
             private readonly SpriteText text;
 
@@ -27,7 +29,7 @@ namespace osu.Framework.Graphics.UserInterface
                 {
                     Margin = new MarginPadding(2),
                     Text = value.ToString(),
-                    Font = new FontUsage(size: 18),
+                    Font = FrameworkFont.Regular.With(size: 18),
                 });
             }
 
@@ -36,6 +38,38 @@ namespace osu.Framework.Graphics.UserInterface
 
             protected override void OnDeactivated()
                 => text.Colour = Color4.White;
+        }
+
+        public partial class BasicTabControlDropdown : BasicDropdown<T>
+        {
+            public BasicTabControlDropdown()
+            {
+                Menu.Anchor = Anchor.TopRight;
+                Menu.Origin = Anchor.TopRight;
+
+                Header.Anchor = Anchor.TopRight;
+                Header.Origin = Anchor.TopRight;
+            }
+
+            protected override DropdownHeader CreateHeader() => new BasicTabControlDropdownHeader();
+
+            public partial class BasicTabControlDropdownHeader : BasicDropdownHeader
+            {
+                public BasicTabControlDropdownHeader()
+                {
+                    RelativeSizeAxes = Axes.None;
+                    AutoSizeAxes = Axes.X;
+
+                    Foreground.RelativeSizeAxes = Axes.None;
+                    Foreground.AutoSizeAxes = Axes.Both;
+
+                    Foreground.Child = new SpriteText
+                    {
+                        Text = "…",
+                        Font = FrameworkFont.Regular
+                    };
+                }
+            }
         }
     }
 }

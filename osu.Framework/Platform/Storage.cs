@@ -1,38 +1,37 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
-using osu.Framework.IO.File;
+using osu.Framework.Extensions.ObjectExtensions;
 
 namespace osu.Framework.Platform
 {
     public abstract class Storage
     {
-        protected string BaseName { get; set; }
+        protected string BasePath { get; }
 
-        protected string BasePath { get; set; }
-
-        /// <summary>
-        /// An optional path to be added after <see cref="BaseName"/>.
-        /// </summary>
-        protected string SubDirectory { get; set; } = string.Empty;
-
-        protected Storage(string baseName)
+        protected Storage(string path, string subfolder = null)
         {
-            BaseName = FileSafety.FilenameStrip(baseName);
-            BasePath = LocateBasePath();
-            if (BasePath == null)
-                throw new NullReferenceException(nameof(BasePath));
-        }
+            static string filenameStrip(string entry)
+            {
+                foreach (char c in Path.GetInvalidFileNameChars())
+                    entry = entry.Replace(c.ToString(), string.Empty);
+                return entry;
+            }
 
-        /// <summary>
-        /// Find the location which will be used as a root for this storage.
-        /// This should usually be a platform-specific implementation.
-        /// </summary>
-        /// <returns></returns>
-        protected abstract string LocateBasePath();
+            BasePath = path;
+
+            if (BasePath == null)
+                throw new InvalidOperationException($"{nameof(BasePath)} not correctly initialized!");
+
+            if (!string.IsNullOrEmpty(subfolder))
+                BasePath = Path.Combine(BasePath, filenameStrip(subfolder));
+        }
 
         /// <summary>
         /// Get a usable filesystem path for the provided incomplete path.
@@ -89,17 +88,41 @@ namespace osu.Framework.Platform
         /// </summary>
         /// <param name="path">The subdirectory to use as a root.</param>
         /// <returns>A more specific storage.</returns>
-        public Storage GetStorageForDirectory(string path)
+        public virtual Storage GetStorageForDirectory(string path)
         {
-            if (!path.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentException("Must be non-null and not empty string", nameof(path));
+
+            if (!path.EndsWith(Path.DirectorySeparatorChar))
                 path += Path.DirectorySeparatorChar;
 
             // create non-existing path.
-            GetFullPath(path, true);
+            string fullPath = GetFullPath(path, true);
 
-            var clone = (Storage)MemberwiseClone();
-            clone.SubDirectory = path;
-            return clone;
+            return (Storage)Activator.CreateInstance(GetType(), fullPath);
+        }
+
+        /// <summary>
+        /// Move a file from one location to another. File must exist. Destination will be overwritten if exists.
+        /// </summary>
+        /// <param name="from">The file path to move.</param>
+        /// <param name="to">The destination path.</param>
+        public abstract void Move(string from, string to);
+
+        /// <summary>
+        /// Create a new file on disk, using a temporary file to write to before moving to the final location to ensure a half-written file cannot exist at the specified location.
+        /// </summary>
+        /// <remarks>
+        /// If the target file path already exists, it will be deleted before attempting to write a new version.
+        /// </remarks>
+        /// <param name="path">The path of the file to create or overwrite.</param>
+        /// <returns>A stream associated with the requested path. Will only exist at the specified location after the stream is disposed.</returns>
+        [Pure]
+        public Stream CreateFileSafely(string path)
+        {
+            string temporaryPath = Path.Combine(Path.GetDirectoryName(path).AsNonNull(), $"_{Path.GetFileName(path)}_{Guid.NewGuid()}");
+
+            return new SafeWriteStream(temporaryPath, path, this);
         }
 
         /// <summary>
@@ -109,24 +132,92 @@ namespace osu.Framework.Platform
         /// <param name="access">The access requirements.</param>
         /// <param name="mode">The mode in which the file should be opened.</param>
         /// <returns>A stream associated with the requested path.</returns>
+        [Pure]
         public abstract Stream GetStream(string path, FileAccess access = FileAccess.Read, FileMode mode = FileMode.OpenOrCreate);
 
         /// <summary>
-        /// Retrieve an SQLite database connection string from within this storage.
+        /// Requests that a file be opened externally with an associated application, if available.
         /// </summary>
-        /// <param name="name">The name of the database.</param>
-        /// <returns>An SQLite connection string.</returns>
-        public abstract string GetDatabaseConnectionString(string name);
-
-        /// <summary>
-        /// Delete an SQLite database from within this storage.
-        /// </summary>
-        /// <param name="name">The name of the database to delete.</param>
-        public abstract void DeleteDatabase(string name);
+        /// <param name="filename">The relative path to the file which should be opened.</param>
+        /// <returns>Whether the file was successfully opened.</returns>
+        public abstract bool OpenFileExternally(string filename);
 
         /// <summary>
         /// Opens a native file browser window to the root path of this storage.
         /// </summary>
-        public abstract void OpenInNativeExplorer();
+        /// <returns>Whether the storage was successfully presented.</returns>
+        public bool PresentExternally() => OpenFileExternally(string.Empty);
+
+        /// <summary>
+        /// Requests to present a file externally in the platform's native file browser.
+        /// </summary>
+        /// <remarks>
+        /// This will open the parent folder and, (if available) highlight the file.
+        /// </remarks>
+        /// <param name="filename">Relative path to the file.</param>
+        /// <returns>Whether the file was successfully presented.</returns>
+        public abstract bool PresentFileExternally(string filename);
+
+        /// <summary>
+        /// Uses a temporary file to ensure a file is written to completion before existing at its specified location.
+        /// </summary>
+        private class SafeWriteStream : FileStream
+        {
+            private readonly string temporaryPath;
+            private readonly string finalPath;
+            private readonly Storage storage;
+
+            public SafeWriteStream(string temporaryPath, string finalPath, Storage storage)
+                : base(storage.GetFullPath(temporaryPath, true), FileMode.Create, FileAccess.Write)
+            {
+                this.temporaryPath = temporaryPath;
+                this.finalPath = finalPath;
+                this.storage = storage;
+            }
+
+            private bool isDisposed;
+
+            protected override void Dispose(bool disposing)
+            {
+                // Don't perform any custom logic when arriving via the finaliser.
+                // We assume that all usages of `SafeWriteStream` correctly follow a local disposal pattern.
+                if (!disposing)
+                {
+                    base.Dispose(false);
+                    return;
+                }
+
+                if (!isDisposed)
+                {
+                    // this was added to work around some hardware writing zeroes to a file
+                    // before writing actual content, causing corrupt files to exist on disk.
+                    // as of .NET 6, flushing is very expensive on macOS so this is limited to only Windows,
+                    // but it may also be entirely unnecessary due to the temporary file copying performed on this class.
+                    // see: https://github.com/ppy/osu-framework/issues/5231
+                    if (RuntimeInfo.OS == RuntimeInfo.Platform.Windows)
+                    {
+                        try
+                        {
+                            Flush(true);
+                        }
+                        catch
+                        {
+                            // this may fail due to a lower level file access issue.
+                            // we don't want to throw in disposal though.
+                        }
+                    }
+                }
+
+                base.Dispose(true);
+
+                if (!isDisposed)
+                {
+                    storage.Delete(finalPath);
+                    storage.Move(temporaryPath, finalPath);
+
+                    isDisposed = true;
+                }
+            }
+        }
     }
 }

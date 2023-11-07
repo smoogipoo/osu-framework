@@ -6,13 +6,14 @@ using osuTK.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Localisation;
 
 namespace osu.Framework.Graphics.UserInterface
 {
     /// <summary>
     /// A basic checkbox for framework internal use and for prototyping UI.
     /// </summary>
-    public class BasicCheckbox : Checkbox
+    public partial class BasicCheckbox : Checkbox
     {
         /// <summary>
         /// The color of the checkbox when the checkbox is checked. Defaults to White
@@ -42,7 +43,7 @@ namespace osu.Framework.Graphics.UserInterface
         /// <summary>
         /// The text in the label.
         /// </summary>
-        public string LabelText
+        public LocalisableString LabelText
         {
             get => labelSpriteText.Text;
             set => labelSpriteText.Text = value;

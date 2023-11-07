@@ -1,9 +1,13 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Lines;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Input;
@@ -17,18 +21,23 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace osu.Framework.Tests.Visual.Input
 {
     [System.ComponentModel.Description("live path optimiastion")]
-    public class TestSceneInputResampler : GridTestScene
+    public partial class TestSceneInputResampler : GridTestScene
     {
         public TestSceneInputResampler()
             : base(3, 3)
         {
+        }
+
+        [BackgroundDependencyLoader]
+        private void load(IRenderer renderer)
+        {
             const int width = 2;
-            Texture gradientTexture = new Texture(width, 1, true);
+            Texture gradientTexture = renderer.CreateTexture(width, 1, true);
             var image = new Image<Rgba32>(width, 1);
 
             for (int i = 0; i < width; ++i)
             {
-                var brightnessByte = (byte)((float)i / (width - 1) * 255);
+                byte brightnessByte = (byte)((float)i / (width - 1) * 255);
                 image[i, 0] = new Rgba32(brightnessByte, brightnessByte, brightnessByte);
             }
 
@@ -54,7 +63,6 @@ namespace osu.Framework.Tests.Visual.Input
                 new UserDrawnPath
                 {
                     DrawText = text[2],
-                    RelativeSizeAxes = Axes.Both,
                     Texture = gradientTexture,
                     Colour = Color4.White,
                 },
@@ -78,7 +86,6 @@ namespace osu.Framework.Tests.Visual.Input
                 new SmoothedUserDrawnPath
                 {
                     DrawText = text[5],
-                    RelativeSizeAxes = Axes.Both,
                     Texture = gradientTexture,
                     Colour = Color4.White,
                     InputResampler = new InputResampler(),
@@ -103,7 +110,6 @@ namespace osu.Framework.Tests.Visual.Input
                 new SmoothedUserDrawnPath
                 {
                     DrawText = text[5],
-                    RelativeSizeAxes = Axes.Both,
                     Texture = gradientTexture,
                     Colour = Color4.White,
                     InputResampler = new InputResampler
@@ -121,7 +127,7 @@ namespace osu.Framework.Tests.Visual.Input
             Colour = Color4.White,
         };
 
-        private class SmoothedPath : TexturedPath
+        private partial class SmoothedPath : TexturedPath
         {
             protected SmoothedPath()
             {
@@ -157,20 +163,23 @@ namespace osu.Framework.Tests.Visual.Input
             }
         }
 
-        private class ArcPath : SmoothedPath
+        private partial class ArcPath : SmoothedPath
         {
             public ArcPath(bool raw, bool keepFraction, InputResampler inputResampler, Texture texture, Color4 colour, SpriteText output)
             {
                 InputResampler = inputResampler;
-                const int target_raw = 1024;
+
+                AutoSizeAxes = Axes.None;
                 RelativeSizeAxes = Axes.Both;
                 Texture = texture;
                 Colour = colour;
 
-                for (int i = 0; i < target_raw; i++)
+                const float target_raw = 1024;
+
+                for (float i = 0; i < target_raw; i++)
                 {
-                    float x = (float)(Math.Sin(i / (double)target_raw * (Math.PI * 0.5)) * 200) + 50.5f;
-                    float y = (float)(Math.Cos(i / (double)target_raw * (Math.PI * 0.5)) * 200) + 50.5f;
+                    float x = (MathF.Sin(i / target_raw * (MathF.PI * 0.5f)) * 200) + 50.5f;
+                    float y = (MathF.Cos(i / target_raw * (MathF.PI * 0.5f)) * 200) + 50.5f;
                     Vector2 v = keepFraction ? new Vector2(x, y) : new Vector2((int)x, (int)y);
                     if (raw)
                         AddRawVertex(v);
@@ -182,9 +191,15 @@ namespace osu.Framework.Tests.Visual.Input
             }
         }
 
-        private class UserDrawnPath : SmoothedPath
+        private partial class UserDrawnPath : SmoothedPath
         {
             public SpriteText DrawText;
+
+            public UserDrawnPath()
+            {
+                AutoSizeAxes = Axes.None;
+                RelativeSizeAxes = Axes.Both;
+            }
 
             protected virtual void AddUserVertex(Vector2 v) => AddRawVertex(v);
 
@@ -195,15 +210,15 @@ namespace osu.Framework.Tests.Visual.Input
                 return true;
             }
 
-            protected override bool OnDrag(DragEvent e)
+            protected override void OnDrag(DragEvent e)
             {
                 AddUserVertex(e.MousePosition);
                 DrawText.Text = "Custom Smoothed Drawn: Smoothed=" + NumVertices + ", Raw=" + NumRaw;
-                return base.OnDrag(e);
+                base.OnDrag(e);
             }
         }
 
-        private class SmoothedUserDrawnPath : UserDrawnPath
+        private partial class SmoothedUserDrawnPath : UserDrawnPath
         {
             protected override void AddUserVertex(Vector2 v) => AddSmoothedVertex(v);
         }

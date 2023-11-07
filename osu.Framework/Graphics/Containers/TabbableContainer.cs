@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Input.Events;
@@ -8,14 +10,14 @@ using osuTK.Input;
 
 namespace osu.Framework.Graphics.Containers
 {
-    public class TabbableContainer : TabbableContainer<Drawable>
+    public partial class TabbableContainer : TabbableContainer<Drawable>
     {
     }
 
     /// <summary>
     /// This interface is used for recognizing <see cref="TabbableContainer{T}"/> of any type without reflection.
     /// </summary>
-    internal interface ITabbableContainer
+    public interface ITabbableContainer
     {
         /// <summary>
         /// Whether this <see cref="ITabbableContainer"/> can be tabbed to.
@@ -23,7 +25,7 @@ namespace osu.Framework.Graphics.Containers
         bool CanBeTabbedTo { get; }
     }
 
-    public class TabbableContainer<T> : Container<T>, ITabbableContainer
+    public partial class TabbableContainer<T> : Container<T>, ITabbableContainer
         where T : Drawable
     {
         /// <summary>

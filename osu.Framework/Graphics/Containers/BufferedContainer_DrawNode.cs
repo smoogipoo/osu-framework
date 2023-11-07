@@ -1,17 +1,19 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System.Collections.Generic;
-using osu.Framework.Graphics.OpenGL;
-using osu.Framework.Graphics.OpenGL.Buffers;
 using osuTK;
-using osuTK.Graphics.ES30;
 using osuTK.Graphics;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shaders;
 using System;
+using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Colour;
-using osu.Framework.MathUtils;
+using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Shaders.Types;
+using osu.Framework.Utils;
 
 namespace osu.Framework.Graphics.Containers
 {
@@ -36,9 +38,8 @@ namespace osu.Framework.Graphics.Containers
 
             private IShader blurShader;
 
-            public BufferedContainerDrawNode(BufferedContainer<T> source, BufferedContainerDrawNodeSharedData sharedData, RenderbufferInternalFormat[] formats = null,
-                                             bool pixelSnapping = false)
-                : base(source, new CompositeDrawableDrawNode(source), sharedData, formats, pixelSnapping)
+            public BufferedContainerDrawNode(BufferedContainer<T> source, BufferedContainerDrawNodeSharedData sharedData)
+                : base(source, new CompositeDrawableDrawNode(source), sharedData)
             {
             }
 
@@ -62,58 +63,63 @@ namespace osu.Framework.Graphics.Containers
 
             protected override long GetDrawVersion() => updateVersion;
 
-            protected override void PopulateContents()
+            protected override void PopulateContents(IRenderer renderer)
             {
-                base.PopulateContents();
+                base.PopulateContents(renderer);
 
                 if (blurRadius.X > 0 || blurRadius.Y > 0)
                 {
-                    GL.Disable(EnableCap.ScissorTest);
+                    renderer.PushScissorState(false);
 
-                    if (blurRadius.X > 0) drawBlurredFrameBuffer(blurRadius.X, blurSigma.X, blurRotation);
-                    if (blurRadius.Y > 0) drawBlurredFrameBuffer(blurRadius.Y, blurSigma.Y, blurRotation + 90);
+                    if (blurRadius.X > 0) drawBlurredFrameBuffer(renderer, blurRadius.X, blurSigma.X, blurRotation);
+                    if (blurRadius.Y > 0) drawBlurredFrameBuffer(renderer, blurRadius.Y, blurSigma.Y, blurRotation + 90);
 
-                    GL.Enable(EnableCap.ScissorTest);
+                    renderer.PopScissorState();
                 }
             }
 
-            protected override void DrawContents()
+            protected override void DrawContents(IRenderer renderer)
             {
                 if (drawOriginal && effectPlacement == EffectPlacement.InFront)
-                    base.DrawContents();
+                    base.DrawContents(renderer);
 
-                GLWrapper.SetBlend(new BlendingInfo(effectBlending));
+                renderer.SetBlend(effectBlending);
 
                 ColourInfo finalEffectColour = DrawColourInfo.Colour;
                 finalEffectColour.ApplyChild(effectColour);
 
-                DrawFrameBuffer(SharedData.CurrentEffectBuffer, DrawRectangle, finalEffectColour);
+                renderer.DrawFrameBuffer(SharedData.CurrentEffectBuffer, DrawRectangle, finalEffectColour);
 
                 if (drawOriginal && effectPlacement == EffectPlacement.Behind)
-                    base.DrawContents();
+                    base.DrawContents(renderer);
             }
 
-            private void drawBlurredFrameBuffer(int kernelRadius, float sigma, float blurRotation)
-            {
-                FrameBuffer current = SharedData.CurrentEffectBuffer;
-                FrameBuffer target = SharedData.GetNextEffectBuffer();
+            private IUniformBuffer<BlurParameters> blurParametersBuffer;
 
-                GLWrapper.SetBlend(new BlendingInfo(BlendingMode.None));
+            private void drawBlurredFrameBuffer(IRenderer renderer, int kernelRadius, float sigma, float blurRotation)
+            {
+                blurParametersBuffer ??= renderer.CreateUniformBuffer<BlurParameters>();
+
+                IFrameBuffer current = SharedData.CurrentEffectBuffer;
+                IFrameBuffer target = SharedData.GetNextEffectBuffer();
+
+                renderer.SetBlend(BlendingParameters.None);
 
                 using (BindFrameBuffer(target))
                 {
-                    blurShader.GetUniform<int>(@"g_Radius").UpdateValue(ref kernelRadius);
-                    blurShader.GetUniform<float>(@"g_Sigma").UpdateValue(ref sigma);
+                    float radians = MathUtils.DegreesToRadians(blurRotation);
 
-                    Vector2 size = current.Size;
-                    blurShader.GetUniform<Vector2>(@"g_TexSize").UpdateValue(ref size);
+                    blurParametersBuffer.Data = blurParametersBuffer.Data with
+                    {
+                        Radius = kernelRadius,
+                        Sigma = sigma,
+                        TexSize = current.Size,
+                        Direction = new Vector2(MathF.Cos(radians), MathF.Sin(radians))
+                    };
 
-                    float radians = -MathHelper.DegreesToRadians(blurRotation);
-                    Vector2 blur = new Vector2((float)Math.Cos(radians), (float)Math.Sin(radians));
-                    blurShader.GetUniform<Vector2>(@"g_BlurDirection").UpdateValue(ref blur);
-
+                    blurShader.BindUniformBlock("m_BlurParameters", blurParametersBuffer);
                     blurShader.Bind();
-                    DrawFrameBuffer(current, new RectangleF(0, 0, current.Texture.Width, current.Texture.Height), ColourInfo.SingleColour(Color4.White));
+                    renderer.DrawFrameBuffer(current, new RectangleF(0, 0, current.Texture.Width, current.Texture.Height), ColourInfo.SingleColour(Color4.White));
                     blurShader.Unbind();
                 }
             }
@@ -125,12 +131,28 @@ namespace osu.Framework.Graphics.Containers
             }
 
             public bool AddChildDrawNodes => RequiresRedraw;
+
+            protected override void Dispose(bool isDisposing)
+            {
+                base.Dispose(isDisposing);
+                blurParametersBuffer?.Dispose();
+            }
+
+            [StructLayout(LayoutKind.Sequential, Pack = 1)]
+            private record struct BlurParameters
+            {
+                public UniformVector2 TexSize;
+                public UniformInt Radius;
+                public UniformFloat Sigma;
+                public UniformVector2 Direction;
+                private readonly UniformPadding8 pad1;
+            }
         }
 
         private class BufferedContainerDrawNodeSharedData : BufferedDrawNodeSharedData
         {
-            public BufferedContainerDrawNodeSharedData()
-                : base(2)
+            public BufferedContainerDrawNodeSharedData(RenderBufferFormat[] mainBufferFormats, bool pixelSnapping, bool clipToRootNode)
+                : base(2, mainBufferFormats, pixelSnapping, clipToRootNode)
             {
             }
         }

@@ -3,17 +3,28 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using Android.App;
+using Android.Content;
 using osu.Framework.Android.Graphics.Textures;
+using osu.Framework.Android.Graphics.Video;
 using osu.Framework.Android.Input;
+using osu.Framework.Configuration;
+using osu.Framework.Extensions;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Video;
 using osu.Framework.Input;
 using osu.Framework.Input.Handlers;
+using osu.Framework.Input.Handlers.Midi;
 using osu.Framework.IO.Stores;
+using osu.Framework.Logging;
 using osu.Framework.Platform;
+using Uri = Android.Net.Uri;
 
 namespace osu.Framework.Android
 {
-    public class AndroidGameHost : GameHost
+    public class AndroidGameHost : OsuTKGameHost
     {
         private readonly AndroidGameView gameView;
 
@@ -22,40 +33,79 @@ namespace osu.Framework.Android
             this.gameView = gameView;
         }
 
-        protected override void SetupForRun()
+        protected override void SetupConfig(IDictionary<FrameworkSetting, object> defaultOverrides)
         {
-            base.SetupForRun();
-            AndroidGameWindow.View = gameView;
-            Window = new AndroidGameWindow();
+            if (!defaultOverrides.ContainsKey(FrameworkSetting.ExecutionMode))
+                defaultOverrides.Add(FrameworkSetting.ExecutionMode, ExecutionMode.SingleThread);
+
+            base.SetupConfig(defaultOverrides);
         }
 
-        protected override bool LimitedMemoryEnvironment => true;
+        protected override IWindow CreateWindow(GraphicsSurfaceType preferredSurface) => new AndroidGameWindow(gameView);
+
+        protected override Clipboard CreateClipboard() => new AndroidClipboard(gameView);
 
         public override bool CanExit => false;
 
+        public override bool CanSuspendToBackground => true;
+
         public override bool OnScreenKeyboardOverlapsGameWindow => true;
 
-        public override ITextInputSource GetTextInput()
-            => new AndroidTextInput(gameView);
+        protected override TextInputSource CreateTextInput() => new AndroidTextInput(gameView);
 
-        protected override IEnumerable<InputHandler> CreateAvailableInputHandlers()
-            => new InputHandler[] { new AndroidKeyboardHandler(gameView), new AndroidTouchHandler(gameView) };
+        protected override IEnumerable<InputHandler> CreateAvailableInputHandlers() =>
+            new InputHandler[]
+            {
+                new AndroidMouseHandler(gameView),
+                new AndroidKeyboardHandler(gameView),
+                new AndroidTouchHandler(gameView),
+                new AndroidJoystickHandler(gameView),
+                new MidiHandler()
+            };
 
-        protected override Storage GetStorage(string baseName)
-            => new AndroidStorage(baseName, this);
+        public override string InitialFileSelectorPath => @"/sdcard";
 
-        public override void OpenFileExternally(string filename)
-            => throw new NotImplementedException();
+        public override Storage GetStorage(string path) => new AndroidStorage(path, this);
+
+        public override IEnumerable<string> UserStoragePaths => new[]
+        {
+            // not null as internal "external storage" is always available.
+            Application.Context.GetExternalFilesDir(string.Empty).AsNonNull().ToString(),
+        };
+
+        public override bool OpenFileExternally(string filename) => false;
+
+        public override bool PresentFileExternally(string filename) => false;
 
         public override void OpenUrlExternally(string url)
-            => throw new NotImplementedException();
+        {
+            if (!url.CheckIsValidUrl())
+                throw new ArgumentException("The provided URL must be one of either http://, https:// or mailto: protocols.", nameof(url));
+
+            try
+            {
+                using (var intent = new Intent(Intent.ActionView, Uri.Parse(url)))
+                {
+                    // Recommended way to open URLs on Android 11+
+                    // https://developer.android.com/training/package-visibility/use-cases#open-urls-browser-or-other-app
+                    gameView.Activity.StartActivity(intent);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Unable to open external link.");
+            }
+        }
 
         public override IResourceStore<TextureUpload> CreateTextureLoaderStore(IResourceStore<byte[]> underlyingStore)
             => new AndroidTextureLoaderStore(underlyingStore);
 
-        protected override void PerformExit(bool immediately)
+        public override VideoDecoder CreateVideoDecoder(Stream stream)
+            => new AndroidVideoDecoder(Renderer, stream);
+
+        public override bool SuspendToBackground()
         {
-            // Do not exit on Android, Window.Run() does not block
+            return gameView.Activity.MoveTaskToBack(true);
         }
     }
 }

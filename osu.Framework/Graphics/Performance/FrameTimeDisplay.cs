@@ -2,17 +2,17 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osuTK.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
-using osu.Framework.MathUtils;
+using osu.Framework.Statistics;
 using osu.Framework.Timing;
-using osuTK;
+using osu.Framework.Utils;
+using osuTK.Graphics;
 
 namespace osu.Framework.Graphics.Performance
 {
-    internal class FrameTimeDisplay : Container
+    internal partial class FrameTimeDisplay : Container
     {
         private readonly SpriteText counter;
 
@@ -35,77 +35,87 @@ namespace osu.Framework.Graphics.Performance
                     Colour = Color4.Black,
                     Alpha = 0.75f
                 },
-                counter = new CounterText
+                counter = new SpriteText
                 {
                     Anchor = Anchor.TopRight,
                     Origin = Anchor.TopRight,
-                    Spacing = new Vector2(-1, 0),
+                    Font = FrameworkFont.Regular,
                     Text = @"...",
                 }
             });
         }
 
         private float aimWidth;
+
         private double displayFps;
-        private double displayFrameTime;
+
+        private double rollingElapsed;
+
+        private int framesSinceLastUpdate;
+
+        private double elapsedSinceLastUpdate;
+        private double lastUpdateLocalTime;
+        private double lastFrameFramesPerSecond;
+
+        private double jitter;
 
         private const int updates_per_second = 10;
 
-        protected override void LoadComplete()
+        protected override void Update()
         {
-            base.LoadComplete();
+            base.Update();
 
-            double lastUpdate = 0;
+            if (!Precision.AlmostEquals(counter.DrawWidth, aimWidth))
+            {
+                ClearTransforms();
 
-            Scheduler.AddDelayed(() =>
-                {
-                    if (!Counting) return;
+                if (aimWidth == 0)
+                    Size = counter.DrawSize;
+                else if (Precision.AlmostBigger(counter.DrawWidth, aimWidth))
+                    this.ResizeTo(counter.DrawSize, 200, Easing.OutQuint);
+                else
+                    this.Delay(500).ResizeTo(counter.DrawSize, 200, Easing.InOutSine);
 
-                    if (!Precision.AlmostEquals(counter.DrawWidth, aimWidth))
-                    {
-                        ClearTransforms();
+                aimWidth = counter.DrawWidth;
+            }
 
-                        if (aimWidth == 0)
-                            Size = counter.DrawSize;
-                        else if (Precision.AlmostBigger(counter.DrawWidth, aimWidth))
-                            this.ResizeTo(counter.DrawSize, 200, Easing.InOutSine);
-                        else
-                            this.Delay(1500).ResizeTo(counter.DrawSize, 500, Easing.InOutSine);
-
-                        aimWidth = counter.DrawWidth;
-                    }
-
-                    double dampRate = Math.Max(Clock.CurrentTime - lastUpdate, 0) / 1000;
-
-                    displayFps = Interpolation.Damp(displayFps, clock.FramesPerSecond, 0.01, dampRate);
-                    displayFrameTime = Interpolation.Damp(displayFrameTime, clock.ElapsedFrameTime - clock.SleptTime, 0.01, dampRate);
-
-                    lastUpdate = clock.CurrentTime;
-
-                    counter.Text = $"{displayFps:0}fps({displayFrameTime:0.00}ms)"
-                                   + $"{(clock.MaximumUpdateHz < 10000 ? clock.MaximumUpdateHz.ToString("0") : "∞").PadLeft(4)}hz";
-                }, 1000.0 / updates_per_second, true);
+            if (Clock.CurrentTime - lastUpdateLocalTime > 1000.0 / updates_per_second)
+                updateDisplay();
         }
 
-        private class CounterText : SpriteText
+        private void updateDisplay()
         {
-            public CounterText()
+            double dampRate = Math.Max(Clock.CurrentTime - lastUpdateLocalTime, 0) / 1000;
+
+            displayFps = Interpolation.Damp(displayFps, lastFrameFramesPerSecond, 0.01, dampRate);
+
+            if (framesSinceLastUpdate > 0)
             {
-                Font = new FontUsage(fixedWidth: true);
+                rollingElapsed = Interpolation.Damp(rollingElapsed, elapsedSinceLastUpdate / framesSinceLastUpdate, 0.01, dampRate);
             }
 
-            protected override bool UseFixedWidthForCharacter(char c)
-            {
-                switch (c)
-                {
-                    case ',':
-                    case '.':
-                    case ' ':
-                        return false;
-                }
+            lastUpdateLocalTime = Clock.CurrentTime;
 
-                return true;
+            framesSinceLastUpdate = 0;
+            elapsedSinceLastUpdate = 0;
+
+            counter.Text = $"{displayFps:0}fps ({rollingElapsed:0.00}ms ±{jitter:0.00}ms)"
+                           + (clock.Throttling ? $"{(clock.MaximumUpdateHz > 0 && clock.MaximumUpdateHz < 10000 ? clock.MaximumUpdateHz.ToString("0") : "∞"),4}hz" : string.Empty);
+        }
+
+        public void NewFrame(FrameStatistics frame)
+        {
+            if (!Counting) return;
+
+            foreach (var pair in frame.CollectedTimes)
+            {
+                if (pair.Key != PerformanceCollectionType.Sleep)
+                    elapsedSinceLastUpdate += pair.Value;
             }
+
+            framesSinceLastUpdate++;
+            lastFrameFramesPerSecond = frame.FramesPerSecond;
+            jitter = frame.Jitter;
         }
     }
 }

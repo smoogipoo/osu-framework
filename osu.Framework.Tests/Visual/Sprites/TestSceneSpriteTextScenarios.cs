@@ -1,10 +1,14 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -14,7 +18,6 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
-using osu.Framework.IO.Stores;
 using osu.Framework.Localisation;
 using osu.Framework.Testing;
 using osuTK;
@@ -23,7 +26,7 @@ using osuTK.Graphics;
 namespace osu.Framework.Tests.Visual.Sprites
 {
     [System.ComponentModel.Description("various visual SpriteText displays")]
-    public class TestSceneSpriteTextScenarios : GridTestScene
+    public partial class TestSceneSpriteTextScenarios : GridTestScene
     {
         public TestSceneSpriteTextScenarios()
             : base(4, 5)
@@ -214,7 +217,7 @@ namespace osu.Framework.Tests.Visual.Sprites
                     Children = new[]
                     {
                         new SpriteText { Text = FakeStorage.LOCALISABLE_STRING_EN },
-                        new SpriteText { Text = new LocalisedString(FakeStorage.LOCALISABLE_STRING_EN) },
+                        new SpriteText { Text = new TranslatableString(FakeStorage.LOCALISABLE_STRING_EN, FakeStorage.LOCALISABLE_STRING_EN) },
                     }
                 }
             };
@@ -231,17 +234,17 @@ namespace osu.Framework.Tests.Visual.Sprites
             Scheduler.AddDelayed(() => boundString.Value = $"bindable: {++boundStringValue}", 200, true);
         }
 
-        private class NoFixedWidthSpaceText : SpriteText
+        private partial class NoFixedWidthSpaceText : SpriteText
         {
             public NoFixedWidthSpaceText()
             {
                 Font = new FontUsage(fixedWidth: true);
             }
 
-            protected override bool UseFixedWidthForCharacter(char c) => c != ' ';
+            protected override char[] FixedWidthExcludeCharacters { get; } = { ' ' };
         }
 
-        private class LocalisableTestContainer : Container
+        private partial class LocalisableTestContainer : Container
         {
             [Cached]
             private readonly LocalisationManager localisation;
@@ -254,7 +257,13 @@ namespace osu.Framework.Tests.Visual.Sprites
                 localisation.AddLanguage("en", new FakeStorage("en"));
                 localisation.AddLanguage("ja", new FakeStorage("ja"));
 
-                config.Set(FrameworkSetting.Locale, "ja");
+                config.SetValue(FrameworkSetting.Locale, "ja");
+            }
+
+            protected override void Dispose(bool isDisposing)
+            {
+                localisation?.Dispose();
+                base.Dispose(isDisposing);
             }
         }
 
@@ -269,24 +278,28 @@ namespace osu.Framework.Tests.Visual.Sprites
 
             protected override void InitialiseDefaults()
             {
-                Set(FrameworkSetting.Locale, "ja");
-                Set(FrameworkSetting.ShowUnicode, false);
+                SetDefault(FrameworkSetting.Locale, "ja");
+                SetDefault(FrameworkSetting.ShowUnicode, false);
             }
         }
 
-        private class FakeStorage : IResourceStore<string>
+        private class FakeStorage : ILocalisationStore
         {
             public const string LOCALISABLE_STRING_EN = "localised EN";
             public const string LOCALISABLE_STRING_JA = "localised JA";
+
+            public CultureInfo EffectiveCulture { get; }
 
             private readonly string locale;
 
             public FakeStorage(string locale)
             {
                 this.locale = locale;
+                EffectiveCulture = new CultureInfo(locale);
             }
 
-            public async Task<string> GetAsync(string name) => await Task.Run(() => Get(name));
+            public async Task<string> GetAsync(string name, CancellationToken cancellationToken = default) =>
+                await Task.Run(() => Get(name), cancellationToken).ConfigureAwait(false);
 
             public string Get(string name)
             {

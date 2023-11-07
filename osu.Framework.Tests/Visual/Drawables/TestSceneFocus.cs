@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using NUnit.Framework;
 using osu.Framework.Extensions.Color4Extensions;
@@ -17,7 +19,7 @@ using osuTK.Input;
 
 namespace osu.Framework.Tests.Visual.Drawables
 {
-    public class TestSceneFocus : ManualInputManagerTestScene
+    public partial class TestSceneFocus : ManualInputManagerTestScene
     {
         private FocusOverlay overlay;
         private RequestingFocusBox requestingFocus;
@@ -32,10 +34,8 @@ namespace osu.Framework.Tests.Visual.Drawables
         }
 
         [SetUp]
-        public override void SetUp() => Schedule(() =>
+        public new void SetUp() => Schedule(() =>
         {
-            base.SetUp();
-
             Children = new Drawable[]
             {
                 focusTopLeft = new FocusBox
@@ -134,6 +134,60 @@ namespace osu.Framework.Tests.Visual.Drawables
             checkFocused(() => focusBottomRight);
         }
 
+        /// <summary>
+        /// Ensures that performing <see cref="InputManager.ChangeFocus(Drawable)"/> to a drawable with disabled <see cref="Drawable.AcceptsFocus"/> returns <see langword="false"/>.
+        /// </summary>
+        [Test]
+        public void DisabledFocusDrawableCannotReceiveFocusViaChangeFocus()
+        {
+            checkFocused(() => requestingFocus);
+
+            AddStep("disable focus from top left", () => focusTopLeft.AllowAcceptingFocus = false);
+            AddAssert("cannot switch focus to top left", () => !InputManager.ChangeFocus(focusTopLeft));
+
+            checkFocused(() => requestingFocus);
+        }
+
+        /// <summary>
+        /// Ensures that performing <see cref="InputManager.ChangeFocus(Drawable)"/> to a non-present drawable returns <see langword="false"/>.
+        /// </summary>
+        [Test]
+        public void NotPresentDrawableCannotReceiveFocusViaChangeFocus()
+        {
+            checkFocused(() => requestingFocus);
+
+            AddStep("hide top left", () => focusTopLeft.Alpha = 0);
+            AddAssert("cannot switch focus to top left", () => !InputManager.ChangeFocus(focusTopLeft));
+
+            checkFocused(() => requestingFocus);
+        }
+
+        /// <summary>
+        /// Ensures that performing <see cref="InputManager.ChangeFocus(Drawable)"/> to a drawable of a non-present parent returns <see langword="false"/>.
+        /// </summary>
+        [Test]
+        public void DrawableOfNotPresentParentCannotReceiveFocusViaChangeFocus()
+        {
+            checkFocused(() => requestingFocus);
+
+            AddStep("wrap top left in hidden container", () =>
+            {
+                Container container;
+
+                Add(container = new Container
+                {
+                    Alpha = 0,
+                    RelativeSizeAxes = Axes.Both,
+                });
+
+                Remove(focusTopLeft, false);
+                container.Add(focusTopLeft);
+            });
+            AddAssert("cannot switch focus to top left", () => !InputManager.ChangeFocus(focusTopLeft));
+
+            checkFocused(() => requestingFocus);
+        }
+
         [Test]
         public void ShowOverlayInteractions()
         {
@@ -178,7 +232,7 @@ namespace osu.Framework.Tests.Visual.Drawables
             });
             AddAssert("Received the key", () =>
                 focusBottomLeft.KeyDownCount == 1 && focusBottomLeft.KeyUpCount == 1 &&
-                focusBottomRight.KeyDownCount == 0 && focusBottomRight.KeyUpCount == 1);
+                focusBottomRight.KeyDownCount == 0 && focusBottomRight.KeyUpCount == 0);
             AddStep("Press a joystick (non blocking)", () =>
             {
                 InputManager.PressJoystickButton(JoystickButton.Button1);
@@ -192,7 +246,7 @@ namespace osu.Framework.Tests.Visual.Drawables
         private void checkFocused(Func<Drawable> d) => AddAssert("check focus", () => d().HasFocus);
         private void checkNotFocused(Func<Drawable> d) => AddAssert("check not focus", () => !d().HasFocus);
 
-        private class FocusOverlay : FocusedOverlayContainer
+        private partial class FocusOverlay : FocusedOverlayContainer
         {
             private readonly Box box;
             private readonly SpriteText stateText;
@@ -235,13 +289,11 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             protected override void PopIn()
             {
-                base.PopIn();
                 stateText.Text = State.ToString();
             }
 
             protected override void PopOut()
             {
-                base.PopOut();
                 stateText.Text = State.ToString();
             }
 
@@ -271,7 +323,7 @@ namespace osu.Framework.Tests.Visual.Drawables
             }
         }
 
-        public class RequestingFocusBox : FocusBox
+        public partial class RequestingFocusBox : FocusBox
         {
             public override bool RequestsFocus => true;
 
@@ -288,7 +340,7 @@ namespace osu.Framework.Tests.Visual.Drawables
             }
         }
 
-        public class FocusBox : CompositeDrawable
+        public partial class FocusBox : CompositeDrawable
         {
             protected Box Box;
             public int KeyDownCount, KeyUpCount, JoystickPressCount, JoystickReleaseCount;
@@ -308,7 +360,9 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             protected override bool OnClick(ClickEvent e) => true;
 
-            public override bool AcceptsFocus => true;
+            public bool AllowAcceptingFocus = true;
+
+            public override bool AcceptsFocus => AllowAcceptingFocus;
 
             protected override void OnFocus(FocusEvent e)
             {
@@ -329,10 +383,10 @@ namespace osu.Framework.Tests.Visual.Drawables
                 return true;
             }
 
-            protected override bool OnKeyUp(KeyUpEvent e)
+            protected override void OnKeyUp(KeyUpEvent e)
             {
                 ++KeyUpCount;
-                return base.OnKeyUp(e);
+                base.OnKeyUp(e);
             }
 
             protected override bool OnJoystickPress(JoystickPressEvent e)
@@ -341,10 +395,10 @@ namespace osu.Framework.Tests.Visual.Drawables
                 return base.OnJoystickPress(e);
             }
 
-            protected override bool OnJoystickRelease(JoystickReleaseEvent e)
+            protected override void OnJoystickRelease(JoystickReleaseEvent e)
             {
                 ++JoystickReleaseCount;
-                return base.OnJoystickRelease(e);
+                base.OnJoystickRelease(e);
             }
         }
     }

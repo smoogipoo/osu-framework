@@ -1,7 +1,10 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System.Linq;
+using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Lines;
@@ -13,16 +16,17 @@ using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Input
 {
-    public class TestScenePathInput : FrameworkTestScene
+    public partial class TestScenePathInput : FrameworkTestScene
     {
         private const float path_width = 50;
         private const float path_radius = path_width / 2;
 
-        private readonly Path path;
-        private readonly TestPoint testPoint;
-        private readonly SpriteText text;
+        private Path path;
+        private TestPoint testPoint;
+        private SpriteText text;
 
-        public TestScenePathInput()
+        [Test]
+        public void Setup() => Schedule(() =>
         {
             Children = new Drawable[]
             {
@@ -30,14 +34,10 @@ namespace osu.Framework.Tests.Visual.Input
                 testPoint = new TestPoint(),
                 text = new SpriteText { Anchor = Anchor.TopCentre, Origin = Anchor.TopCentre }
             };
+        });
 
-            testHorizontalPath();
-            testDiagonalPath();
-            testVShaped();
-            testOverlapping();
-        }
-
-        private void testHorizontalPath()
+        [Test]
+        public void TestHorizontalPath()
         {
             addPath("Horizontal path", new Vector2(100), new Vector2(300, 100));
             // Left out
@@ -58,7 +58,8 @@ namespace osu.Framework.Tests.Visual.Input
             test(new Vector2(190, 60), true);
         }
 
-        private void testDiagonalPath()
+        [Test]
+        public void TestDiagonalPath()
         {
             addPath("Diagonal path", new Vector2(300), new Vector2(100));
             // Top-left out
@@ -75,7 +76,8 @@ namespace osu.Framework.Tests.Visual.Input
             test(new Vector2(340, 300), true);
         }
 
-        private void testVShaped()
+        [Test]
+        public void TestVShaped()
         {
             addPath("V-shaped", new Vector2(100), new Vector2(300), new Vector2(500, 100));
             // Intersection out
@@ -88,7 +90,8 @@ namespace osu.Framework.Tests.Visual.Input
             test(new Vector2(300, 340), true);
         }
 
-        private void testOverlapping()
+        [Test]
+        public void TestOverlapping()
         {
             addPath("Overlapping", new Vector2(100), new Vector2(600), new Vector2(800, 300), new Vector2(100, 400));
             // Left intersection out
@@ -136,7 +139,7 @@ namespace osu.Framework.Tests.Visual.Input
             });
         }
 
-        private class TestPoint : CircularContainer
+        private partial class TestPoint : CircularContainer
         {
             public TestPoint()
             {
@@ -150,7 +153,7 @@ namespace osu.Framework.Tests.Visual.Input
             }
         }
 
-        private class HoverablePath : Path
+        private partial class HoverablePath : Path
         {
             protected override bool OnHover(HoverEvent e)
             {

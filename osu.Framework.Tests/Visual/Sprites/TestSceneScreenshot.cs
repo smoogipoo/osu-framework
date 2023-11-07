@@ -1,22 +1,33 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using osu.Framework.Allocation;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Input.Events;
 using osu.Framework.Platform;
 using osuTK;
 using osuTK.Graphics;
+using osuTK.Input;
 
 namespace osu.Framework.Tests.Visual.Sprites
 {
-    public class TestSceneScreenshot : FrameworkTestScene
+    public partial class TestSceneScreenshot : FrameworkTestScene
     {
         [Resolved]
         private GameHost host { get; set; }
 
+        [Resolved]
+        private IRenderer renderer { get; set; }
+
+        private Drawable background;
         private Sprite display;
 
         [BackgroundDependencyLoader]
@@ -31,10 +42,30 @@ namespace osu.Framework.Tests.Visual.Sprites
                 Masking = true,
                 BorderColour = Color4.Green,
                 BorderThickness = 2,
-                Child = display = new Sprite { RelativeSizeAxes = Axes.Both }
+                Children = new[]
+                {
+                    background = new Box
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = Color4.Red,
+                        Alpha = 0
+                    },
+                    display = new Sprite { RelativeSizeAxes = Axes.Both }
+                }
             };
 
             AddStep("take screenshot", takeScreenshot);
+        }
+
+        protected override bool OnKeyDown(KeyDownEvent e)
+        {
+            if (e.Key == Key.F12)
+            {
+                takeScreenshot();
+                return true;
+            }
+
+            return base.OnKeyDown(e);
         }
 
         private void takeScreenshot()
@@ -44,12 +75,13 @@ namespace osu.Framework.Tests.Visual.Sprites
 
             host.TakeScreenshotAsync().ContinueWith(t => Schedule(() =>
             {
-                var image = t.Result;
+                var image = t.GetResultSafely();
 
-                var tex = new Texture(image.Width, image.Height);
+                var tex = renderer.CreateTexture(image.Width, image.Height);
                 tex.SetData(new TextureUpload(image));
 
                 display.Texture = tex;
+                background.Show();
             }));
         }
     }

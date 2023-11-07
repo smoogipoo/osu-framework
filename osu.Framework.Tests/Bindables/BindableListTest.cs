@@ -1,11 +1,15 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions.IEnumerableExtensions;
 
 namespace osu.Framework.Tests.Bindables
 {
@@ -45,6 +49,118 @@ namespace osu.Framework.Tests.Bindables
 
                 Assert.AreEqual(array.Length, bindableList.Count);
             });
+        }
+
+        #endregion
+
+        #region Bind
+
+        /// <summary>
+        /// Tests binding to a bindable that has already been bound.
+        /// </summary>
+        [Test]
+        public void TestBindToAlreadyBound()
+        {
+            BindableList<int> bindable1 = new BindableList<int>();
+            BindableList<int> bindable2 = bindable1.GetBoundCopy();
+
+            Assert.Throws<ArgumentException>(() => bindable1.BindTo(bindable2));
+        }
+
+        /// <summary>
+        /// Tests binding via the various <see cref="BindableList{T}.BindTarget"/> methods.
+        /// </summary>
+        [Test]
+        public void TestBindViaBindTarget()
+        {
+            BindableList<int> parentBindable = new BindableList<int>();
+
+            BindableList<int> bindable1 = new BindableList<int>();
+            IBindableList<int> bindable2 = new BindableList<int>();
+
+            bindable1.BindTarget = parentBindable;
+            bindable2.BindTarget = parentBindable;
+
+            parentBindable.Add(5);
+
+            Assert.That(bindable1[0], Is.EqualTo(5));
+            Assert.That(bindable2[0], Is.EqualTo(5));
+        }
+
+        #endregion
+
+        #region BindCollectionChanged
+
+        [Test]
+        public void TestBindCollectionChangedWithoutRunningImmediately()
+        {
+            var list = new BindableList<int> { 1 };
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.BindCollectionChanged((_, args) => triggeredArgs = args);
+
+            Assert.That(triggeredArgs, Is.Null);
+        }
+
+        [Test]
+        public void TestBindCollectionChangedWithRunImmediately()
+        {
+            var list = new BindableList<int>();
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.BindCollectionChanged((_, args) => triggeredArgs = args, true);
+
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo(list));
+        }
+
+        [Test]
+        public void TestBindCollectionChangedNotRunIfBoundToSequenceEqualList()
+        {
+            var list = new BindableList<int>(new[] { 1, 3, 5, 6 });
+            var otherList = new BindableList<int>(new[] { 1, 3, 5, 6 });
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.BindCollectionChanged((_, args) => triggeredArgs = args);
+            list.BindTo(otherList);
+
+            Assert.That(triggeredArgs, Is.Null);
+        }
+
+        [Test]
+        public void TestBindCollectionChangedNotRunIfParsingSequenceEqualEnumerable()
+        {
+            var list = new BindableList<int>(new[] { 99, 100, 101, 102 });
+            var enumerable = Enumerable.Range(99, 4);
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.BindCollectionChanged((_, args) => triggeredArgs = args);
+            list.Parse(enumerable);
+
+            Assert.That(triggeredArgs, Is.Null);
+        }
+
+        [Test]
+        public void TestBindCollectionChangedEventsRanIfBoundToDifferentList()
+        {
+            var list = new BindableList<string>(new[] { "first", "list", "here" });
+            var otherList = new BindableList<string>(new[] { "other", "list" });
+
+            var triggeredArgs = new List<NotifyCollectionChangedEventArgs>();
+            list.BindCollectionChanged((_, args) => triggeredArgs.Add(args));
+            list.BindTo(otherList);
+
+            Assert.That(triggeredArgs, Has.Count.EqualTo(2));
+
+            var removeEvent = triggeredArgs.SingleOrDefault(ev => ev.Action == NotifyCollectionChangedAction.Remove);
+            Assert.That(removeEvent, Is.Not.Null);
+            Assert.That(removeEvent.OldStartingIndex, Is.EqualTo(0));
+            Assert.That(removeEvent.OldItems, Is.EquivalentTo(new[] { "first", "list", "here" }));
+
+            var addEvent = triggeredArgs.SingleOrDefault(ev => ev.Action == NotifyCollectionChangedAction.Add);
+            Assert.That(addEvent, Is.Not.Null);
+            Assert.That(addEvent.NewStartingIndex, Is.EqualTo(0));
+            Assert.That(addEvent.NewItems, Is.EquivalentTo(otherList));
         }
 
         #endregion
@@ -94,16 +210,16 @@ namespace osu.Framework.Tests.Bindables
         {
             bindableStringList.Add("0");
 
-            IEnumerable<string> addedItem = null;
-            IEnumerable<string> removedItem = null;
-
-            bindableStringList.ItemsAdded += v => addedItem = v;
-            bindableStringList.ItemsRemoved += v => removedItem = v;
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList[0] = "1";
 
-            Assert.AreEqual(removedItem.Single(), "0");
-            Assert.AreEqual(addedItem.Single(), "1");
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Replace));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo("0".Yield()));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo("1".Yield()));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.Zero);
+            Assert.That(triggeredArgs.NewStartingIndex, Is.Zero);
         }
 
         [Test]
@@ -111,18 +227,19 @@ namespace osu.Framework.Tests.Bindables
         {
             bindableStringList.Add("0");
 
-            IEnumerable<string> addedItem = null;
-            IEnumerable<string> removedItem = null;
-
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            list.ItemsAdded += v => addedItem = v;
-            list.ItemsRemoved += v => removedItem = v;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList[0] = "1";
 
-            Assert.AreEqual(removedItem.Single(), "0");
-            Assert.AreEqual(addedItem.Single(), "1");
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Replace));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo("0".Yield()));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo("1".Yield()));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.Zero);
+            Assert.That(triggeredArgs.NewStartingIndex, Is.Zero);
         }
 
         #endregion
@@ -144,12 +261,14 @@ namespace osu.Framework.Tests.Bindables
         [TestCase(null)]
         public void TestAddWithStringNotifiesSubscriber(string str)
         {
-            string addedString = null;
-            bindableStringList.ItemsAdded += s => addedString = s.SingleOrDefault();
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Add(str);
 
-            Assert.AreEqual(str, addedString);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo(str.Yield()));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.Zero);
         }
 
         [TestCase("a random string")]
@@ -157,12 +276,12 @@ namespace osu.Framework.Tests.Bindables
         [TestCase(null)]
         public void TestAddWithStringNotifiesSubscriberOnce(string str)
         {
-            int notificationCount = 0;
-            bindableStringList.ItemsAdded += s => notificationCount++;
+            var triggeredArgs = new List<NotifyCollectionChangedEventArgs>();
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs.Add(args);
 
             bindableStringList.Add(str);
 
-            Assert.AreEqual(1, notificationCount);
+            Assert.That(triggeredArgs, Has.Count.EqualTo(1));
         }
 
         [TestCase("a random string")]
@@ -170,18 +289,18 @@ namespace osu.Framework.Tests.Bindables
         [TestCase(null)]
         public void TestAddWithStringNotifiesMultipleSubscribers(string str)
         {
-            bool subscriberANotified = false;
-            bool subscriberBNotified = false;
-            bool subscriberCNotified = false;
-            bindableStringList.ItemsAdded += s => subscriberANotified = true;
-            bindableStringList.ItemsAdded += s => subscriberBNotified = true;
-            bindableStringList.ItemsAdded += s => subscriberCNotified = true;
+            NotifyCollectionChangedEventArgs triggeredArgsA = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB = null;
+            NotifyCollectionChangedEventArgs triggeredArgsC = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsA = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsB = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsC = args;
 
             bindableStringList.Add(str);
 
-            Assert.IsTrue(subscriberANotified);
-            Assert.IsTrue(subscriberBNotified);
-            Assert.IsTrue(subscriberCNotified);
+            Assert.That(triggeredArgsA, Is.Not.Null);
+            Assert.That(triggeredArgsB, Is.Not.Null);
+            Assert.That(triggeredArgsC, Is.Not.Null);
         }
 
         [TestCase("a random string")]
@@ -189,16 +308,16 @@ namespace osu.Framework.Tests.Bindables
         [TestCase(null)]
         public void TestAddWithStringNotifiesMultipleSubscribersOnlyAfterTheAdd(string str)
         {
-            bool subscriberANotified = false;
-            bool subscriberBNotified = false;
-            bool subscriberCNotified = false;
-            bindableStringList.ItemsAdded += s => subscriberANotified = true;
-            bindableStringList.ItemsAdded += s => subscriberBNotified = true;
-            bindableStringList.ItemsAdded += s => subscriberCNotified = true;
+            NotifyCollectionChangedEventArgs triggeredArgsA = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB = null;
+            NotifyCollectionChangedEventArgs triggeredArgsC = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsA = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsB = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsC = args;
 
-            Assert.IsFalse(subscriberANotified);
-            Assert.IsFalse(subscriberBNotified);
-            Assert.IsFalse(subscriberCNotified);
+            Assert.That(triggeredArgsA, Is.Null);
+            Assert.That(triggeredArgsB, Is.Null);
+            Assert.That(triggeredArgsC, Is.Null);
 
             bindableStringList.Add(str);
         }
@@ -258,6 +377,26 @@ namespace osu.Framework.Tests.Bindables
             Assert.Contains(item, bindableStringList);
         }
 
+        [Test]
+        public void TestAddBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.Add(6);
+
+            Assert.That(b1.Count, Is.EqualTo(6));
+            Assert.That(b2.Count, Is.EqualTo(6));
+            Assert.That(b3.Count, Is.EqualTo(6));
+            Assert.That(b4.Count, Is.EqualTo(6));
+        }
+
         #endregion
 
         #region .AddRange(items)
@@ -285,17 +424,216 @@ namespace osu.Framework.Tests.Bindables
             string[] items = { "test1", "test2", "test3" };
             var list = new BindableList<string>();
             bindableStringList.BindTo(list);
-            IEnumerable<string> addedItems = null;
-            list.ItemsAdded += e => addedItems = e;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.AddRange(items);
 
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo(items));
+        }
+
+        [Test]
+        public void TestAddRangeEnumeratesOnlyOnce()
+        {
+            BindableList<int> list1 = new BindableList<int>();
+            BindableList<int> list2 = new BindableList<int>();
+            list2.BindTo(list1);
+
+            int counter = 0;
+
+            IEnumerable<int> valueEnumerable()
+            {
+                yield return counter++;
+            }
+
+            list1.AddRange(valueEnumerable());
+
+            Assert.That(list1, Is.EquivalentTo(0.Yield()));
+            Assert.That(list2, Is.EquivalentTo(0.Yield()));
+            Assert.That(counter, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestAddRangeBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.AddRange(new[] { 6, 7 });
+
+            Assert.That(b1.Count, Is.EqualTo(7));
+            Assert.That(b2.Count, Is.EqualTo(7));
+            Assert.That(b3.Count, Is.EqualTo(7));
+            Assert.That(b4.Count, Is.EqualTo(7));
+        }
+
+        #endregion
+
+        #region .Move(item)
+
+        [Test]
+        public void TestMoveWithDisabledListThrowsInvalidOperationException()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+            bindableStringList.Disabled = true;
+
+            Assert.Throws(typeof(InvalidOperationException), () => bindableStringList.Move(0, 2));
+        }
+
+        [Test]
+        public void TestMoveMovesTheItem()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+
+            bindableStringList.Move(0, 1);
+
+            Assert.That(bindableStringList, Is.EquivalentTo(new[] { "1", "0", "2" }));
+        }
+
+        [Test]
+        public void TestMoveNotifiesSubscriber()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableStringList.Move(0, 1);
+
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Move));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo("0".Yield()));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo("0".Yield()));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestMoveNotifiesSubscribers()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+
+            NotifyCollectionChangedEventArgs triggeredArgsA = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB = null;
+            NotifyCollectionChangedEventArgs triggeredArgsC = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsA = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsB = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsC = args;
+
+            bindableStringList.Move(0, 1);
+
+            Assert.That(triggeredArgsA, Is.Not.Null);
+            Assert.That(triggeredArgsB, Is.Not.Null);
+            Assert.That(triggeredArgsC, Is.Not.Null);
+        }
+
+        [Test]
+        public void TestMoveNotifiesBoundList()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+            var list = new BindableList<string>();
+            list.BindTo(bindableStringList);
+
+            bindableStringList.Move(0, 1);
+
+            Assert.That(list, Is.EquivalentTo(new[] { "1", "0", "2" }));
+        }
+
+        [Test]
+        public void TestMoveNotifiesBoundLists()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+            var listA = new BindableList<string>();
+            listA.BindTo(bindableStringList);
+            var listB = new BindableList<string>();
+            listB.BindTo(bindableStringList);
+            var listC = new BindableList<string>();
+            listC.BindTo(bindableStringList);
+
+            bindableStringList.Move(0, 1);
+
             Assert.Multiple(() =>
             {
-                Assert.NotNull(addedItems);
-                CollectionAssert.AreEquivalent(items, addedItems);
-                CollectionAssert.AreEquivalent(items, list);
+                Assert.That(listA, Is.EquivalentTo(new[] { "1", "0", "2" }));
+                Assert.That(listB, Is.EquivalentTo(new[] { "1", "0", "2" }));
+                Assert.That(listC, Is.EquivalentTo(new[] { "1", "0", "2" }));
             });
+        }
+
+        [Test]
+        public void TestMoveNotifiesBoundListSubscription()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+            var list = new BindableList<string>();
+            list.BindTo(bindableStringList);
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableStringList.Move(0, 1);
+
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Move));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo("0".Yield()));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo("0".Yield()));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestMoveNotifiesBoundListSubscriptions()
+        {
+            bindableStringList.AddRange(new[] { "0", "1", "2" });
+            var listA = new BindableList<string>();
+            listA.BindTo(bindableStringList);
+
+            NotifyCollectionChangedEventArgs triggeredArgsA1 = null;
+            NotifyCollectionChangedEventArgs triggeredArgsA2 = null;
+            listA.CollectionChanged += (_, args) => triggeredArgsA1 = args;
+            listA.CollectionChanged += (_, args) => triggeredArgsA2 = args;
+
+            var listB = new BindableList<string>();
+            listB.BindTo(bindableStringList);
+
+            NotifyCollectionChangedEventArgs triggeredArgsB1 = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB2 = null;
+            listB.CollectionChanged += (_, args) => triggeredArgsB1 = args;
+            listB.CollectionChanged += (_, args) => triggeredArgsB2 = args;
+
+            bindableStringList.Move(0, 1);
+
+            Assert.That(triggeredArgsA1, Is.Not.Null);
+            Assert.That(triggeredArgsA2, Is.Not.Null);
+            Assert.That(triggeredArgsB1, Is.Not.Null);
+            Assert.That(triggeredArgsB2, Is.Not.Null);
+        }
+
+        [Test]
+        public void TestMoveRangeBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.Move(0, 1);
+
+            foreach (var list in new[] { b1, b2, b3, b4 })
+            {
+                Assert.That(list[0], Is.EqualTo(2));
+                Assert.That(list[1], Is.EqualTo(1));
+            }
         }
 
         #endregion
@@ -324,12 +662,14 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add("0");
             bindableStringList.Add("2");
 
-            bool wasAdded = false;
-            bindableStringList.ItemsAdded += _ => wasAdded = true;
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Insert(1, "1");
 
-            Assert.IsTrue(wasAdded);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.NewItems, Has.One.Items.EqualTo("1"));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(1));
         }
 
         [Test]
@@ -338,15 +678,17 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add("0");
             bindableStringList.Add("2");
 
-            bool wasAdded = false;
-
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            list.ItemsAdded += _ => wasAdded = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Insert(1, "1");
 
-            Assert.IsTrue(wasAdded);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.NewItems, Has.One.Items.EqualTo("1"));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(1));
         }
 
         [Test]
@@ -366,6 +708,26 @@ namespace osu.Framework.Tests.Bindables
                 Assert.AreEqual("1", list[1]);
                 Assert.AreEqual("2", list[2]);
             });
+        }
+
+        [Test]
+        public void TestInsertBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.Insert(0, 0);
+
+            Assert.That(b1.Count, Is.EqualTo(6));
+            Assert.That(b2.Count, Is.EqualTo(6));
+            Assert.That(b3.Count, Is.EqualTo(6));
+            Assert.That(b4.Count, Is.EqualTo(6));
         }
 
         #endregion
@@ -416,12 +778,47 @@ namespace osu.Framework.Tests.Bindables
         {
             const string item = "item";
             bindableStringList.Add(item);
-            bool updated = false;
-            bindableStringList.ItemsRemoved += s => updated = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Remove(item);
 
-            Assert.True(updated);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo(item));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestRemoveNotifiesSubscriberWithCorrectReference()
+        {
+            var item = new TestAlwaysEqualModel();
+
+            var bindableObjectList = new BindableList<TestAlwaysEqualModel> { item };
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableObjectList.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableObjectList.Remove(new TestAlwaysEqualModel());
+
+            Assert.That(triggeredArgs?.OldItems?[0] == item, Is.True);
+        }
+
+        [Test]
+        public void TestRemoveDoesntNotifySubscribersOnNoOp()
+        {
+            const string item = "item";
+            bindableStringList.Add(item);
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+
+            bindableStringList.Remove(item);
+
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableStringList.Remove(item);
+
+            Assert.That(triggeredArgs, Is.Null);
         }
 
         [Test]
@@ -429,21 +826,19 @@ namespace osu.Framework.Tests.Bindables
         {
             const string item = "item";
             bindableStringList.Add(item);
-            bool updatedA = false;
-            bool updatedB = false;
-            bool updatedC = false;
-            bindableStringList.ItemsRemoved += s => updatedA = true;
-            bindableStringList.ItemsRemoved += s => updatedB = true;
-            bindableStringList.ItemsRemoved += s => updatedC = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgsA = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB = null;
+            NotifyCollectionChangedEventArgs triggeredArgsC = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsA = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsB = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsC = args;
 
             bindableStringList.Remove(item);
 
-            Assert.Multiple(() =>
-            {
-                Assert.True(updatedA);
-                Assert.True(updatedB);
-                Assert.True(updatedC);
-            });
+            Assert.That(triggeredArgsA, Is.Not.Null);
+            Assert.That(triggeredArgsB, Is.Not.Null);
+            Assert.That(triggeredArgsC, Is.Not.Null);
         }
 
         [Test]
@@ -488,12 +883,15 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add(item);
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            bool wasRemoved = false;
-            list.ItemsRemoved += s => wasRemoved = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Remove(item);
 
-            Assert.True(wasRemoved);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo(item));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
         }
 
         [Test]
@@ -503,33 +901,38 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add(item);
             var listA = new BindableList<string>();
             listA.BindTo(bindableStringList);
-            bool wasRemovedA1 = false;
-            bool wasRemovedA2 = false;
-            listA.ItemsRemoved += s => wasRemovedA1 = true;
-            listA.ItemsRemoved += s => wasRemovedA2 = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgsA1 = null;
+            NotifyCollectionChangedEventArgs triggeredArgsA2 = null;
+            listA.CollectionChanged += (_, args) => triggeredArgsA1 = args;
+            listA.CollectionChanged += (_, args) => triggeredArgsA2 = args;
+
             var listB = new BindableList<string>();
             listB.BindTo(bindableStringList);
-            bool wasRemovedB1 = false;
-            bool wasRemovedB2 = false;
-            listB.ItemsRemoved += s => wasRemovedB1 = true;
-            listB.ItemsRemoved += s => wasRemovedB2 = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgsB1 = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB2 = null;
+            listB.CollectionChanged += (_, args) => triggeredArgsB1 = args;
+            listB.CollectionChanged += (_, args) => triggeredArgsB2 = args;
 
             bindableStringList.Remove(item);
 
-            Assert.Multiple(() =>
-            {
-                Assert.IsTrue(wasRemovedA1);
-                Assert.IsTrue(wasRemovedA2);
-                Assert.IsTrue(wasRemovedB1);
-                Assert.IsTrue(wasRemovedB2);
-            });
+            Assert.That(triggeredArgsA1, Is.Not.Null);
+            Assert.That(triggeredArgsA2, Is.Not.Null);
+            Assert.That(triggeredArgsB1, Is.Not.Null);
+            Assert.That(triggeredArgsB2, Is.Not.Null);
         }
 
         [Test]
-        public void TestRemoveDoesNotNotifySuBeforeItemIsRemoved()
+        public void TestRemoveDoesNotNotifySubscribersBeforeItemIsRemoved()
         {
             const string item = "item";
             bindableStringList.Add(item);
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            Assert.That(triggeredArgs, Is.Null);
         }
 
         #endregion
@@ -567,17 +970,17 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add("0");
             bindableStringList.Add("1");
 
-            List<string> itemsRemoved = null;
-            bindableStringList.ItemsRemoved += i => itemsRemoved = i.ToList();
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
             bindableStringList.RemoveRange(1, 1);
 
-            Assert.Multiple(() =>
-            {
-                Assert.AreEqual(1, bindableStringList.Count);
-                Assert.AreEqual("0", bindableStringList.FirstOrDefault());
-                Assert.AreEqual(1, itemsRemoved.Count);
-                Assert.AreEqual("1", itemsRemoved.FirstOrDefault());
-            });
+            Assert.AreEqual(1, bindableStringList.Count);
+            Assert.AreEqual("0", bindableStringList.Single());
+
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo("1"));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(1));
         }
 
         [Test]
@@ -586,18 +989,17 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add("0");
             bindableStringList.Add("1");
 
-            List<string> itemsRemoved = null;
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            list.ItemsRemoved += i => itemsRemoved = i.ToList();
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.RemoveRange(0, 1);
 
-            Assert.Multiple(() =>
-            {
-                Assert.AreEqual(1, itemsRemoved.Count);
-                Assert.AreEqual("0", itemsRemoved.FirstOrDefault());
-            });
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo("0"));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
         }
 
         [Test]
@@ -605,14 +1007,15 @@ namespace osu.Framework.Tests.Bindables
         {
             bindableStringList.Add("0");
 
-            bool notified = false;
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            list.ItemsRemoved += i => notified = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.RemoveRange(0, 0);
 
-            Assert.IsFalse(notified);
+            Assert.That(triggeredArgs, Is.Null);
         }
 
         #endregion
@@ -644,14 +1047,16 @@ namespace osu.Framework.Tests.Bindables
         [Test]
         public void TestRemoveAtNotifiesSubscribers()
         {
-            bool wasRemoved = false;
-
             bindableStringList.Add("abc");
-            bindableStringList.ItemsRemoved += _ => wasRemoved = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.RemoveAt(0);
 
-            Assert.IsTrue(wasRemoved);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo("abc"));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
         }
 
         [Test]
@@ -659,15 +1064,32 @@ namespace osu.Framework.Tests.Bindables
         {
             bindableStringList.Add("abc");
 
-            bool wasRemoved = false;
-
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            list.ItemsRemoved += s => wasRemoved = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.RemoveAt(0);
 
-            Assert.IsTrue(wasRemoved);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo("abc"));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestRemoveAtBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.RemoveAt(b1.Count - 1);
         }
 
         #endregion
@@ -699,11 +1121,27 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add("0");
             bindableStringList.Add("0");
 
-            List<string> itemsRemoved = null;
-            bindableStringList.ItemsRemoved += i => itemsRemoved = i.ToList();
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
             bindableStringList.RemoveAll(m => m == "0");
 
-            Assert.AreEqual(2, itemsRemoved.Count);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo(new[] { "0", "0" }));
+        }
+
+        [Test]
+        public void TestRemoveAllNoopDoesntNotifySubscibers()
+        {
+            bindableStringList.Add("0");
+            bindableStringList.Add("0");
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableStringList.RemoveAll(m => m == "1");
+
+            Assert.That(triggeredArgs, Is.Null);
         }
 
         [Test]
@@ -712,14 +1150,46 @@ namespace osu.Framework.Tests.Bindables
             bindableStringList.Add("0");
             bindableStringList.Add("0");
 
-            List<string> itemsRemoved = null;
             var list = new BindableList<string>();
             list.BindTo(bindableStringList);
-            list.ItemsRemoved += i => itemsRemoved = i.ToList();
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.RemoveAll(m => m == "0");
 
-            Assert.AreEqual(2, itemsRemoved.Count);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo(new[] { "0", "0" }));
+        }
+
+        #endregion
+
+        #region .ReplaceRange(index, count, newItems)
+
+        [Test]
+        public void TestReplaceRangeNotifiesBoundLists()
+        {
+            string[] items = { "A", "B" };
+
+            bindableStringList.Add("0");
+            bindableStringList.Add("1");
+
+            var list = new BindableList<string>();
+            list.BindTo(bindableStringList);
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableStringList.ReplaceRange(0, 1, items);
+
+            Assert.That(list, Is.EquivalentTo(bindableStringList));
+            Assert.That(list, Is.EquivalentTo(new[] { "A", "B", "1" }));
+
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Replace));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo(items));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(0));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo("0"));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
         }
 
         #endregion
@@ -771,23 +1241,27 @@ namespace osu.Framework.Tests.Bindables
         {
             for (int i = 0; i < 5; i++)
                 bindableStringList.Add("testA");
-            bool wasNotified = false;
-            bindableStringList.ItemsRemoved += items => wasNotified = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Clear();
 
-            Assert.IsTrue(wasNotified);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.OldItems, Is.EquivalentTo(new[] { "testA", "testA", "testA", "testA", "testA" }));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
         }
 
         [Test]
         public void TestClearDoesNotNotifySubscriberBeforeClear()
         {
-            bool wasNotified = false;
-            bindableStringList.ItemsRemoved += items => wasNotified = true;
             for (int i = 0; i < 5; i++)
                 bindableStringList.Add("testA");
 
-            Assert.IsFalse(wasNotified);
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            Assert.That(triggeredArgs, Is.Null);
 
             bindableStringList.Clear();
         }
@@ -797,21 +1271,19 @@ namespace osu.Framework.Tests.Bindables
         {
             for (int i = 0; i < 5; i++)
                 bindableStringList.Add("testA");
-            bool wasNotifiedA = false;
-            bindableStringList.ItemsRemoved += items => wasNotifiedA = true;
-            bool wasNotifiedB = false;
-            bindableStringList.ItemsRemoved += items => wasNotifiedB = true;
-            bool wasNotifiedC = false;
-            bindableStringList.ItemsRemoved += items => wasNotifiedC = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgsA = null;
+            NotifyCollectionChangedEventArgs triggeredArgsB = null;
+            NotifyCollectionChangedEventArgs triggeredArgsC = null;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsA = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsB = args;
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgsC = args;
 
             bindableStringList.Clear();
 
-            Assert.Multiple(() =>
-            {
-                Assert.IsTrue(wasNotifiedA);
-                Assert.IsTrue(wasNotifiedB);
-                Assert.IsTrue(wasNotifiedC);
-            });
+            Assert.That(triggeredArgsA, Is.Not.Null);
+            Assert.That(triggeredArgsB, Is.Not.Null);
+            Assert.That(triggeredArgsC, Is.Not.Null);
         }
 
         [Test]
@@ -916,7 +1388,7 @@ namespace osu.Framework.Tests.Bindables
             Assert.Multiple(() =>
             {
                 Assert.IsNotNull(isDisabled);
-                Assert.IsTrue(isDisabled.Value);
+                Assert.IsTrue(isDisabled);
             });
         }
 
@@ -935,18 +1407,18 @@ namespace osu.Framework.Tests.Bindables
             Assert.Multiple(() =>
             {
                 Assert.IsNotNull(isDisabledA);
-                Assert.IsTrue(isDisabledA.Value);
+                Assert.IsTrue(isDisabledA);
                 Assert.IsNotNull(isDisabledB);
-                Assert.IsTrue(isDisabledB.Value);
+                Assert.IsTrue(isDisabledB);
                 Assert.IsNotNull(isDisabledC);
-                Assert.IsTrue(isDisabledC.Value);
+                Assert.IsTrue(isDisabledC);
             });
         }
 
         [Test]
         public void TestDisabledWhenSetToCurrentValueDoesNotNotifySubscriber()
         {
-            bindableStringList.DisabledChanged += b => Assert.Fail();
+            bindableStringList.DisabledChanged += _ => Assert.Fail();
 
             bindableStringList.Disabled = bindableStringList.Disabled;
         }
@@ -954,9 +1426,9 @@ namespace osu.Framework.Tests.Bindables
         [Test]
         public void TestDisabledWhenSetToCurrentValueDoesNotNotifySubscribers()
         {
-            bindableStringList.DisabledChanged += b => Assert.Fail();
-            bindableStringList.DisabledChanged += b => Assert.Fail();
-            bindableStringList.DisabledChanged += b => Assert.Fail();
+            bindableStringList.DisabledChanged += _ => Assert.Fail();
+            bindableStringList.DisabledChanged += _ => Assert.Fail();
+            bindableStringList.DisabledChanged += _ => Assert.Fail();
 
             bindableStringList.Disabled = bindableStringList.Disabled;
         }
@@ -974,7 +1446,7 @@ namespace osu.Framework.Tests.Bindables
 
         #endregion
 
-        #region .GetEnumberator()
+        #region .GetEnumerator()
 
         [Test]
         public void TestGetEnumeratorDoesNotReturnNull()
@@ -1066,52 +1538,36 @@ namespace osu.Framework.Tests.Bindables
         {
             string[] strings = { "testA", "testB", "testC" };
             bindableStringList.AddRange(strings);
-            bool itemsGotCleared = false;
-            IEnumerable<string> clearedItems = null;
-            bindableStringList.ItemsRemoved += items =>
-            {
-                itemsGotCleared = true;
-                clearedItems = items;
-            };
+
+            var triggeredArgs = new List<NotifyCollectionChangedEventArgs>();
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs.Add(args);
 
             bindableStringList.Parse(null);
 
-            Assert.Multiple(() =>
-            {
-                CollectionAssert.AreEquivalent(strings, clearedItems);
-                Assert.IsTrue(itemsGotCleared);
-            });
+            Assert.That(triggeredArgs, Has.Count.EqualTo(1));
+            Assert.That(triggeredArgs.First().Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.First().OldItems, Is.EquivalentTo(strings));
+            Assert.That(triggeredArgs.First().OldStartingIndex, Is.EqualTo(0));
         }
 
         [Test]
         public void TestParseWithItemsNotifiesAddRangeAndClearSubscribers()
         {
             bindableStringList.Add("test123");
-
             IEnumerable<string> strings = new[] { "testA", "testB" };
-            IEnumerable<string> addedItems = null;
-            bool? itemsWereFirstCleaned = null;
-            bindableStringList.ItemsAdded += items =>
-            {
-                addedItems = items;
-                if (itemsWereFirstCleaned == null)
-                    itemsWereFirstCleaned = false;
-            };
-            bindableStringList.ItemsRemoved += items =>
-            {
-                if (itemsWereFirstCleaned == null)
-                    itemsWereFirstCleaned = true;
-            };
+
+            var triggeredArgs = new List<NotifyCollectionChangedEventArgs>();
+            bindableStringList.CollectionChanged += (_, args) => triggeredArgs.Add(args);
 
             bindableStringList.Parse(strings);
 
-            Assert.Multiple(() =>
-            {
-                CollectionAssert.AreEquivalent(strings, bindableStringList);
-                CollectionAssert.AreEquivalent(strings, addedItems);
-                Assert.NotNull(itemsWereFirstCleaned);
-                Assert.IsTrue(itemsWereFirstCleaned ?? false);
-            });
+            Assert.That(triggeredArgs, Has.Count.EqualTo(2));
+            Assert.That(triggeredArgs.First().Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
+            Assert.That(triggeredArgs.First().OldItems, Is.EquivalentTo("test123".Yield()));
+            Assert.That(triggeredArgs.First().OldStartingIndex, Is.EqualTo(0));
+            Assert.That(triggeredArgs.ElementAt(1).Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.ElementAt(1).NewItems, Is.EquivalentTo(strings));
+            Assert.That(triggeredArgs.ElementAt(1).NewStartingIndex, Is.EqualTo(0));
         }
 
         #endregion
@@ -1122,14 +1578,22 @@ namespace osu.Framework.Tests.Bindables
         public void TestBoundCopyWithAdd()
         {
             var boundCopy = bindableStringList.GetBoundCopy();
-            bool boundCopyItemAdded = false;
-            boundCopy.ItemsAdded += item => boundCopyItemAdded = true;
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            boundCopy.CollectionChanged += (_, args) => triggeredArgs = args;
 
             bindableStringList.Add("test");
 
-            Assert.IsTrue(boundCopyItemAdded);
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Add));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo("test".Yield()));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(0));
         }
 
         #endregion
+
+        private class TestAlwaysEqualModel : IEquatable<TestAlwaysEqualModel>
+        {
+            public bool Equals(TestAlwaysEqualModel other) => true;
+        }
     }
 }

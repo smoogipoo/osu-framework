@@ -1,19 +1,21 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
-using osu.Framework.MathUtils;
+using osu.Framework.Utils;
 using osu.Framework.Timing;
 using osuTK;
 using osuTK.Graphics;
 
 namespace osu.Framework.Tests.Visual.Layout
 {
-    public class TestSceneLayoutDurations : FrameworkTestScene
+    public partial class TestSceneLayoutDurations : FrameworkTestScene
     {
         private ManualClock manualClock;
         private Container autoSizeContainer;
@@ -100,7 +102,7 @@ namespace osu.Framework.Tests.Visual.Layout
                 fillFlowContainer.Width = 100;
             });
 
-            foreach (var ratio in new[] { .25f, .5f, .75f, 1 })
+            foreach (float ratio in new[] { .25f, .5f, .75f, 1 })
             {
                 skipTo(ratio);
                 check(ratio);

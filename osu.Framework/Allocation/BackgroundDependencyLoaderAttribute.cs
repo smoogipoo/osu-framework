@@ -1,22 +1,29 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using JetBrains.Annotations;
 using osu.Framework.Extensions.TypeExtensions;
+using osu.Framework.Statistics;
+using osu.Framework.Utils;
 
 namespace osu.Framework.Allocation
 {
     /// <summary>
-    /// Marks a method as the (potentially asynchronous) initialization method of a <see cref="osu.Framework.Graphics.Drawable"/>, allowing for automatic injection of dependencies via the parameters of the method.
+    /// Marks a method as the (potentially asynchronous) initialization method of a <see cref="Graphics.Drawable"/>, allowing for automatic injection of dependencies via the parameters of the method.
     /// </summary>
-    [MeansImplicitUse]
+    [MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
     [AttributeUsage(AttributeTargets.Method)]
     public class BackgroundDependencyLoaderAttribute : Attribute
     {
+        private static readonly GlobalStatistic<int> count_reflection_attributes = GlobalStatistics.Get<int>("Dependencies", "Reflected [BackgroundDependencyLoader]s");
+
         private const BindingFlags activator_flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
         private bool permitNulls { get; }
@@ -39,12 +46,14 @@ namespace osu.Framework.Allocation
 
         internal static InjectDependencyDelegate CreateActivator(Type type)
         {
+            count_reflection_attributes.Value++;
+
             var loaderMethods = type.GetMethods(activator_flags).Where(m => m.GetCustomAttribute<BackgroundDependencyLoaderAttribute>() != null).ToArray();
 
             switch (loaderMethods.Length)
             {
                 case 0:
-                    return (_, __) => { };
+                    return (_, _) => { };
 
                 case 1:
                     var method = loaderMethods[0];
@@ -53,30 +62,26 @@ namespace osu.Framework.Allocation
                     if (modifier != AccessModifier.Private)
                         throw new AccessModifierNotAllowedForLoaderMethodException(modifier, method);
 
-                    var permitNulls = method.GetCustomAttribute<BackgroundDependencyLoaderAttribute>().permitNulls;
-                    var parameterGetters = method.GetParameters().Select(p => p.ParameterType).Select(t => getDependency(t, type, permitNulls || t.IsNullable()));
+                    var attribute = method.GetCustomAttribute<BackgroundDependencyLoaderAttribute>();
+                    Debug.Assert(attribute != null);
+
+                    bool permitNulls = attribute.permitNulls;
+                    var parameterGetters = method.GetParameters()
+                                                 .Select(parameter => getDependency(parameter.ParameterType, type, permitNulls || parameter.IsNullable())).ToArray();
 
                     return (target, dc) =>
                     {
                         try
                         {
-                            method.Invoke(target, parameterGetters.Select(p => p(dc)).ToArray());
+                            object[] parameterArray = new object[parameterGetters.Length];
+                            for (int i = 0; i < parameterGetters.Length; i++)
+                                parameterArray[i] = parameterGetters[i](dc);
+
+                            method.Invoke(target, parameterArray);
                         }
                         catch (TargetInvocationException exc) // During non-await invocations
                         {
-                            switch (exc.InnerException)
-                            {
-                                case OperationCanceledException _:
-                                    // This activator is cancelled - propagate the cancellation as-is (it will be handled silently)
-                                    throw exc.InnerException;
-
-                                case DependencyInjectionException die:
-                                    // A nested activator has failed (multiple Invoke() calls) - propagate the original error
-                                    throw die;
-                            }
-
-                            // This activator has failed (single reflection call) - preserve the original stacktrace while notifying of the error
-                            throw new DependencyInjectionException { DispatchInfo = ExceptionDispatchInfo.Capture(exc.InnerException) };
+                            ExceptionDispatchInfo.Capture(exc.InnerException ?? exc).Throw();
                         }
                     };
 
@@ -85,13 +90,7 @@ namespace osu.Framework.Allocation
             }
         }
 
-        private static Func<IReadOnlyDependencyContainer, object> getDependency(Type type, Type requestingType, bool permitNulls) => dc =>
-        {
-            var val = dc.Get(type);
-            if (val == null && !permitNulls)
-                throw new DependencyNotRegisteredException(requestingType, type);
-
-            return val;
-        };
+        private static Func<IReadOnlyDependencyContainer, object> getDependency(Type type, Type requestingType, bool permitNulls)
+            => dc => SourceGeneratorUtils.GetDependency(dc, type, requestingType, null, null, permitNulls, false);
     }
 }

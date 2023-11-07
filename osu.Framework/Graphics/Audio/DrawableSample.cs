@@ -1,34 +1,73 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using osu.Framework.Audio.Mixing;
 using osu.Framework.Audio.Sample;
+using osu.Framework.Bindables;
+using osu.Framework.Lists;
 
 namespace osu.Framework.Graphics.Audio
 {
     /// <summary>
     /// A <see cref="SampleChannel"/> wrapper to allow insertion in the draw hierarchy to allow transforms, lifetime management etc.
     /// </summary>
-    public class DrawableSample : DrawableAudioWrapper, ISampleChannel
+    public partial class DrawableSample : DrawableAudioWrapper, ISample
     {
-        private readonly SampleChannel channel;
+        private readonly WeakList<SampleChannel> playingChannels = new WeakList<SampleChannel>();
+
+        private readonly ISample sample;
 
         /// <summary>
         /// Construct a new drawable sample instance.
         /// </summary>
-        /// <param name="channel">The audio sample to wrap.</param>
-        /// <param name="disposeChannelOnDisposal">Whether the sample should be automatically disposed on drawable disposal/expiry.</param>
-        public DrawableSample(SampleChannel channel, bool disposeChannelOnDisposal = true)
-            : base(channel, disposeChannelOnDisposal)
+        /// <param name="sample">The audio sample to wrap.</param>
+        /// <param name="disposeSampleOnDisposal">Whether the sample should be automatically disposed on drawable disposal/expiry.</param>
+        public DrawableSample(ISample sample, bool disposeSampleOnDisposal = true)
+            : base(sample, disposeSampleOnDisposal)
         {
-            this.channel = channel;
+            this.sample = sample;
+
+            Name = sample.Name;
+
+            PlaybackConcurrency.BindTo(sample.PlaybackConcurrency);
         }
 
-        public void Play(bool restart = true) => channel.Play(restart);
+        public SampleChannel Play()
+        {
+            var channel = GetChannel();
+            channel.Play();
+            return channel;
+        }
 
-        public void Stop() => channel.Stop();
+        public SampleChannel GetChannel()
+        {
+            var channel = sample.GetChannel();
 
-        public bool Playing => channel.Playing;
+            playingChannels.Add(channel);
+            mixer?.Add(channel);
 
-        public bool Played => channel.Played;
+            return channel;
+        }
+
+        string ISample.Name => sample.Name;
+
+        public double Length => sample.Length;
+
+        public Bindable<int> PlaybackConcurrency { get; } = new Bindable<int>(Sample.DEFAULT_CONCURRENCY);
+
+        private IAudioMixer? mixer;
+
+        protected override void OnMixerChanged(ValueChangedEvent<IAudioMixer> mixer)
+        {
+            base.OnMixerChanged(mixer);
+
+            this.mixer = mixer.NewValue;
+
+            foreach (var channel in playingChannels)
+            {
+                mixer.OldValue?.Remove(channel);
+                mixer.NewValue?.Add(channel);
+            }
+        }
     }
 }

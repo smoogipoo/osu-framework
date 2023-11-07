@@ -5,6 +5,7 @@ using System;
 using osuTK;
 using osu.Framework.Graphics.Primitives;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using osuTK.Graphics;
 
 namespace osu.Framework.Graphics.Colour
@@ -66,14 +67,11 @@ namespace osu.Framework.Graphics.Colour
 
         private SRGBColour singleColour
         {
-            get
+            readonly get
             {
-                if (!HasSingleColour)
-                    throw new InvalidOperationException("Attempted to read single colour from multi-colour ColourInfo.");
-
+                Debug.Assert(HasSingleColour);
                 return TopLeft;
             }
-
             set
             {
                 TopLeft = BottomLeft = TopRight = BottomRight = value;
@@ -81,9 +79,44 @@ namespace osu.Framework.Graphics.Colour
             }
         }
 
-        public SRGBColour Interpolate(Vector2 interp) => SRGBColour.FromVector(
+        /// <summary>
+        /// Attempts to extract the single colour represented by this <see cref="ColourInfo"/>.
+        /// </summary>
+        /// <param name="colour">The extracted colour. If <c>false</c> is returned, this represents the top-left colour.</param>
+        /// <returns>Whether the extracted colour is the single colour represented by this <see cref="ColourInfo"/>.</returns>
+        public readonly bool TryExtractSingleColour(out SRGBColour colour)
+        {
+            // To make this code branchless, we have to work around the assertion in singleColour.
+            colour = TopLeft;
+            return HasSingleColour;
+        }
+
+        public readonly SRGBColour Interpolate(Vector2 interp) => SRGBColour.FromVector(
             (1 - interp.Y) * ((1 - interp.X) * TopLeft.ToVector() + interp.X * TopRight.ToVector()) +
             interp.Y * ((1 - interp.X) * BottomLeft.ToVector() + interp.X * BottomRight.ToVector()));
+
+        /// <summary>
+        /// Interpolates this <see cref="ColourInfo"/> across a quad.
+        /// </summary>
+        /// <remarks>
+        /// This method is especially useful when working with multi-colour <see cref="ColourInfo"/>s.
+        /// When such a colour is interpolated across a quad that is a subset of the unit quad (0, 0, 1, 1),
+        /// the resulting colour can be thought of as the the original colour but "cropped" to the bounds of the subquad.
+        /// </remarks>
+        public readonly ColourInfo Interpolate(Quad quad)
+        {
+            if (HasSingleColour)
+                return this;
+
+            return new ColourInfo
+            {
+                TopLeft = Interpolate(quad.TopLeft),
+                TopRight = Interpolate(quad.TopRight),
+                BottomLeft = Interpolate(quad.BottomLeft),
+                BottomRight = Interpolate(quad.BottomRight),
+                HasSingleColour = false
+            };
+        }
 
         public void ApplyChild(ColourInfo childColour)
         {
@@ -122,33 +155,41 @@ namespace osu.Framework.Graphics.Colour
             BottomRight = newBottomRight;
         }
 
+        internal static ColourInfo Multiply(ColourInfo first, ColourInfo second) => new ColourInfo
+        {
+            TopLeft = first.TopLeft * second.TopLeft,
+            BottomLeft = first.BottomLeft * second.BottomLeft,
+            TopRight = first.TopRight * second.TopRight,
+            BottomRight = first.BottomRight * second.BottomRight
+        };
+
         /// <summary>
         /// Created a new ColourInfo with the alpha value of the colours of all vertices
         /// multiplied by a given alpha parameter.
         /// </summary>
         /// <param name="alpha">The alpha parameter to multiply the alpha values of all vertices with.</param>
         /// <returns>The new ColourInfo.</returns>
-        public ColourInfo MultiplyAlpha(float alpha)
+        public readonly ColourInfo MultiplyAlpha(float alpha)
         {
             if (alpha == 1.0)
                 return this;
 
+            if (TryExtractSingleColour(out SRGBColour single))
+            {
+                single.MultiplyAlpha(alpha);
+                return single;
+            }
+
             ColourInfo result = this;
             result.TopLeft.MultiplyAlpha(alpha);
-
-            if (HasSingleColour)
-                result.BottomLeft = result.TopRight = result.BottomRight = result.TopLeft;
-            else
-            {
-                result.BottomLeft.MultiplyAlpha(alpha);
-                result.TopRight.MultiplyAlpha(alpha);
-                result.BottomRight.MultiplyAlpha(alpha);
-            }
+            result.BottomLeft.MultiplyAlpha(alpha);
+            result.TopRight.MultiplyAlpha(alpha);
+            result.BottomRight.MultiplyAlpha(alpha);
 
             return result;
         }
 
-        public bool Equals(ColourInfo other)
+        public readonly bool Equals(ColourInfo other)
         {
             if (!HasSingleColour)
             {
@@ -162,20 +203,20 @@ namespace osu.Framework.Graphics.Colour
                     BottomRight.Equals(other.BottomRight);
             }
 
-            return other.HasSingleColour && TopLeft.Equals(other.TopLeft);
+            return other.HasSingleColour && singleColour.Equals(other.singleColour);
         }
 
-        public bool Equals(SRGBColour other) => HasSingleColour && TopLeft.Equals(other);
+        public readonly bool Equals(SRGBColour other) => HasSingleColour && singleColour.Equals(other);
 
         /// <summary>
         /// The average colour of all corners.
         /// </summary>
-        public SRGBColour AverageColour
+        public readonly SRGBColour AverageColour
         {
             get
             {
                 if (HasSingleColour)
-                    return TopLeft;
+                    return singleColour;
 
                 return SRGBColour.FromVector(
                     (TopLeft.ToVector() + TopRight.ToVector() + BottomLeft.ToVector() + BottomRight.ToVector()) / 4);
@@ -185,14 +226,14 @@ namespace osu.Framework.Graphics.Colour
         /// <summary>
         /// The maximum alpha value of all four corners.
         /// </summary>
-        public float MaxAlpha
+        public readonly float MaxAlpha
         {
             get
             {
-                float max = TopLeft.Linear.A;
-                if (TopRight.Linear.A > max) max = TopRight.Linear.A;
-                if (BottomLeft.Linear.A > max) max = BottomLeft.Linear.A;
-                if (BottomRight.Linear.A > max) max = BottomRight.Linear.A;
+                float max = TopLeft.Alpha;
+                if (TopRight.Alpha > max) max = TopRight.Alpha;
+                if (BottomLeft.Alpha > max) max = BottomLeft.Alpha;
+                if (BottomRight.Alpha > max) max = BottomRight.Alpha;
 
                 return max;
             }
@@ -201,25 +242,38 @@ namespace osu.Framework.Graphics.Colour
         /// <summary>
         /// The minimum alpha value of all four corners.
         /// </summary>
-        public float MinAlpha
+        public readonly float MinAlpha
         {
             get
             {
-                float min = TopLeft.Linear.A;
-                if (TopRight.Linear.A < min) min = TopRight.Linear.A;
-                if (BottomLeft.Linear.A < min) min = BottomLeft.Linear.A;
-                if (BottomRight.Linear.A < min) min = BottomRight.Linear.A;
+                float min = TopLeft.Alpha;
+                if (TopRight.Alpha < min) min = TopRight.Alpha;
+                if (BottomLeft.Alpha < min) min = BottomLeft.Alpha;
+                if (BottomRight.Alpha < min) min = BottomRight.Alpha;
 
                 return min;
             }
         }
 
-        public override string ToString() => HasSingleColour ? $@"{TopLeft} (Single)" : $@"{TopLeft}, {TopRight}, {BottomLeft}, {BottomRight}";
+        public override readonly string ToString() => HasSingleColour ? $@"{TopLeft} (Single)" : $@"{TopLeft}, {TopRight}, {BottomLeft}, {BottomRight}";
 
         public static implicit operator ColourInfo(SRGBColour colour) => SingleColour(colour);
-        public static implicit operator SRGBColour(ColourInfo colour) => colour.singleColour;
+
+        public static implicit operator SRGBColour(ColourInfo colour)
+        {
+            if (!colour.HasSingleColour)
+                throwConversionFromMultiColourToSingleColourException();
+
+            return colour.singleColour;
+
+            [DoesNotReturn]
+            static void throwConversionFromMultiColourToSingleColourException() => throw new InvalidOperationException("Attempted to read single colour from multi-colour ColourInfo.");
+        }
 
         public static implicit operator ColourInfo(Color4 colour) => (SRGBColour)colour;
         public static implicit operator Color4(ColourInfo colour) => (SRGBColour)colour;
+
+        public static implicit operator ColourInfo(Colour4 colour) => (SRGBColour)colour;
+        public static implicit operator Colour4(ColourInfo colour) => (SRGBColour)colour;
     }
 }

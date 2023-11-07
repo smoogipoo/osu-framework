@@ -16,12 +16,12 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// code
     /// ```
     /// </code>
-    public class MarkdownFencedCodeBlock : CompositeDrawable, IMarkdownTextFlowComponent
+    public partial class MarkdownFencedCodeBlock : CompositeDrawable, IMarkdownTextFlowComponent
     {
         private readonly FencedCodeBlock fencedCodeBlock;
 
         [Resolved]
-        private IMarkdownTextFlowComponent parentFlowComponent { get; set; }
+        private IMarkdownTextFlowComponent parentFlowComponent { get; set; } = null!;
 
         public MarkdownFencedCodeBlock(FencedCodeBlock fencedCodeBlock)
         {
@@ -41,8 +41,9 @@ namespace osu.Framework.Graphics.Containers.Markdown
                 textFlowContainer = CreateTextFlow(),
             };
 
-            foreach (var line in fencedCodeBlock.Lines.Lines)
-                textFlowContainer.AddParagraph(line.ToString());
+            // Markdig sometimes appends empty lines to the processed block, only add original lines to the container
+            for (int i = 0; i < fencedCodeBlock.Lines.Count; i++)
+                textFlowContainer.AddParagraph(fencedCodeBlock.Lines.Lines[i].ToString());
         }
 
         protected virtual Drawable CreateBackground() => new Box

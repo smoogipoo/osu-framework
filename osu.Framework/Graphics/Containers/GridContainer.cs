@@ -1,11 +1,16 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Caching;
+using osu.Framework.Extensions.EnumExtensions;
+using osu.Framework.Layout;
 using osuTK;
 
 namespace osu.Framework.Graphics.Containers
@@ -13,15 +18,21 @@ namespace osu.Framework.Graphics.Containers
     /// <summary>
     /// A container which allows laying out <see cref="Drawable"/>s in a grid.
     /// </summary>
-    public class GridContainer : CompositeDrawable
+    public partial class GridContainer : CompositeDrawable
     {
+        public GridContainer()
+        {
+            AddLayout(cellLayout);
+            AddLayout(cellChildLayout);
+        }
+
         [BackgroundDependencyLoader]
         private void load()
         {
             layoutContent();
         }
 
-        private Drawable[][] content;
+        private GridContainerContent content;
 
         /// <summary>
         /// The content of this <see cref="GridContainer"/>, arranged in a 2D grid array, where each array
@@ -30,18 +41,29 @@ namespace osu.Framework.Graphics.Containers
         /// Null elements are allowed to represent blank rows/cells.
         /// </para>
         /// </summary>
-        public Drawable[][] Content
+        public GridContainerContent Content
         {
             get => content;
             set
             {
-                if (content == value)
+                if (content?.Equals(value) == true)
                     return;
+
+                if (content != null)
+                    content.ArrayElementChanged -= onContentChange;
 
                 content = value;
 
-                cellContent.Invalidate();
+                onContentChange();
+
+                if (content != null)
+                    content.ArrayElementChanged += onContentChange;
             }
+        }
+
+        private void onContentChange()
+        {
+            cellContent.Invalidate();
         }
 
         private Dimension[] rowDimensions = Array.Empty<Dimension>();
@@ -53,8 +75,7 @@ namespace osu.Framework.Graphics.Containers
         {
             set
             {
-                if (value == null)
-                    throw new ArgumentNullException(nameof(RowDimensions));
+                ArgumentNullException.ThrowIfNull(value);
 
                 if (rowDimensions == value)
                     return;
@@ -74,8 +95,7 @@ namespace osu.Framework.Graphics.Containers
         {
             set
             {
-                if (value == null)
-                    throw new ArgumentNullException(nameof(ColumnDimensions));
+                ArgumentNullException.ThrowIfNull(value);
 
                 if (columnDimensions == value)
                     return;
@@ -108,24 +128,9 @@ namespace osu.Framework.Graphics.Containers
             layoutCells();
         }
 
-        public override bool Invalidate(Invalidation invalidation = Invalidation.All, Drawable source = null, bool shallPropagate = true)
-        {
-            if ((invalidation & (Invalidation.DrawInfo | Invalidation.RequiredParentSizeToFit)) > 0)
-                cellLayout.Invalidate();
-
-            return base.Invalidate(invalidation, source, shallPropagate);
-        }
-
-        public override void InvalidateFromChild(Invalidation invalidation, Drawable source = null)
-        {
-            if ((invalidation & (Invalidation.RequiredParentSizeToFit | Invalidation.Presence)) > 0)
-                cellLayout.Invalidate();
-
-            base.InvalidateFromChild(invalidation, source);
-        }
-
-        private Cached cellContent = new Cached();
-        private Cached cellLayout = new Cached();
+        private readonly Cached cellContent = new Cached();
+        private readonly LayoutValue cellLayout = new LayoutValue(Invalidation.DrawInfo | Invalidation.RequiredParentSizeToFit);
+        private readonly LayoutValue cellChildLayout = new LayoutValue(Invalidation.RequiredParentSizeToFit | Invalidation.Presence, InvalidationSource.Child);
 
         private CellContainer[,] cells = new CellContainer[0, 0];
         private int cellRows => cells.GetLength(0);
@@ -139,8 +144,8 @@ namespace osu.Framework.Graphics.Containers
             if (cellContent.IsValid)
                 return;
 
-            int requiredRows = Content?.Length ?? 0;
-            int requiredColumns = requiredRows == 0 ? 0 : Content.Max(c => c?.Length ?? 0);
+            int requiredRows = Content?.Count ?? 0;
+            int requiredColumns = requiredRows == 0 ? 0 : Content?.Max(c => c?.Count ?? 0) ?? 0;
 
             // Clear cell containers without disposing, as the content might be reused
             foreach (var cell in cells)
@@ -155,28 +160,33 @@ namespace osu.Framework.Graphics.Containers
             cells = new CellContainer[requiredRows, requiredColumns];
 
             for (int r = 0; r < cellRows; r++)
-            for (int c = 0; c < cellColumns; c++)
             {
-                // Add cell
-                cells[r, c] = new CellContainer();
+                for (int c = 0; c < cellColumns; c++)
+                {
+                    // Content should not be null since the number of rows/columns is non-zero.
+                    Debug.Assert(Content != null);
 
-                // Allow empty rows
-                if (Content[r] == null)
-                    continue;
+                    // Add cell
+                    cells[r, c] = new CellContainer();
 
-                // Allow non-square grids
-                if (c >= Content[r].Length)
-                    continue;
+                    // Allow empty rows
+                    if (Content[r] == null)
+                        continue;
 
-                // Allow empty cells
-                if (Content[r][c] == null)
-                    continue;
+                    // Allow non-square grids
+                    if (c >= Content[r].Count)
+                        continue;
 
-                // Add content
-                cells[r, c].Add(Content[r][c]);
-                cells[r, c].Depth = Content[r][c].Depth;
+                    // Allow empty cells
+                    if (Content[r][c] == null)
+                        continue;
 
-                AddInternal(cells[r, c]);
+                    // Add content
+                    cells[r, c].Add(Content[r][c]);
+                    cells[r, c].Depth = Content[r][c].Depth;
+
+                    AddInternal(cells[r, c]);
+                }
             }
 
             cellContent.Validate();
@@ -187,22 +197,30 @@ namespace osu.Framework.Graphics.Containers
         /// </summary>
         private void layoutCells()
         {
+            if (!cellChildLayout.IsValid)
+            {
+                cellLayout.Invalidate();
+                cellChildLayout.Validate();
+            }
+
             if (cellLayout.IsValid)
                 return;
 
-            var widths = distribute(columnDimensions, DrawWidth, getCellSizesAlongAxis(Axes.X, DrawWidth));
-            var heights = distribute(rowDimensions, DrawHeight, getCellSizesAlongAxis(Axes.Y, DrawHeight));
+            float[] widths = distribute(columnDimensions, DrawWidth, getCellSizesAlongAxis(Axes.X, DrawWidth));
+            float[] heights = distribute(rowDimensions, DrawHeight, getCellSizesAlongAxis(Axes.Y, DrawHeight));
 
             for (int col = 0; col < cellColumns; col++)
-            for (int row = 0; row < cellRows; row++)
             {
-                cells[row, col].Size = new Vector2(widths[col], heights[row]);
+                for (int row = 0; row < cellRows; row++)
+                {
+                    cells[row, col].Size = new Vector2(widths[col], heights[row]);
 
-                if (col > 0)
-                    cells[row, col].X = cells[row, col - 1].X + cells[row, col - 1].Width;
+                    if (col > 0)
+                        cells[row, col].X = cells[row, col - 1].X + cells[row, col - 1].Width;
 
-                if (row > 0)
-                    cells[row, col].Y = cells[row - 1, col].Y + cells[row - 1, col].Height;
+                    if (row > 0)
+                        cells[row, col].Y = cells[row - 1, col].Y + cells[row - 1, col].Height;
+                }
             }
 
             cellLayout.Validate();
@@ -222,7 +240,7 @@ namespace osu.Framework.Graphics.Containers
             var spanDimensions = axis == Axes.X ? columnDimensions : rowDimensions;
             int spanCount = axis == Axes.X ? cellColumns : cellRows;
 
-            var sizes = new float[spanCount];
+            float[] sizes = new float[spanCount];
 
             for (int i = 0; i < spanCount; i++)
             {
@@ -254,24 +272,40 @@ namespace osu.Framework.Graphics.Containers
                         {
                             // Go through each row and get the width of the cell at the indexed column
                             for (int r = 0; r < cellRows; r++)
-                                size = Math.Max(size, Content[r]?[i]?.BoundingBox.Width ?? 0);
+                            {
+                                var cell = Content[r]?[i];
+                                if (cell == null || cell.RelativeSizeAxes.HasFlagFast(axis))
+                                    continue;
+
+                                size = Math.Max(size, getCellWidth(cell));
+                            }
                         }
                         else
                         {
                             // Go through each column and get the height of the cell at the indexed row
                             for (int c = 0; c < cellColumns; c++)
-                                size = Math.Max(size, Content[i]?[c]?.BoundingBox.Height ?? 0);
+                            {
+                                var cell = Content[i]?[c];
+                                if (cell == null || cell.RelativeSizeAxes.HasFlagFast(axis))
+                                    continue;
+
+                                size = Math.Max(size, getCellHeight(cell));
+                            }
                         }
 
                         sizes[i] = size;
                         break;
                 }
 
-                sizes[i] = MathHelper.Clamp(sizes[i], dimension.MinSize, dimension.MaxSize);
+                sizes[i] = Math.Clamp(sizes[i], dimension.MinSize, dimension.MaxSize);
             }
 
             return sizes;
         }
+
+        private static bool shouldConsiderCell(Drawable cell) => cell != null && cell.IsAlive && cell.IsPresent;
+        private static float getCellWidth(Drawable cell) => shouldConsiderCell(cell) ? cell.BoundingBox.Width : 0;
+        private static float getCellHeight(Drawable cell) => shouldConsiderCell(cell) ? cell.BoundingBox.Height : 0;
 
         /// <summary>
         /// Distributes any available length along all distributed dimensions, if required.
@@ -286,7 +320,7 @@ namespace osu.Framework.Graphics.Containers
             int[] distributedIndices = Enumerable.Range(0, cellSizes.Length).Where(i => i >= dimensions.Length || dimensions[i].Mode == GridSizeMode.Distributed).ToArray();
 
             // The dimensions corresponding to all distributed cells
-            IEnumerable<(int i, Dimension dim)> distributedDimensions = distributedIndices.Select(i => (i, i >= dimensions.Length ? new Dimension() : dimensions[i]));
+            IEnumerable<DimensionEntry> distributedDimensions = distributedIndices.Select(i => new DimensionEntry(i, i >= dimensions.Length ? new Dimension() : dimensions[i]));
 
             // Total number of distributed cells
             int distributionCount = distributedIndices.Length;
@@ -298,31 +332,45 @@ namespace osu.Framework.Graphics.Containers
             float distributionSize = Math.Max(0, spanLength - requiredSize) / distributionCount;
 
             // Write the sizes of distributed cells. Ordering is important to maximize excess at every step
-            foreach (var value in distributedDimensions.OrderBy(d => d.dim.Range))
+            foreach (var entry in distributedDimensions.OrderBy(d => d.Dimension.Range))
             {
                 // Cells start off at their minimum size, and the total size should not exceed their maximum size
-                cellSizes[value.i] = Math.Min(value.dim.MaxSize, value.dim.MinSize + distributionSize);
+                cellSizes[entry.Index] = Math.Min(entry.Dimension.MaxSize, entry.Dimension.MinSize + distributionSize);
 
                 // If there's no excess, any further distributions are guaranteed to also have no excess, so this becomes a null-op
                 // If there is an excess, the excess should be re-distributed among all other n-1 distributed cells
                 if (--distributionCount > 0)
-                    distributionSize += Math.Max(0, distributionSize - value.dim.Range) / distributionCount;
+                    distributionSize += Math.Max(0, distributionSize - entry.Dimension.Range) / distributionCount;
             }
 
             return cellSizes;
         }
 
+        private readonly struct DimensionEntry
+        {
+            public readonly int Index;
+            public readonly Dimension Dimension;
+
+            public DimensionEntry(int index, Dimension dimension)
+            {
+                Index = index;
+                Dimension = dimension;
+            }
+        }
+
         /// <summary>
         /// Represents one cell of the <see cref="GridContainer"/>.
         /// </summary>
-        private class CellContainer : Container
+        private partial class CellContainer : Container
         {
-            public override void InvalidateFromChild(Invalidation invalidation, Drawable source = null)
+            protected override bool OnInvalidate(Invalidation invalidation, InvalidationSource source)
             {
-                if ((invalidation & (Invalidation.RequiredParentSizeToFit | Invalidation.Presence)) > 0)
-                    Parent?.InvalidateFromChild(invalidation, this);
+                bool result = base.OnInvalidate(invalidation, source);
 
-                base.InvalidateFromChild(invalidation, source);
+                if (source == InvalidationSource.Child && (invalidation & (Invalidation.RequiredParentSizeToFit | Invalidation.Presence)) > 0)
+                    result |= Parent?.Invalidate(invalidation, InvalidationSource.Child) ?? false;
+
+                return result;
             }
         }
     }
@@ -384,7 +432,7 @@ namespace osu.Framework.Graphics.Containers
     {
         /// <summary>
         /// Any remaining area of the <see cref="GridContainer"/> will be divided amongst this and all
-        /// other elements which use <see cref="GridSizeMode.Distributed"/>.
+        /// other elements which use <see cref="Distributed"/>.
         /// </summary>
         Distributed,
 

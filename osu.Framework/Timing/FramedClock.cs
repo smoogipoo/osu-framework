@@ -3,6 +3,8 @@
 
 using osu.Framework.Extensions.TypeExtensions;
 using System;
+using System.Diagnostics;
+using System.Linq;
 
 namespace osu.Framework.Timing
 {
@@ -17,15 +19,23 @@ namespace osu.Framework.Timing
         /// <summary>
         /// Construct a new FramedClock with an optional source clock.
         /// </summary>
-        /// <param name="source">A source clock which will be used as the backing time source. If null, a StopwatchClock will be created. When provided, the CurrentTime of <see cref="source" /> will be transferred instantly.</param>
-        public FramedClock(IClock source = null)
+        /// <param name="source">A source clock which will be used as the backing time source. If null, a StopwatchClock will be created. When provided, the CurrentTime of <paramref name="source"/> will be transferred instantly.</param>
+        /// <param name="processSource">Whether the source clock's <see cref="ProcessFrame"/> method should be called during this clock's process call.</param>
+        public FramedClock(IClock? source = null, bool processSource = true)
         {
+            this.processSource = processSource;
+
             ChangeSource(source ?? new StopwatchClock(true));
+            Debug.Assert(Source != null);
         }
 
-        public FrameTimeInfo TimeInfo => new FrameTimeInfo { Elapsed = ElapsedFrameTime, Current = CurrentTime };
+        private readonly double[] betweenFrameTimes = new double[128];
+
+        private long totalFramesProcessed;
 
         public double FramesPerSecond { get; private set; }
+
+        public double Jitter { get; private set; }
 
         public virtual double CurrentTime { get; protected set; }
 
@@ -37,7 +47,9 @@ namespace osu.Framework.Timing
 
         public double ElapsedFrameTime => CurrentTime - LastFrameTime;
 
-        public bool IsRunning => Source?.IsRunning ?? false;
+        public bool IsRunning => Source.IsRunning;
+
+        private readonly bool processSource;
 
         private double timeUntilNextCalculation;
         private double timeSinceLastCalculation;
@@ -47,22 +59,37 @@ namespace osu.Framework.Timing
 
         public void ChangeSource(IClock source)
         {
-            CurrentTime = LastFrameTime = source.CurrentTime;
             Source = source;
+            CurrentTime = LastFrameTime = source.CurrentTime;
         }
 
         public virtual void ProcessFrame()
         {
-            (Source as IFrameBasedClock)?.ProcessFrame();
+            betweenFrameTimes[totalFramesProcessed % betweenFrameTimes.Length] = CurrentTime - LastFrameTime;
+            totalFramesProcessed++;
+
+            if (processSource && Source is IFrameBasedClock framedSource)
+                framedSource.ProcessFrame();
 
             if (timeUntilNextCalculation <= 0)
             {
                 timeUntilNextCalculation += fps_calculation_interval;
 
                 if (framesSinceLastCalculation == 0)
+                {
                     FramesPerSecond = 0;
+                    Jitter = 0;
+                }
                 else
+                {
                     FramesPerSecond = (int)Math.Ceiling(framesSinceLastCalculation * 1000f / timeSinceLastCalculation);
+
+                    // simple stddev
+                    double avg = betweenFrameTimes.Average();
+                    double stddev = Math.Sqrt(betweenFrameTimes.Average(v => Math.Pow(v - avg, 2)));
+                    Jitter = stddev;
+                }
+
                 timeSinceLastCalculation = framesSinceLastCalculation = 0;
             }
 

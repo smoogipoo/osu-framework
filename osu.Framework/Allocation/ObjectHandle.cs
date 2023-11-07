@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Runtime.InteropServices;
 
@@ -10,6 +12,7 @@ namespace osu.Framework.Allocation
     /// Wrapper on <see cref="GCHandle" /> that supports the <see cref="IDisposable" /> pattern.
     /// </summary>
     public struct ObjectHandle<T> : IDisposable
+        where T : class
     {
         /// <summary>
         /// The pointer from the <see cref="GCHandle" />, if it is allocated.  Otherwise <see cref="IntPtr.Zero" />.
@@ -66,11 +69,9 @@ namespace osu.Framework.Allocation
 
             try
             {
-                var value = handle.Target;
-
-                if (value is T)
+                if (handle.Target is T value)
                 {
-                    target = (T)value;
+                    target = value;
                     return true;
                 }
             }

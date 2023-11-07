@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Collections.Generic;
 using NUnit.Framework;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -12,15 +10,9 @@ using osuTK;
 
 namespace osu.Framework.Tests.Visual.UserInterface
 {
-    public class TestSceneCheckboxes : FrameworkTestScene
+    public partial class TestSceneCheckboxes : FrameworkTestScene
     {
         private readonly BasicCheckbox basic;
-
-        public override IReadOnlyList<Type> RequiredTypes => new[]
-        {
-            typeof(Checkbox),
-            typeof(BasicCheckbox)
-        };
 
         public TestSceneCheckboxes()
         {
@@ -70,7 +62,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
         [Test]
         public void TestDirectToggle()
         {
-            var testBindable = basic.Current.GetBoundCopy();
+            var testBindable = new Bindable<bool> { BindTarget = basic.Current };
 
             AddAssert("is unchecked", () => !basic.Current.Value);
             AddAssert("bindable unchecked", () => !testBindable.Value);

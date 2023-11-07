@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -78,11 +80,6 @@ namespace osu.Framework.Allocation
                 isDisposed = true;
                 timer.Dispose();
             }
-        }
-
-        ~TimedExpiryCache()
-        {
-            Dispose(false);
         }
 
         public void Dispose()

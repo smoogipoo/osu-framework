@@ -2,17 +2,17 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Platform;
 using osu.Framework;
+using osu.Framework.Platform;
 
 namespace SampleGame.Desktop
 {
     public static class Program
     {
         [STAThread]
-        public static void Main()
+        public static void Main(string[] args)
         {
-            using (GameHost host = Host.GetSuitableHost(@"sample-game"))
+            using (GameHost host = Host.GetSuitableDesktopHost(@"sample-game"))
             using (Game game = new SampleGameGame())
                 host.Run(game);
         }

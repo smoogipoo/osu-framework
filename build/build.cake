@@ -1,9 +1,8 @@
 using System.Threading;
-#addin "nuget:?package=CodeFileSanity&version=0.0.21"
-#addin "nuget:?package=JetBrains.ReSharper.CommandLineTools&version=2019.1.1"
-#tool "nuget:?package=NVika.MSBuild&version=1.0.1"
+using System.Text.RegularExpressions;
+#addin "nuget:?package=Cake.FileHelpers&version=3.2.1"
+#addin "nuget:?package=CodeFileSanity&version=0.0.37"
 #tool "nuget:?package=Python&version=3.7.2"
-var nVikaToolPath = GetFiles("./tools/NVika.MSBuild.*/tools/NVika.exe").First();
 var pythonPath = GetFiles("./tools/python.*/tools/python.exe").First();
 var waitressPath = pythonPath.GetDirectory().CombineWithFilePath("Scripts/waitress-serve.exe");
 
@@ -19,11 +18,13 @@ var rootDirectory = new DirectoryPath("..");
 var tempDirectory = new DirectoryPath("temp");
 var artifactsDirectory = rootDirectory.Combine("artifacts");
 
-var solution = rootDirectory.CombineWithFilePath("osu-framework.sln");
+var sln = rootDirectory.CombineWithFilePath("osu-framework.sln");
+var desktopSlnf = rootDirectory.CombineWithFilePath("osu-framework.Desktop.slnf");
 var frameworkProject = rootDirectory.CombineWithFilePath("osu.Framework/osu.Framework.csproj");
 var iosFrameworkProject = rootDirectory.CombineWithFilePath("osu.Framework.iOS/osu.Framework.iOS.csproj");
 var androidFrameworkProject = rootDirectory.CombineWithFilePath("osu.Framework.Android/osu.Framework.Android.csproj");
 var nativeLibsProject = rootDirectory.CombineWithFilePath("osu.Framework.NativeLibs/osu.Framework.NativeLibs.csproj");
+var templateProject = rootDirectory.CombineWithFilePath("osu.Framework.Templates/osu.Framework.Templates.csproj");
 
 ///////////////////////////////////////////////////////////////////////////////
 // Setup
@@ -82,7 +83,7 @@ Task("RunHttpBin")
 
 Task("Compile")
     .Does(() => {
-        DotNetCoreBuild(solution.FullPath, new DotNetCoreBuildSettings {
+        DotNetCoreBuild(desktopSlnf.FullPath, new DotNetCoreBuildSettings {
             Configuration = configuration,
             Verbosity = DotNetCoreVerbosity.Minimal,
         });
@@ -104,22 +105,15 @@ Task("Test")
         DotNetCoreVSTest(testAssemblies, settings);
     });
 
-// windows only because both inspectcore and nvika depend on net45
 Task("InspectCode")
-    .WithCriteria(IsRunningOnWindows())
     .IsDependentOn("Compile")
     .Does(() => {
         var inspectcodereport = tempDirectory.CombineWithFilePath("inspectcodereport.xml");
+        var cacheDir = tempDirectory.Combine("inspectcode");
 
-        InspectCode(solution, new InspectCodeSettings {
-            CachesHome = tempDirectory.Combine("inspectcode"),
-            OutputFile = inspectcodereport,
-            ArgumentCustomization = args => args.Append("--verbosity=WARN")
-        });
-
-        int returnCode = StartProcess(nVikaToolPath, $@"parsereport ""{inspectcodereport}"" --treatwarningsaserrors");
-        if (returnCode != 0)
-            throw new Exception($"inspectcode failed with return code {returnCode}");
+        DotNetCoreTool(rootDirectory.FullPath,
+            "jb", $@"inspectcode ""{desktopSlnf}"" --output=""{inspectcodereport}"" --caches-home=""{cacheDir}"" --verbosity=WARN");
+        DotNetCoreTool(rootDirectory.FullPath, "nvika", $@"parsereport ""{inspectcodereport}"" --treatwarningsaserrors");
     });
 
 Task("CodeFileSanity")
@@ -139,6 +133,9 @@ Task("PackFramework")
             ArgumentCustomization = args => {
                 args.Append($"/p:Version={version}");
                 args.Append($"/p:GenerateDocumentationFile=true");
+                args.Append("/p:IncludeSymbols=true");
+                args.Append("/p:SymbolPackageFormat=snupkg");
+                args.Append("/p:PublishRepositoryUrl=true");
 
                 return args;
             }
@@ -147,44 +144,30 @@ Task("PackFramework")
 
 Task("PackiOSFramework")
     .Does(() => {
-        MSBuild(iosFrameworkProject, new MSBuildSettings {
-            Restore = true,
-            BinaryLogger = new MSBuildBinaryLogSettings{
-                Enabled = true,
-                FileName = tempDirectory.CombineWithFilePath("msbuildlog.binlog").FullPath
-            },
-            Verbosity = Verbosity.Minimal,
-            MSBuildPlatform = MSBuildPlatform.x86, // csc.exe is not found when 64 bit is used.
-            ArgumentCustomization = args =>
-            {
-                args.Append($"/p:Configuration={configuration}");
+        DotNetCorePack(iosFrameworkProject.FullPath, new DotNetCorePackSettings{
+            OutputDirectory = artifactsDirectory,
+            Configuration = configuration,
+            Verbosity = DotNetCoreVerbosity.Quiet,
+            ArgumentCustomization = args => {
                 args.Append($"/p:Version={version}");
-                args.Append($"/p:PackageOutputPath={artifactsDirectory.MakeAbsolute(Context.Environment)}");
-
+                args.Append($"/p:GenerateDocumentationFile=true");
                 return args;
             }
-        }.WithTarget("Pack"));
+        });
     });
 
 Task("PackAndroidFramework")
     .Does(() => {
-        MSBuild(androidFrameworkProject, new MSBuildSettings {
-            Restore = true,
-            BinaryLogger = new MSBuildBinaryLogSettings{
-                Enabled = true,
-                FileName = tempDirectory.CombineWithFilePath("msbuildlog.binlog").FullPath
-            },
-            Verbosity = Verbosity.Minimal,
-            MSBuildPlatform = MSBuildPlatform.x86, // csc.exe is not found when 64 bit is used.
-            ArgumentCustomization = args =>
-            {
-                args.Append($"/p:Configuration={configuration}");
+        DotNetCorePack(androidFrameworkProject.FullPath, new DotNetCorePackSettings{
+            OutputDirectory = artifactsDirectory,
+            Configuration = configuration,
+            Verbosity = DotNetCoreVerbosity.Quiet,
+            ArgumentCustomization = args => {
                 args.Append($"/p:Version={version}");
-                args.Append($"/p:PackageOutputPath={artifactsDirectory.MakeAbsolute(Context.Environment)}");
-
+                args.Append($"/p:GenerateDocumentationFile=true");
                 return args;
             }
-        }.WithTarget("Pack"));
+        });
     });
 
 Task("PackNativeLibs")
@@ -196,6 +179,28 @@ Task("PackNativeLibs")
             ArgumentCustomization = args => {
                 args.Append($"/p:Version={version}");
                 args.Append($"/p:GenerateDocumentationFile=true");
+                return args;
+            }
+        });
+    });
+
+Task("PackTemplate")
+    .Does(ctx => {
+        ctx.ReplaceRegexInFiles(
+            $"{rootDirectory.FullPath}/osu.Framework.Templates/**/*.iOS.csproj",
+            "^.*osu.Framework.iOS.props.*$\n",
+            "",
+            RegexOptions.Multiline
+        );
+
+        DotNetCorePack(templateProject.FullPath, new DotNetCorePackSettings{
+            OutputDirectory = artifactsDirectory,
+            Configuration = configuration,
+            Verbosity = DotNetCoreVerbosity.Quiet,
+            ArgumentCustomization = args => {
+                args.Append($"/p:Version={version}");
+                args.Append($"/p:GenerateDocumentationFile=true");
+                args.Append($"/p:NoDefaultExcludes=true");
 
                 return args;
             }
@@ -206,7 +211,7 @@ Task("Publish")
     .WithCriteria(AppVeyor.IsRunningOnAppVeyor)
     .Does(() => {
         foreach (var artifact in GetFiles(artifactsDirectory.CombineWithFilePath("*").FullPath))
-            AppVeyor.UploadArtifact(artifact);
+            AppVeyor.UploadArtifact(artifact, settings => settings.SetArtifactType(AppVeyorUploadArtifactType.NuGetPackage));
     });
 
 Task("Build")
@@ -220,12 +225,24 @@ Task("Build")
     .IsDependentOn("PackiOSFramework")
     .IsDependentOn("PackAndroidFramework")
     .IsDependentOn("PackNativeLibs")
+    .IsDependentOn("PackTemplate")
     .IsDependentOn("Publish");
 
-Task("DeployFramework")
+Task("DeployFrameworkDesktop")
     .IsDependentOn("Clean")
     .IsDependentOn("DetermineAppveyorDeployProperties")
     .IsDependentOn("PackFramework")
+    .IsDependentOn("Publish");
+
+Task("DeployFrameworkTemplates")
+    .IsDependentOn("Clean")
+    .IsDependentOn("DetermineAppveyorDeployProperties")
+    .IsDependentOn("PackTemplate")
+    .IsDependentOn("Publish");
+
+Task("DeployFrameworkXamarin")
+    .IsDependentOn("Clean")
+    .IsDependentOn("DetermineAppveyorDeployProperties")
     .IsDependentOn("PackiOSFramework")
     .IsDependentOn("PackAndroidFramework")
     .IsDependentOn("Publish");

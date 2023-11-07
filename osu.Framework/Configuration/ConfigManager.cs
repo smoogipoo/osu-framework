@@ -1,36 +1,57 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Bindables;
 using osu.Framework.Configuration.Tracking;
+using osu.Framework.Graphics;
 
 namespace osu.Framework.Configuration
 {
-    public abstract class ConfigManager<T> : ITrackableConfigManager, IDisposable
-        where T : struct
+    public abstract class ConfigManager<TLookup> : ConfigManager, ITrackableConfigManager
+        where TLookup : struct, Enum
     {
         /// <summary>
         /// Whether user specified configuration elements should be set even though a default was never specified.
         /// </summary>
         protected virtual bool AddMissingEntries => true;
 
-        private readonly IDictionary<T, object> defaultOverrides;
+        private readonly IDictionary<TLookup, object> defaultOverrides;
 
-        protected readonly Dictionary<T, IBindable> ConfigStore = new Dictionary<T, IBindable>();
+        protected readonly Dictionary<TLookup, IBindable> ConfigStore = new Dictionary<TLookup, IBindable>();
 
         /// <summary>
-        /// Initialise a new <see cref="ConfigManager{T}"/>
+        /// Initialise a new <see cref="ConfigManager{TLookup}"/>
         /// </summary>
-        /// <param name="defaultOverrides">Dictionary of overrides which should take precedence over defaults specified by the <see cref="ConfigManager{T}"/> implementation.</param>
-        protected ConfigManager(IDictionary<T, object> defaultOverrides = null)
+        /// <param name="defaultOverrides">Dictionary of overrides which should take precedence over defaults specified by the <see cref="ConfigManager{TLookup}"/> implementation.</param>
+        protected ConfigManager(IDictionary<TLookup, object> defaultOverrides = null)
         {
             this.defaultOverrides = defaultOverrides;
         }
+
+        /// <summary>
+        /// Get the full configuration for logging purposes.
+        /// </summary>
+        /// <remarks>
+        /// Excludes any potentially sensitive information via <see cref="CheckLookupContainsPrivateInformation"/>.</remarks>
+        /// <returns></returns>
+        public virtual IDictionary<TLookup, string> GetCurrentConfigurationForLogging() => ConfigStore
+                                                                                           .Where(kvp => !CheckLookupContainsPrivateInformation(kvp.Key))
+                                                                                           .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+
+        /// <summary>
+        /// Check whether a specific lookup may contain private user information.
+        /// </summary>
+        /// <param name="lookup">The lookup type to check.</param>
+        /// <returns>Whether private information is present.</returns>
+        protected virtual bool CheckLookupContainsPrivateInformation(TLookup lookup) => false;
 
         /// <summary>
         /// Set all required default values via Set() calls.
@@ -40,7 +61,32 @@ namespace osu.Framework.Configuration
         {
         }
 
-        public BindableDouble Set(T lookup, double value, double? min = null, double? max = null, double? precision = null)
+        /// <summary>
+        /// Sets a configuration's value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The value. Will also become the default value if one has not already been initialised.</param>
+        /// <typeparam name="TValue">The type of value.</typeparam>
+        public void SetValue<TValue>(TLookup lookup, TValue value)
+        {
+            var bindable = GetOriginalBindable<TValue>(lookup);
+
+            if (bindable == null)
+                SetDefault(lookup, value);
+            else
+                bindable.Value = value;
+        }
+
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <param name="precision">The value precision.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected BindableDouble SetDefault(TLookup lookup, double value, double? min = null, double? max = null, double? precision = null)
         {
             value = getDefault(lookup, value);
 
@@ -62,7 +108,16 @@ namespace osu.Framework.Configuration
             return bindable;
         }
 
-        public BindableFloat Set(T lookup, float value, float? min = null, float? max = null, float? precision = null)
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <param name="precision">The value precision.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected BindableFloat SetDefault(TLookup lookup, float value, float? min = null, float? max = null, float? precision = null)
         {
             value = getDefault(lookup, value);
 
@@ -84,7 +139,15 @@ namespace osu.Framework.Configuration
             return bindable;
         }
 
-        public BindableInt Set(T lookup, int value, int? min = null, int? max = null)
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected BindableInt SetDefault(TLookup lookup, int value, int? min = null, int? max = null)
         {
             value = getDefault(lookup, value);
 
@@ -105,7 +168,13 @@ namespace osu.Framework.Configuration
             return bindable;
         }
 
-        public BindableBool Set(T lookup, bool value)
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected BindableBool SetDefault(TLookup lookup, bool value)
         {
             value = getDefault(lookup, value);
 
@@ -124,7 +193,15 @@ namespace osu.Framework.Configuration
             return bindable;
         }
 
-        public BindableSize Set(T lookup, Size value, Size? min = null, Size? max = null)
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected BindableSize SetDefault(TLookup lookup, Size value, Size? min = null, Size? max = null)
         {
             value = getDefault(lookup, value);
 
@@ -145,11 +222,42 @@ namespace osu.Framework.Configuration
             return bindable;
         }
 
-        public Bindable<U> Set<U>(T lookup, U value)
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected BindableColour4 SetDefault(TLookup lookup, Colour4 value)
         {
             value = getDefault(lookup, value);
 
-            Bindable<U> bindable = GetOriginalBindable<U>(lookup);
+            if (!(GetOriginalBindable<Colour4>(lookup) is BindableColour4 bindable))
+            {
+                bindable = new BindableColour4(value);
+                AddBindable(lookup, bindable);
+            }
+            else
+            {
+                bindable.Value = value;
+            }
+
+            bindable.Default = value;
+
+            return bindable;
+        }
+
+        /// <summary>
+        /// Sets a configuration's default value.
+        /// </summary>
+        /// <param name="lookup">The lookup key.</param>
+        /// <param name="value">The default value.</param>
+        /// <returns>The original bindable (not a bound copy).</returns>
+        protected Bindable<TValue> SetDefault<TValue>(TLookup lookup, TValue value)
+        {
+            value = getDefault(lookup, value);
+
+            Bindable<TValue> bindable = GetOriginalBindable<TValue>(lookup);
 
             if (bindable == null)
                 bindable = set(lookup, value);
@@ -161,37 +269,37 @@ namespace osu.Framework.Configuration
             return bindable;
         }
 
-        protected virtual void AddBindable<TBindable>(T lookup, Bindable<TBindable> bindable)
+        protected virtual void AddBindable<TBindable>(TLookup lookup, Bindable<TBindable> bindable)
         {
             ConfigStore[lookup] = bindable;
-            bindable.ValueChanged += _ => backgroundSave();
+            bindable.ValueChanged += _ => QueueBackgroundSave();
         }
 
-        private TType getDefault<TType>(T lookup, TType fallback)
+        private TValue getDefault<TValue>(TLookup lookup, TValue fallback)
         {
             if (defaultOverrides != null && defaultOverrides.TryGetValue(lookup, out object found))
-                return (TType)found;
+                return (TValue)found;
 
             return fallback;
         }
 
-        private Bindable<U> set<U>(T lookup, U value)
+        private Bindable<TValue> set<TValue>(TLookup lookup, TValue value)
         {
-            Bindable<U> bindable = new Bindable<U>(value);
+            Bindable<TValue> bindable = new Bindable<TValue>(value);
             AddBindable(lookup, bindable);
             return bindable;
         }
 
-        public U Get<U>(T lookup) => GetOriginalBindable<U>(lookup).Value;
+        public TValue Get<TValue>(TLookup lookup) => GetOriginalBindable<TValue>(lookup).Value;
 
-        protected Bindable<U> GetOriginalBindable<U>(T lookup)
+        protected Bindable<TValue> GetOriginalBindable<TValue>(TLookup lookup)
         {
             if (ConfigStore.TryGetValue(lookup, out IBindable obj))
             {
-                if (!(obj is Bindable<U>))
-                    throw new InvalidCastException($"Cannot convert bindable of type {obj.GetType()} retrieved from {nameof(ConfigManager<T>)} to {typeof(Bindable<U>)}.");
+                if (!(obj is Bindable<TValue>))
+                    throw new InvalidCastException($"Cannot convert bindable of type {obj.GetType()} retrieved from {nameof(ConfigManager<TLookup>)} to {typeof(Bindable<TValue>)}.");
 
-                return (Bindable<U>)obj;
+                return (Bindable<TValue>)obj;
             }
 
             return null;
@@ -203,56 +311,33 @@ namespace osu.Framework.Configuration
         /// a local reference.
         /// </summary>
         /// <returns>A weakly bound copy of the specified bindable.</returns>
-        public Bindable<U> GetBindable<U>(T lookup) => GetOriginalBindable<U>(lookup)?.GetBoundCopy();
+        public Bindable<TValue> GetBindable<TValue>(TLookup lookup) => GetOriginalBindable<TValue>(lookup)?.GetBoundCopy();
 
         /// <summary>
         /// Binds a local bindable with a configuration-backed bindable.
         /// </summary>
-        public void BindWith<U>(T lookup, Bindable<U> bindable) => bindable.BindTo(GetOriginalBindable<U>(lookup));
-
-        #region IDisposable Support
-
-        private bool isDisposed;
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!isDisposed)
-            {
-                Save();
-                isDisposed = true;
-            }
-        }
-
-        ~ConfigManager()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        #endregion
+        public void BindWith<TValue>(TLookup lookup, Bindable<TValue> bindable) => bindable.BindTo(GetOriginalBindable<TValue>(lookup));
 
         public virtual TrackedSettings CreateTrackedSettings() => null;
 
         public void LoadInto(TrackedSettings settings) => settings.LoadFrom(this);
 
-        public class TrackedSetting<U> : Tracking.TrackedSetting<U>
+        public class TrackedSetting<TValue> : Tracking.TrackedSetting<TValue>
         {
             /// <summary>
-            /// Constructs a new <see cref="TrackedSetting{U}"/>.
+            /// Constructs a new <see cref="TrackedSetting{TValue}"/>.
             /// </summary>
             /// <param name="setting">The config setting to be tracked.</param>
             /// <param name="generateDescription">A function that generates the description for the setting, invoked every time the value changes.</param>
-            public TrackedSetting(T setting, Func<U, SettingDescription> generateDescription)
+            public TrackedSetting(TLookup setting, Func<TValue, SettingDescription> generateDescription)
                 : base(setting, generateDescription)
             {
             }
         }
+    }
 
+    public abstract class ConfigManager : IDisposable
+    {
         private bool hasLoaded;
 
         public void Load()
@@ -264,12 +349,13 @@ namespace osu.Framework.Configuration
         private int lastSave;
 
         /// <summary>
-        /// Perform a save with debounce.
+        /// Queue a background save operation with debounce.
         /// </summary>
-        private void backgroundSave()
+        protected void QueueBackgroundSave()
         {
-            var current = Interlocked.Increment(ref lastSave);
-            Task.Delay(100).ContinueWith(task =>
+            int current = Interlocked.Increment(ref lastSave);
+
+            Task.Delay(100).ContinueWith(_ =>
             {
                 if (current == lastSave) Save();
             });
@@ -291,5 +377,26 @@ namespace osu.Framework.Configuration
         protected abstract void PerformLoad();
 
         protected abstract bool PerformSave();
+
+        #region IDisposable Support
+
+        private bool isDisposed;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!isDisposed)
+            {
+                Save();
+                isDisposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
     }
 }

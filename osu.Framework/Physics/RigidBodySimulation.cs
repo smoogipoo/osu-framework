@@ -11,14 +11,14 @@ namespace osu.Framework.Physics
     /// <summary>
     /// Applies rigid body simulation to all children.
     /// </summary>
-    public class RigidBodySimulation : RigidBodySimulation<Drawable>
+    public partial class RigidBodySimulation : RigidBodySimulation<Drawable>
     {
     }
 
     /// <summary>
     /// Applies rigid body simulation to all children.
     /// </summary>
-    public class RigidBodySimulation<T> : RigidBodyContainer<RigidBodyContainer<T>>
+    public partial class RigidBodySimulation<T> : RigidBodyContainer<RigidBodyContainer<T>>
         where T : Drawable
     {
         public RigidBodySimulation()
@@ -33,6 +33,11 @@ namespace osu.Framework.Physics
         /// as the rest of the game.
         /// </summary>
         public float SimulationSpeed = 1;
+
+        /// <summary>
+        /// The downward acceleration to apply on all children.
+        /// </summary>
+        public float Gravity = 981f;
 
         private readonly List<IRigidBody> toSimulate = new List<IRigidBody>();
 
@@ -57,15 +62,19 @@ namespace osu.Framework.Physics
 
             // Handle collisions between each pair of bodies.
             foreach (var d in toSimulate)
-            foreach (var other in toSimulate)
-                if (other != d)
-                    d.CheckAndHandleCollisionWith(other);
+            {
+                foreach (var other in toSimulate)
+                {
+                    if (other != d)
+                        d.CheckAndHandleCollisionWith(other);
+                }
+            }
 
             // Advance the simulation by the given time step for each body and
             // apply the state to each drawable in question.
             foreach (var d in toSimulate)
             {
-                d.Integrate(new Vector2(0, 981f * d.Mass), 0, dt);
+                d.Integrate(new Vector2(0, Gravity * d.Mass), 0, dt);
                 d.ApplyState();
             }
         }

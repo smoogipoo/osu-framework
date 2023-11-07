@@ -1,11 +1,13 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 
 namespace osu.Framework.Testing.Drawables.Steps
 {
-    public class RepeatStepButton : StepButton
+    public partial class RepeatStepButton : StepButton
     {
         private readonly int count;
         private int invocations;
@@ -20,7 +22,8 @@ namespace osu.Framework.Testing.Drawables.Steps
             set => base.Text = text = value;
         }
 
-        public RepeatStepButton(Action action, int count = 1)
+        public RepeatStepButton(Action action, int count = 1, bool isSetupStep = false)
+            : base(isSetupStep)
         {
             this.count = count;
             Action = action;

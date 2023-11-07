@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Globalization;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics.Containers;
 using osuTK.Input;
@@ -10,8 +11,8 @@ using osu.Framework.Input.Events;
 
 namespace osu.Framework.Graphics.UserInterface
 {
-    public abstract class SliderBar<T> : Container, IHasCurrentValue<T>
-        where T : struct, IComparable, IConvertible
+    public abstract partial class SliderBar<T> : Container, IHasCurrentValue<T>
+        where T : struct, IComparable<T>, IConvertible, IEquatable<T>
     {
         /// <summary>
         /// Range padding reduces the range of movement a slider bar is allowed to have
@@ -28,8 +29,6 @@ namespace osu.Framework.Graphics.UserInterface
         /// </summary>
         public float KeyboardStep;
 
-        protected readonly BindableNumber<T> CurrentNumber;
-
         private readonly BindableNumber<T> currentNumberInstantaneous;
 
         /// <summary>
@@ -38,47 +37,47 @@ namespace osu.Framework.Graphics.UserInterface
         /// </summary>
         public bool TransferValueOnCommit;
 
+        private readonly BindableNumberWithCurrent<T> current = new BindableNumberWithCurrent<T>();
+
+        protected BindableNumber<T> CurrentNumber => current;
+
         public Bindable<T> Current
         {
-            get => CurrentNumber;
+            get => current;
             set
             {
-                if (value == null)
-                    throw new ArgumentNullException(nameof(value));
+                ArgumentNullException.ThrowIfNull(value);
 
-                CurrentNumber.UnbindBindings();
-                CurrentNumber.BindTo(value);
+                current.Current = value;
 
-                currentNumberInstantaneous.Default = CurrentNumber.Default;
+                currentNumberInstantaneous.Default = current.Default;
             }
         }
 
         protected SliderBar()
         {
-            if (typeof(T) == typeof(int))
-                CurrentNumber = new BindableInt() as BindableNumber<T>;
-            else if (typeof(T) == typeof(long))
-                CurrentNumber = new BindableLong() as BindableNumber<T>;
-            else if (typeof(T) == typeof(double))
-                CurrentNumber = new BindableDouble() as BindableNumber<T>;
-            else
-                CurrentNumber = new BindableFloat() as BindableNumber<T>;
+            currentNumberInstantaneous = new BindableNumber<T>();
 
-            if (CurrentNumber == null)
-                throw new NotSupportedException($"We don't support the generic type of {nameof(BindableNumber<T>)}.");
+            current.ValueChanged += e => currentNumberInstantaneous.Value = e.NewValue;
+            current.MinValueChanged += v => currentNumberInstantaneous.MinValue = v;
+            current.MaxValueChanged += v => currentNumberInstantaneous.MaxValue = v;
+            current.PrecisionChanged += v => currentNumberInstantaneous.Precision = v;
+            current.DisabledChanged += disabled =>
+            {
+                if (disabled)
+                {
+                    // revert any changes before disabling to make sure we are in a consistent state.
+                    currentNumberInstantaneous.Value = current.Value;
+                    uncommittedChanges = false;
+                }
 
-            currentNumberInstantaneous = CurrentNumber.GetUnboundCopy();
-
-            CurrentNumber.ValueChanged += e => currentNumberInstantaneous.Value = e.NewValue;
-            CurrentNumber.MinValueChanged += v => currentNumberInstantaneous.MinValue = v;
-            CurrentNumber.MaxValueChanged += v => currentNumberInstantaneous.MaxValue = v;
-            CurrentNumber.PrecisionChanged += v => currentNumberInstantaneous.Precision = v;
-            CurrentNumber.DisabledChanged += v => currentNumberInstantaneous.Disabled = v;
+                currentNumberInstantaneous.Disabled = disabled;
+            };
 
             currentNumberInstantaneous.ValueChanged += e =>
             {
                 if (!TransferValueOnCommit)
-                    CurrentNumber.Value = e.NewValue;
+                    current.Value = e.NewValue;
             };
         }
 
@@ -87,16 +86,18 @@ namespace osu.Framework.Graphics.UserInterface
             get
             {
                 if (!currentNumberInstantaneous.HasDefinedRange)
+                {
                     throw new InvalidOperationException($"A {nameof(SliderBar<T>)}'s {nameof(Current)} must have user-defined {nameof(BindableNumber<T>.MinValue)}"
                                                         + $" and {nameof(BindableNumber<T>.MaxValue)} to produce a valid {nameof(NormalizedValue)}.");
+                }
 
-                var min = Convert.ToSingle(currentNumberInstantaneous.MinValue);
-                var max = Convert.ToSingle(currentNumberInstantaneous.MaxValue);
+                float min = Convert.ToSingle(currentNumberInstantaneous.MinValue);
+                float max = Convert.ToSingle(currentNumberInstantaneous.MaxValue);
 
                 if (max - min == 0)
                     return 1;
 
-                var val = Convert.ToSingle(currentNumberInstantaneous.Value);
+                float val = Convert.ToSingle(currentNumberInstantaneous.Value);
                 return (val - min) / (max - min);
             }
         }
@@ -111,47 +112,83 @@ namespace osu.Framework.Graphics.UserInterface
         {
             base.LoadComplete();
 
-            currentNumberInstantaneous.ValueChanged += _ => UpdateValue(NormalizedValue);
-            currentNumberInstantaneous.MinValueChanged += _ => UpdateValue(NormalizedValue);
-            currentNumberInstantaneous.MaxValueChanged += _ => UpdateValue(NormalizedValue);
+            currentNumberInstantaneous.ValueChanged += _ => Scheduler.AddOnce(updateValue);
+            currentNumberInstantaneous.MinValueChanged += _ => Scheduler.AddOnce(updateValue);
+            currentNumberInstantaneous.MaxValueChanged += _ => Scheduler.AddOnce(updateValue);
 
-            UpdateValue(NormalizedValue);
+            Scheduler.AddOnce(updateValue);
+        }
+
+        private void updateValue() => UpdateValue(NormalizedValue);
+
+        private bool handleClick;
+        private float? relativeValueAtMouseDown;
+
+        protected override bool OnMouseDown(MouseDownEvent e)
+        {
+            if (ShouldHandleAsRelativeDrag(e))
+            {
+                float min = currentNumberInstantaneous.MinValue.ToSingle(NumberFormatInfo.InvariantInfo);
+                float max = currentNumberInstantaneous.MaxValue.ToSingle(NumberFormatInfo.InvariantInfo);
+                float val = currentNumberInstantaneous.Value.ToSingle(NumberFormatInfo.InvariantInfo);
+
+                relativeValueAtMouseDown = (val - min) / (max - min);
+
+                // Click shouldn't be handled if relative dragging is happening (i.e. while holding a nub).
+                // This is generally an expectation by most OSes and UIs.
+                handleClick = false;
+            }
+            else
+            {
+                handleClick = true;
+                relativeValueAtMouseDown = null;
+            }
+
+            return base.OnMouseDown(e);
         }
 
         protected override bool OnClick(ClickEvent e)
         {
-            handleMouseInput(e);
-            commit();
+            if (handleClick)
+            {
+                handleMouseInput(e);
+                commit();
+            }
+
             return true;
         }
 
-        protected override bool OnDrag(DragEvent e)
+        protected override void OnDrag(DragEvent e)
         {
             handleMouseInput(e);
-            return true;
         }
 
         protected override bool OnDragStart(DragStartEvent e)
         {
-            handleMouseInput(e);
             Vector2 posDiff = e.MouseDownPosition - e.MousePosition;
-            return Math.Abs(posDiff.X) > Math.Abs(posDiff.Y);
-        }
 
-        protected override bool OnDragEnd(DragEndEvent e)
-        {
+            if (Math.Abs(posDiff.X) < Math.Abs(posDiff.Y))
+            {
+                handleClick = false;
+                return false;
+            }
+
             handleMouseInput(e);
-            commit();
             return true;
         }
 
+        protected override void OnDragEnd(DragEndEvent e) => commit();
+
         protected override bool OnKeyDown(KeyDownEvent e)
         {
-            if (!IsHovered || currentNumberInstantaneous.Disabled)
+            if (currentNumberInstantaneous.Disabled)
                 return false;
 
-            var step = KeyboardStep != 0 ? KeyboardStep : (Convert.ToSingle(currentNumberInstantaneous.MaxValue) - Convert.ToSingle(currentNumberInstantaneous.MinValue)) / 20;
-            if (currentNumberInstantaneous.IsInteger) step = (float)Math.Ceiling(step);
+            if (!IsHovered)
+                return false;
+
+            float step = KeyboardStep != 0 ? KeyboardStep : (Convert.ToSingle(currentNumberInstantaneous.MaxValue) - Convert.ToSingle(currentNumberInstantaneous.MinValue)) / 20;
+            if (currentNumberInstantaneous.IsInteger) step = MathF.Ceiling(step);
 
             switch (e.Key)
             {
@@ -170,12 +207,10 @@ namespace osu.Framework.Graphics.UserInterface
             }
         }
 
-        protected override bool OnKeyUp(KeyUpEvent e)
+        protected override void OnKeyUp(KeyUpEvent e)
         {
             if (e.Key == Key.Left || e.Key == Key.Right)
-                return commit();
-
-            return false;
+                commit();
         }
 
         private bool uncommittedChanges;
@@ -185,19 +220,41 @@ namespace osu.Framework.Graphics.UserInterface
             if (!uncommittedChanges)
                 return false;
 
-            CurrentNumber.Value = currentNumberInstantaneous.Value;
+            current.Value = currentNumberInstantaneous.Value;
             uncommittedChanges = false;
             return true;
         }
 
-        private void handleMouseInput(UIEvent e)
-        {
-            var xPosition = ToLocalSpace(e.ScreenSpaceMousePosition).X - RangePadding;
+        /// <summary>
+        /// Whether mouse handling should be relative to the distance travelled, or absolute in line with the exact position of the cursor.
+        /// </summary>
+        /// <remarks>
+        /// Generally, this should be overridden and return <c>true</c> when the cursor is hovering a "nub" or "thumb" portion at the point of mouse down
+        /// to give the user more correct control.
+        /// </remarks>
+        /// <param name="e">The mouse down event.</param>
+        /// <returns>Whether to perform a relative drag.</returns>
+        protected virtual bool ShouldHandleAsRelativeDrag(MouseDownEvent e) => false;
 
+        private void handleMouseInput(MouseButtonEvent e)
+        {
             if (currentNumberInstantaneous.Disabled)
                 return;
 
-            currentNumberInstantaneous.SetProportional(xPosition / UsableWidth, e.ShiftPressed ? KeyboardStep : 0);
+            float localX = ToLocalSpace(e.ScreenSpaceMousePosition).X;
+
+            float newValue;
+
+            if (relativeValueAtMouseDown != null && e is DragEvent drag)
+            {
+                newValue = relativeValueAtMouseDown.Value + (localX - ToLocalSpace(drag.ScreenSpaceMouseDownPosition).X) / UsableWidth;
+            }
+            else
+            {
+                newValue = (localX - RangePadding) / UsableWidth;
+            }
+
+            currentNumberInstantaneous.SetProportional(newValue, e.ShiftPressed ? KeyboardStep : 0);
             onUserChange(currentNumberInstantaneous.Value);
         }
 
