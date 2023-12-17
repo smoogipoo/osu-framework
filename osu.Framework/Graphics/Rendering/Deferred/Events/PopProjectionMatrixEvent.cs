@@ -3,5 +3,11 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopProjectionMatrixEvent : IEvent;
+    public readonly record struct PopProjectionMatrixEvent : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.PopProjectionMatrix();
+        }
+    }
 }

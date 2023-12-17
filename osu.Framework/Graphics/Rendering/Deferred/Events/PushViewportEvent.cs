@@ -5,5 +5,11 @@ using osu.Framework.Graphics.Primitives;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushViewportEvent(RectangleI Viewport) : IEvent;
+    public readonly record struct PushViewportEvent(RectangleI Viewport) : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.PushViewport(Viewport);
+        }
+    }
 }

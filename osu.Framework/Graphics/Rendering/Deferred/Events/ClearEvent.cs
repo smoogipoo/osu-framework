@@ -3,5 +3,11 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct ClearEvent(ClearInfo Info) : IEvent;
+    public readonly record struct ClearEvent(ClearInfo Info) : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.Clear(Info);
+        }
+    }
 }

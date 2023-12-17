@@ -5,5 +5,11 @@ using osu.Framework.Threading;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct ExpensiveOperationEvent(ScheduledDelegate Operation) : IEvent;
+    public readonly record struct ExpensiveOperationEvent(ScheduledDelegate Operation) : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.ScheduleExpensiveOperation(Operation);
+        }
+    }
 }

@@ -5,6 +5,12 @@ using System;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct SetUniformBufferDataEvent<TData>(IUniformBuffer<TData> Buffer, TData Data) : IEvent
-        where TData : unmanaged, IEquatable<TData>;
+    public readonly record struct SetUniformBufferDataEvent<TData>(DeferredUniformBuffer<TData> Buffer, TData Data) : IEvent
+        where TData : unmanaged, IEquatable<TData>
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            Buffer.Resource.Data = Data;
+        }
+    }
 }

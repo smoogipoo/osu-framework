@@ -3,5 +3,11 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct BindFrameBufferEvent(IFrameBuffer FrameBuffer) : IEvent;
+    public readonly record struct BindFrameBufferEvent(DeferredFrameBuffer FrameBuffer) : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            FrameBuffer.Resource.Bind();
+        }
+    }
 }

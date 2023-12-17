@@ -5,5 +5,11 @@ using System;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct DisposalEvent<T>(T Target, Action<T> DisposalAction) : IEvent;
+    public readonly record struct DisposalEvent<T>(T Target, Action<T> DisposalAction) : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.ScheduleDisposal(DisposalAction, Target);
+        }
+    }
 }

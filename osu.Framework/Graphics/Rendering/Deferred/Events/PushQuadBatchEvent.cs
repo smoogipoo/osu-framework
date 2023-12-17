@@ -5,5 +5,5 @@ using osu.Framework.Graphics.Rendering.Vertices;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushQuadBatchEvent(IVertexBatch<TexturedVertex2D> VertexBatch) : IEvent;
+    public readonly record struct PushQuadBatchEvent(DeferredVertexBatch<TexturedVertex2D> VertexBatch) : IEvent;
 }

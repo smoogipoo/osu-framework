@@ -3,5 +3,11 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopScissorEvent : IEvent;
+    public readonly record struct PopScissorEvent : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.PopScissor();
+        }
+    }
 }

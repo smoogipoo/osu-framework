@@ -9,26 +9,27 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     public class DeferredFrameBuffer : IFrameBuffer
     {
+        public IFrameBuffer Resource { get; }
+
         private readonly DeferredRenderer renderer;
-        private readonly IFrameBuffer frameBuffer;
 
         public DeferredFrameBuffer(DeferredRenderer renderer, IFrameBuffer frameBuffer)
         {
             this.renderer = renderer;
-            this.frameBuffer = frameBuffer;
+            Resource = frameBuffer;
         }
 
-        public Texture Texture => frameBuffer.Texture;
+        public Texture Texture => Resource.Texture;
 
         public Vector2 Size
         {
-            get => frameBuffer.Size;
-            set => frameBuffer.Size = value;
+            get => Resource.Size;
+            set => Resource.Size = value;
         }
 
-        public void Bind() => renderer.RenderEvents.Add(new BindFrameBufferEvent(frameBuffer));
+        public void Bind() => renderer.RenderEvents.Add(new BindFrameBufferEvent(Resource));
 
-        public void Unbind() => renderer.RenderEvents.Add(new UnbindFrameBufferEvent(frameBuffer));
+        public void Unbind() => renderer.RenderEvents.Add(new UnbindFrameBufferEvent(Resource));
 
         public void Dispose()
         {

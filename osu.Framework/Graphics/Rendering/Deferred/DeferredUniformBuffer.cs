@@ -9,11 +9,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     public class DeferredUniformBuffer<TData> : IUniformBuffer<TData>
         where TData : unmanaged, IEquatable<TData>
     {
+        public IUniformBuffer<TData> Resource { get; }
+
         private readonly DeferredRenderer renderer;
 
-        public DeferredUniformBuffer(DeferredRenderer renderer)
+        public DeferredUniformBuffer(DeferredRenderer renderer, IUniformBuffer<TData> uniformBuffer)
         {
             this.renderer = renderer;
+            Resource = uniformBuffer;
         }
 
         private TData data;

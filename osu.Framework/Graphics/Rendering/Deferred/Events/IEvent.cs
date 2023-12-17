@@ -5,5 +5,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
     public interface IEvent
     {
+        void Run(DeferredShader current, IRenderer target);
     }
 }

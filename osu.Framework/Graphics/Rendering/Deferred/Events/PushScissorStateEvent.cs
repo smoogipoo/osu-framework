@@ -3,5 +3,11 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushScissorStateEvent(bool Enabled) : IEvent;
+    public readonly record struct PushScissorStateEvent(bool Enabled) : IEvent
+    {
+        public void Run(DeferredShader current, IRenderer target)
+        {
+            target.PushScissorState(Enabled);
+        }
+    }
 }
