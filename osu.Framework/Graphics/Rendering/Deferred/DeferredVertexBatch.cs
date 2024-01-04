@@ -10,13 +10,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     public class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>
         where TVertex : unmanaged, IEquatable<TVertex>, IVertex
     {
+        public readonly IVertexBatch<TVertex> Resource;
+
         public Action<TVertex> AddAction { get; }
 
         private readonly DeferredRenderer renderer;
 
-        public DeferredVertexBatch(DeferredRenderer renderer)
+        public DeferredVertexBatch(DeferredRenderer renderer, IVertexBatch<TVertex> vertexBatch)
         {
             this.renderer = renderer;
+            Resource = vertexBatch;
+
             AddAction = Add;
         }
 

@@ -5,7 +5,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
     public readonly record struct BindUniformBlockEvent(DeferredShader Shader, string Name, IUniformBuffer Buffer) : IEvent
     {
-        public void Run(DeferredShader current, IRenderer target)
+        public void Run(DeferredRenderer current, IRenderer target)
         {
             Shader.Resource.BindUniformBlock(Name, Buffer);
         }

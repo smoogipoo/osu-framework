@@ -5,7 +5,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
     public readonly record struct UnbindShaderEvent(DeferredShader Shader) : IEvent
     {
-        public void Run(DeferredShader current, IRenderer target)
+        public void Run(DeferredRenderer current, IRenderer target)
         {
             Shader.Resource.Unbind();
         }

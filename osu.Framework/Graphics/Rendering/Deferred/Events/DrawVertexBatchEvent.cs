@@ -7,5 +7,8 @@ using osu.Framework.Graphics.Rendering.Vertices;
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
     public readonly record struct DrawVertexBatchEvent<TVertex>(DeferredVertexBatch<TVertex> VertexBatch) : IEvent
-        where TVertex : unmanaged, IEquatable<TVertex>, IVertex;
+        where TVertex : unmanaged, IEquatable<TVertex>, IVertex
+    {
+        public void Run(DeferredRenderer current, IRenderer target) => VertexBatch.Resource.Draw();
+    }
 }

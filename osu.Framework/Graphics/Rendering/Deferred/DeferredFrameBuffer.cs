@@ -27,9 +27,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             set => Resource.Size = value;
         }
 
-        public void Bind() => renderer.RenderEvents.Add(new BindFrameBufferEvent(Resource));
+        public void Bind() => renderer.RenderEvents.Add(new BindFrameBufferEvent(this));
 
-        public void Unbind() => renderer.RenderEvents.Add(new UnbindFrameBufferEvent(Resource));
+        public void Unbind() => renderer.RenderEvents.Add(new UnbindFrameBufferEvent(this));
 
         public void Dispose()
         {

@@ -91,7 +91,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             this.baseRenderer = baseRenderer;
 
-            DefaultQuadBatch = new DeferredVertexBatch<TexturedVertex2D>(this);
+            DefaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
         }
 
         public void Initialise(IGraphicsSurface graphicsSurface)
@@ -126,6 +126,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public void SwapBuffers()
         {
             baseRenderer.BeginFrame(windowSize);
+
+            foreach (var e in RenderEvents)
+                e.Run(this, baseRenderer);
+
             baseRenderer.FinishFrame();
             baseRenderer.SwapBuffers();
         }
@@ -279,15 +283,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
             where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-            => new DeferredVertexBatch<TVertex>(this);
+            => new DeferredVertexBatch<TVertex>(this, baseRenderer.CreateLinearBatch<TVertex>(size, maxBuffers, topology));
 
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
             where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-            => new DeferredVertexBatch<TVertex>(this);
+            => new DeferredVertexBatch<TVertex>(this, baseRenderer.CreateQuadBatch<TVertex>(size, maxBuffers));
 
         public IUniformBuffer<TData> CreateUniformBuffer<TData>()
             where TData : unmanaged, IEquatable<TData>
-            => new DeferredUniformBuffer<TData>(this);
+            => new DeferredUniformBuffer<TData>(this, baseRenderer.CreateUniformBuffer<TData>());
 
         public IShaderStorageBufferObject<TData> CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize)
             where TData : unmanaged, IEquatable<TData>
