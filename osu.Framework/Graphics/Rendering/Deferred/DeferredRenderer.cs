@@ -124,14 +124,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             FrameIndex++;
         }
 
-        public void FinishFrame()
-        {
-        }
-
         private readonly byte[] uploadBuffer = new byte[1024 * 1024];
         private VeldridMetalVertexBuffer<TexturedVertex2D>? vbo;
 
-        public void SwapBuffers()
+        public void FinishFrame()
         {
             baseRenderer.BeginFrame(windowSize);
 
@@ -167,11 +163,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             foreach (var e in RenderEvents)
             {
-                switch (e)
+                if (e is IAddVertexToBatchEvent)
                 {
-                    case IAddVertexToBatchEvent:
-                        drawEndIndex++;
-                        continue;
+                    drawEndIndex++;
+                    continue;
                 }
 
                 if (drawStartIndex != drawEndIndex)
@@ -187,6 +182,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 veldridRenderer.DrawVertices(global::Veldrid.PrimitiveTopology.TriangleList, drawStartIndex, drawEndIndex - drawStartIndex);
 
             baseRenderer.FinishFrame();
+        }
+
+        public void SwapBuffers()
+        {
             baseRenderer.SwapBuffers();
         }
 
