@@ -3,8 +3,10 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushDepthInfoEvent(DepthInfo Info) : IEvent
+    public readonly record struct PushDepthInfoEvent(DepthInfo Info) : IRenderEvent
     {
+        public RenderEventType Type => RenderEventType.PushDepthInfo;
+
         public void Run(DeferredRenderer current, IRenderer target)
         {
             target.PushDepthInfo(Info);

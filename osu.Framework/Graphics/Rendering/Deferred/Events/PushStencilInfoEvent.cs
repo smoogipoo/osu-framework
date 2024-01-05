@@ -3,8 +3,10 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushStencilInfoEvent(StencilInfo Info) : IEvent
+    public readonly record struct PushStencilInfoEvent(StencilInfo Info) : IRenderEvent
     {
+        public RenderEventType Type => RenderEventType.PushStencilInfo;
+
         public void Run(DeferredRenderer current, IRenderer target)
         {
             target.PushStencilInfo(Info);

@@ -1,13 +1,17 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using osu.Framework.Graphics.Rendering.Deferred.Allocation;
+
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct UnbindFrameBufferEvent(DeferredFrameBuffer FrameBuffer) : IEvent
+    public readonly record struct UnbindFrameBufferEvent(RendererResource FrameBuffer) : IRenderEvent
     {
+        public RenderEventType Type => RenderEventType.UnbindFrameBuffer;
+
         public void Run(DeferredRenderer current, IRenderer target)
         {
-            FrameBuffer.Resource.Unbind();
+            FrameBuffer.Resolve<DeferredFrameBuffer>(current).Resource.Unbind();
         }
     }
 }

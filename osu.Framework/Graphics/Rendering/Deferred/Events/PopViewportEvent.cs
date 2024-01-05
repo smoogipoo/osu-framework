@@ -3,8 +3,10 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopViewportEvent : IEvent
+    public readonly record struct PopViewportEvent : IRenderEvent
     {
+        public RenderEventType Type => RenderEventType.PopViewport;
+
         public void Run(DeferredRenderer current, IRenderer target)
         {
             target.PopViewport();

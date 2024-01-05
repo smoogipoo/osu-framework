@@ -3,28 +3,26 @@
 
 using System;
 using System.Runtime.InteropServices;
+using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Vertices;
-using osu.Framework.Graphics.Veldrid.Vertices;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public interface IAddVertexToBatchEvent
+    public readonly record struct AddVertexToBatchEvent(RendererResource VertexBatch, RendererMemoryBlock Data) : IRenderEvent
     {
-        int Stride { get; }
-
-        void CopyTo(Span<byte> buffer);
-    }
-
-    public readonly record struct AddVertexToBatchEvent<TVertex>(DeferredVertexBatch<TVertex> VertexBatch, TVertex Vertex) : IEvent, IAddVertexToBatchEvent
-        where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-    {
-        public int Stride => VeldridVertexUtils<TVertex>.STRIDE;
-
-        public void CopyTo(Span<byte> buffer)
-        {
-            MemoryMarshal.Cast<byte, TVertex>(buffer)[0] = Vertex;
-        }
+        public RenderEventType Type => RenderEventType.AddVertexToBatch;
 
         public void Run(DeferredRenderer current, IRenderer target) => throw new NotSupportedException();
+
+        public static AddVertexToBatchEvent Create<T>(DeferredRenderer renderer, IVertexBatch<T> batch, T vertex)
+            where T : unmanaged, IEquatable<T>, IVertex
+        {
+            RendererMemoryBlock data = renderer.Allocate<T>();
+            Span<byte> buffer = data.GetBuffer(renderer);
+
+            MemoryMarshal.Write(buffer, ref vertex);
+
+            return new AddVertexToBatchEvent(renderer.Reference(batch), data);
+        }
     }
 }

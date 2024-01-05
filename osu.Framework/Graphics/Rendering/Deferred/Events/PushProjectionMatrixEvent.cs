@@ -5,8 +5,10 @@ using osuTK;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushProjectionMatrixEvent(Matrix4 Matrix) : IEvent
+    public readonly record struct PushProjectionMatrixEvent(Matrix4 Matrix) : IRenderEvent
     {
+        public RenderEventType Type => RenderEventType.PushProjectionMatrix;
+
         public void Run(DeferredRenderer current, IRenderer target)
         {
             target.PushProjectionMatrix(Matrix);

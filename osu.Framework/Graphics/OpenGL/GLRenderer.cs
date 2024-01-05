@@ -239,7 +239,7 @@ namespace osu.Framework.Graphics.OpenGL
             while (FrameBuffer == frameBuffer)
                 UnbindFrameBuffer(frameBuffer);
 
-            ScheduleDisposal(GL.DeleteFramebuffer, ((GLFrameBuffer)frameBuffer).FrameBuffer);
+            ScheduleDisposal(f => GL.DeleteFramebuffer(f.FrameBuffer), (GLFrameBuffer)frameBuffer);
         }
 
         protected override void ClearImplementation(ClearInfo clearInfo)

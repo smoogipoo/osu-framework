@@ -184,7 +184,7 @@ namespace osu.Framework.Graphics.Rendering.Dummy
 
         public void ScheduleExpensiveOperation(ScheduledDelegate operation) => operation.RunTask();
 
-        public void ScheduleDisposal<T>(Action<T> disposalAction, T target) => disposalAction(target);
+        public void ScheduleDisposal<T>(Action<T> disposalAction, T target) where T : class => disposalAction(target);
 
         Image<Rgba32> IRenderer.TakeScreenshot() => new Image<Rgba32>(1366, 768);
 

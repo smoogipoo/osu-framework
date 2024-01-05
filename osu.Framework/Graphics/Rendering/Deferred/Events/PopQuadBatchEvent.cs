@@ -3,8 +3,10 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopQuadBatchEvent : IEvent
+    public readonly record struct PopQuadBatchEvent : IRenderEvent
     {
+        public RenderEventType Type => RenderEventType.PopQuadBatch;
+
         public void Run(DeferredRenderer current, IRenderer target) => target.PopQuadBatch();
     }
 }

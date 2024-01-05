@@ -29,11 +29,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public int Draw()
         {
-            renderer.RenderEvents.Add(new DrawVertexBatchEvent());
+            renderer.EnqueueEvent(new DrawVertexBatchEvent());
             return 0;
         }
 
-        public void Add(TVertex vertex) => renderer.RenderEvents.Add(new AddVertexToBatchEvent<TVertex>(this, vertex));
+        public void Add(TVertex vertex) => renderer.EnqueueEvent(AddVertexToBatchEvent.Create(renderer, this, vertex));
 
         public void ResetCounters()
         {

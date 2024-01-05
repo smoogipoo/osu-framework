@@ -22,9 +22,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IReadOnlyDictionary<string, IUniform> Uniforms => Resource.Uniforms;
 
-        public void Bind() => renderer.RenderEvents.Add(new BindShaderEvent(this));
+        public void Bind() => renderer.EnqueueEvent(new BindShaderEvent(renderer.Reference(this)));
 
-        public void Unbind() => renderer.RenderEvents.Add(new UnbindShaderEvent(this));
+        public void Unbind() => renderer.EnqueueEvent(new UnbindShaderEvent(renderer.Reference(this)));
 
         public bool IsLoaded => Resource.IsLoaded;
 
@@ -35,7 +35,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => new DeferredUniform<T>(renderer, this, Resource.GetUniform<T>(name));
 
         public void BindUniformBlock(string blockName, IUniformBuffer buffer)
-            => renderer.RenderEvents.Add(new BindUniformBlockEvent(this, blockName, buffer));
+            => renderer.EnqueueEvent(new BindUniformBlockEvent(renderer.Reference(this), renderer.Reference(blockName), renderer.Reference(buffer)));
 
         public void Dispose()
         {
