@@ -45,6 +45,14 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             return false;
         }
 
+        public unsafe void SetBuffer(ReadOnlySpan<T> vertices)
+        {
+            if (sharedBuffer == null)
+                initialiseBuffer();
+
+            vertices.CopyTo(new Span<T>(sharedBufferMemory, Size));
+        }
+
         private unsafe void initialiseBuffer()
         {
             sharedBuffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(IVeldridVertexBuffer<T>.STRIDE * Size), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
@@ -54,7 +62,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             LastUseFrameIndex = renderer.FrameIndex;
         }
 
-        void IVeldridVertexBuffer<T>.UpdateRange(int from, int to) => throw new NotSupportedException("This implementation shares buffer storage with the GPU, no explicit synchronisation is required prior to drawing. See https://developer.apple.com/documentation/metal/mtlstoragemode/mtlstoragemodeshared?language=objc for more information.");
+        void IVeldridVertexBuffer<T>.UpdateRange(int from, int to) => throw new NotSupportedException(
+            "This implementation shares buffer storage with the GPU, no explicit synchronisation is required prior to drawing. See https://developer.apple.com/documentation/metal/mtlstoragemode/mtlstoragemodeshared?language=objc for more information.");
 
         ~VeldridMetalVertexBuffer()
         {

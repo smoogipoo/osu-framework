@@ -3,11 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Platform;
 using osu.Framework.Threading;
 using osuTK;
@@ -78,6 +81,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         internal readonly List<IEvent> RenderEvents = new List<IEvent>();
 
+        private readonly Dictionary<Type, object> batchesByType = new Dictionary<Type, object>();
+
         private readonly IRenderer baseRenderer;
         private readonly Stack<RectangleI> viewportStack = new Stack<RectangleI>();
         private readonly Stack<RectangleI> scissorRectStack = new Stack<RectangleI>();
@@ -123,12 +128,63 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
         }
 
+        private readonly byte[] uploadBuffer = new byte[1024 * 1024];
+        private VeldridMetalVertexBuffer<TexturedVertex2D>? vbo;
+
         public void SwapBuffers()
         {
             baseRenderer.BeginFrame(windowSize);
 
+            int currentUploadIndex = 0;
+
             foreach (var e in RenderEvents)
+            {
+                switch (e)
+                {
+                    case IAddVertexToBatchEvent addVertexToBatchEvent:
+                        if (currentUploadIndex + addVertexToBatchEvent.Stride >= uploadBuffer.Length)
+                            currentUploadIndex = 0;
+
+                        addVertexToBatchEvent.CopyTo(uploadBuffer.AsSpan().Slice(currentUploadIndex, addVertexToBatchEvent.Stride));
+                        currentUploadIndex += addVertexToBatchEvent.Stride;
+                        break;
+                }
+            }
+
+            VeldridRenderer veldridRenderer = (VeldridRenderer)baseRenderer;
+
+            ReadOnlySpan<TexturedVertex2D> verticesToDraw = MemoryMarshal.Cast<byte, TexturedVertex2D>(uploadBuffer.AsSpan().Slice(0, currentUploadIndex));
+            int numVertices = verticesToDraw.Length;
+
+            vbo ??= new VeldridMetalVertexBuffer<TexturedVertex2D>(veldridRenderer, IRenderer.MAX_QUADS);
+            vbo.SetBuffer(verticesToDraw);
+
+            veldridRenderer.BindVertexBuffer(vbo);
+            veldridRenderer.BindIndexBuffer(VeldridIndexLayout.Quad, numVertices);
+
+            int drawStartIndex = 0;
+            int drawEndIndex = 0;
+
+            foreach (var e in RenderEvents)
+            {
+                switch (e)
+                {
+                    case IAddVertexToBatchEvent:
+                        drawEndIndex++;
+                        continue;
+                }
+
+                if (drawStartIndex != drawEndIndex)
+                {
+                    veldridRenderer.DrawVertices(global::Veldrid.PrimitiveTopology.TriangleList, drawStartIndex, drawEndIndex - drawStartIndex);
+                    drawStartIndex = drawEndIndex;
+                }
+
                 e.Run(this, baseRenderer);
+            }
+
+            if (drawStartIndex != drawEndIndex)
+                veldridRenderer.DrawVertices(global::Veldrid.PrimitiveTopology.TriangleList, drawStartIndex, drawEndIndex - drawStartIndex);
 
             baseRenderer.FinishFrame();
             baseRenderer.SwapBuffers();
@@ -283,11 +339,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
             where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-            => new DeferredVertexBatch<TVertex>(this, baseRenderer.CreateLinearBatch<TVertex>(size, maxBuffers, topology));
+            => throw new NotImplementedException();
 
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
             where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-            => new DeferredVertexBatch<TVertex>(this, baseRenderer.CreateQuadBatch<TVertex>(size, maxBuffers));
+        {
+            if (!batchesByType.TryGetValue(typeof(TVertex), out object? existing))
+                existing = batchesByType[typeof(TVertex)] = new DeferredVertexBatch<TVertex>(this);
+
+            return (IVertexBatch<TVertex>)existing;
+        }
 
         public IUniformBuffer<TData> CreateUniformBuffer<TData>()
             where TData : unmanaged, IEquatable<TData>

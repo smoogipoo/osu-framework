@@ -7,19 +7,20 @@ using osu.Framework.Graphics.Rendering.Vertices;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>
+    public interface IDeferredVertexBatch
+    {
+    }
+
+    public class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>, IDeferredVertexBatch
         where TVertex : unmanaged, IEquatable<TVertex>, IVertex
     {
-        public readonly IVertexBatch<TVertex> Resource;
-
         public Action<TVertex> AddAction { get; }
 
         private readonly DeferredRenderer renderer;
 
-        public DeferredVertexBatch(DeferredRenderer renderer, IVertexBatch<TVertex> vertexBatch)
+        public DeferredVertexBatch(DeferredRenderer renderer)
         {
             this.renderer = renderer;
-            Resource = vertexBatch;
 
             AddAction = Add;
         }
@@ -28,7 +29,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public int Draw()
         {
-            renderer.RenderEvents.Add(new DrawVertexBatchEvent<TVertex>(this));
+            renderer.RenderEvents.Add(new DrawVertexBatchEvent());
             return 0;
         }
 
