@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
             RendererMemoryBlock memory = renderer.Allocate<T>();
             Span<byte> buffer = memory.GetBuffer(renderer);
 
-            MemoryMarshal.Write(buffer, ref data);
+            MemoryMarshal.Write(buffer, data);
 
             return new SetUniformBufferDataEvent(renderer.Reference(uniformBuffer), memory);
         }

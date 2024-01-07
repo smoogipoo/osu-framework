@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
             RendererMemoryBlock data = renderer.Allocate<T>();
             Span<byte> buffer = data.GetBuffer(renderer);
 
-            MemoryMarshal.Write(buffer, ref vertex);
+            MemoryMarshal.Write(buffer, vertex);
 
             return new AddVertexToBatchEvent(renderer.Reference(batch), data);
         }

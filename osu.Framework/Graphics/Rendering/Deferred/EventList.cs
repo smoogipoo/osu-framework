@@ -22,11 +22,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             ReadOnlySpan<byte> eventBytes = MemoryMarshal.Cast<T, byte>(MemoryMarshal.CreateReadOnlySpan(ref renderEvent, 1));
 
-            renderEvents.EnsureCapacity(renderEvents.Count + eventBytes.Length + 1);
-
             renderEvents.Add((byte)renderEvent.Type);
-            foreach (byte b in eventBytes)
-                renderEvents.Add(b);
+            renderEvents.AddRange(eventBytes);
         }
 
         public EventListReader CreateReader() => new EventListReader(renderEvents);

@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -35,14 +34,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
-            byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
 
-            renderEvents.CopyTo(currentPos, bytes, 0, size);
+            Span<byte> span = CollectionsMarshal.AsSpan(renderEvents).Slice(currentPos, size);
             currentPos += size;
 
-            T result = MemoryMarshal.Read<T>(bytes.AsSpan(0, size));
-
-            ArrayPool<byte>.Shared.Return(bytes);
+            T result = MemoryMarshal.Read<T>(span);
 
             return result;
         }
