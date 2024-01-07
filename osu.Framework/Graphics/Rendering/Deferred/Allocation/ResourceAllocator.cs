@@ -11,6 +11,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     public class ResourceAllocator
     {
+        private const int min_buffer_size = 1024 * 1024; // 1MB
+
         private readonly List<object> resources = new List<object>();
         private readonly List<MemoryBuffer> memoryBuffers = new List<MemoryBuffer>();
 
@@ -36,7 +38,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             int requiredSize = Marshal.SizeOf<T>();
 
             if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < requiredSize)
-                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, requiredSize));
+                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size, requiredSize)));
 
             return memoryBuffers[^1].Reserve(requiredSize);
         }

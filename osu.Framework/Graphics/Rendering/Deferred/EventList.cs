@@ -2,9 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 
@@ -22,15 +20,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public void Enqueue<T>(T renderEvent)
             where T : unmanaged, IRenderEvent
         {
-            int size = Unsafe.SizeOf<T>() + 1;
-            byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
+            ReadOnlySpan<byte> eventBytes = MemoryMarshal.Cast<T, byte>(MemoryMarshal.CreateReadOnlySpan(ref renderEvent, 1));
 
-            bytes[0] = (byte)renderEvent.Type;
-            MemoryMarshal.Write(bytes.AsSpan()[1..], ref renderEvent);
+            renderEvents.EnsureCapacity(renderEvents.Count + eventBytes.Length + 1);
 
-            renderEvents.AddRange(new ArraySegment<byte>(bytes, 0, size));
-
-            ArrayPool<byte>.Shared.Return(bytes);
+            renderEvents.Add((byte)renderEvent.Type);
+            foreach (byte b in eventBytes)
+                renderEvents.Add(b);
         }
 
         public EventListReader CreateReader() => new EventListReader(renderEvents);
