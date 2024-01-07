@@ -9,24 +9,20 @@ using osu.Framework.Graphics.Rendering.Deferred.Events;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class EventListReader
+    public ref struct EventListReader(List<byte> events)
     {
-        private readonly List<byte> renderEvents;
-        private int currentPos;
-
-        public EventListReader(List<byte> renderEvents)
-        {
-            this.renderEvents = renderEvents;
-        }
+        private ReadOnlySpan<byte> events = CollectionsMarshal.AsSpan(events);
 
         public bool ReadType(out RenderEventType type)
         {
             type = default;
 
-            if (currentPos >= renderEvents.Count)
+            if (events.Length == 0)
                 return false;
 
-            type = (RenderEventType)renderEvents[currentPos++];
+            type = (RenderEventType)events[0];
+            events = events[1..];
+
             return true;
         }
 
@@ -35,12 +31,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             int size = Unsafe.SizeOf<T>();
 
-            Span<byte> span = CollectionsMarshal.AsSpan(renderEvents).Slice(currentPos, size);
-            currentPos += size;
+            ReadOnlySpan<byte> span = events[..size];
+            events = events[size..];
 
-            T result = MemoryMarshal.Read<T>(span);
-
-            return result;
+            return MemoryMarshal.Read<T>(span);
         }
 
         public void Skip(RenderEventType type)
@@ -48,131 +42,131 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             switch (type)
             {
                 case RenderEventType.AddVertexToBatch:
-                    currentPos += Unsafe.SizeOf<AddVertexToBatchEvent>();
+                    events = events[Unsafe.SizeOf<AddVertexToBatchEvent>()..];
                     break;
 
                 case RenderEventType.BindFrameBuffer:
-                    currentPos += Unsafe.SizeOf<BindFrameBufferEvent>();
+                    events = events[Unsafe.SizeOf<BindFrameBufferEvent>()..];
                     break;
 
                 case RenderEventType.BindShader:
-                    currentPos += Unsafe.SizeOf<BindShaderEvent>();
+                    events = events[Unsafe.SizeOf<BindShaderEvent>()..];
                     break;
 
                 case RenderEventType.BindTexture:
-                    currentPos += Unsafe.SizeOf<BindTextureEvent>();
+                    events = events[Unsafe.SizeOf<BindTextureEvent>()..];
                     break;
 
                 case RenderEventType.BindUniformBlock:
-                    currentPos += Unsafe.SizeOf<BindUniformBlockEvent>();
+                    events = events[Unsafe.SizeOf<BindUniformBlockEvent>()..];
                     break;
 
                 case RenderEventType.Clear:
-                    currentPos += Unsafe.SizeOf<ClearEvent>();
+                    events = events[Unsafe.SizeOf<ClearEvent>()..];
                     break;
 
                 case RenderEventType.Disposal:
-                    currentPos += Unsafe.SizeOf<DisposalEvent>();
+                    events = events[Unsafe.SizeOf<DisposalEvent>()..];
                     break;
 
                 case RenderEventType.DrawVertexBatch:
-                    currentPos += Unsafe.SizeOf<DrawVertexBatchEvent>();
+                    events = events[Unsafe.SizeOf<DrawVertexBatchEvent>()..];
                     break;
 
                 case RenderEventType.ExpensiveOperation:
-                    currentPos += Unsafe.SizeOf<ExpensiveOperationEvent>();
+                    events = events[Unsafe.SizeOf<ExpensiveOperationEvent>()..];
                     break;
 
                 case RenderEventType.PopDepthInfo:
-                    currentPos += Unsafe.SizeOf<PopDepthInfoEvent>();
+                    events = events[Unsafe.SizeOf<PopDepthInfoEvent>()..];
                     break;
 
                 case RenderEventType.PopMaskingInfo:
-                    currentPos += Unsafe.SizeOf<PopMaskingInfoEvent>();
+                    events = events[Unsafe.SizeOf<PopMaskingInfoEvent>()..];
                     break;
 
                 case RenderEventType.PopProjectionMatrix:
-                    currentPos += Unsafe.SizeOf<PopProjectionMatrixEvent>();
+                    events = events[Unsafe.SizeOf<PopProjectionMatrixEvent>()..];
                     break;
 
                 case RenderEventType.PopQuadBatch:
-                    currentPos += Unsafe.SizeOf<PopQuadBatchEvent>();
+                    events = events[Unsafe.SizeOf<PopQuadBatchEvent>()..];
                     break;
 
                 case RenderEventType.PopScissor:
-                    currentPos += Unsafe.SizeOf<PopScissorEvent>();
+                    events = events[Unsafe.SizeOf<PopScissorEvent>()..];
                     break;
 
                 case RenderEventType.PopScissorOffset:
-                    currentPos += Unsafe.SizeOf<PopScissorOffsetEvent>();
+                    events = events[Unsafe.SizeOf<PopScissorOffsetEvent>()..];
                     break;
 
                 case RenderEventType.PopScissorState:
-                    currentPos += Unsafe.SizeOf<PopScissorStateEvent>();
+                    events = events[Unsafe.SizeOf<PopScissorStateEvent>()..];
                     break;
 
                 case RenderEventType.PopStencilInfo:
-                    currentPos += Unsafe.SizeOf<PopStencilInfoEvent>();
+                    events = events[Unsafe.SizeOf<PopStencilInfoEvent>()..];
                     break;
 
                 case RenderEventType.PopViewport:
-                    currentPos += Unsafe.SizeOf<PopViewportEvent>();
+                    events = events[Unsafe.SizeOf<PopViewportEvent>()..];
                     break;
 
                 case RenderEventType.PushDepthInfo:
-                    currentPos += Unsafe.SizeOf<PushDepthInfoEvent>();
+                    events = events[Unsafe.SizeOf<PushDepthInfoEvent>()..];
                     break;
 
                 case RenderEventType.PushMaskingInfo:
-                    currentPos += Unsafe.SizeOf<PushMaskingInfoEvent>();
+                    events = events[Unsafe.SizeOf<PushMaskingInfoEvent>()..];
                     break;
 
                 case RenderEventType.PushProjectionMatrix:
-                    currentPos += Unsafe.SizeOf<PushProjectionMatrixEvent>();
+                    events = events[Unsafe.SizeOf<PushProjectionMatrixEvent>()..];
                     break;
 
                 case RenderEventType.PushQuadBatch:
-                    currentPos += Unsafe.SizeOf<PushQuadBatchEvent>();
+                    events = events[Unsafe.SizeOf<PushQuadBatchEvent>()..];
                     break;
 
                 case RenderEventType.PushScissor:
-                    currentPos += Unsafe.SizeOf<PushScissorEvent>();
+                    events = events[Unsafe.SizeOf<PushScissorEvent>()..];
                     break;
 
                 case RenderEventType.PushScissorOffset:
-                    currentPos += Unsafe.SizeOf<PushScissorOffsetEvent>();
+                    events = events[Unsafe.SizeOf<PushScissorOffsetEvent>()..];
                     break;
 
                 case RenderEventType.PushScissorState:
-                    currentPos += Unsafe.SizeOf<PushScissorStateEvent>();
+                    events = events[Unsafe.SizeOf<PushScissorStateEvent>()..];
                     break;
 
                 case RenderEventType.PushStencilInfo:
-                    currentPos += Unsafe.SizeOf<PushStencilInfoEvent>();
+                    events = events[Unsafe.SizeOf<PushStencilInfoEvent>()..];
                     break;
 
                 case RenderEventType.PushViewport:
-                    currentPos += Unsafe.SizeOf<PushViewportEvent>();
+                    events = events[Unsafe.SizeOf<PushViewportEvent>()..];
                     break;
 
                 case RenderEventType.SetBlend:
-                    currentPos += Unsafe.SizeOf<SetBlendEvent>();
+                    events = events[Unsafe.SizeOf<SetBlendEvent>()..];
                     break;
 
                 case RenderEventType.SetBlendMask:
-                    currentPos += Unsafe.SizeOf<SetBlendMaskEvent>();
+                    events = events[Unsafe.SizeOf<SetBlendMaskEvent>()..];
                     break;
 
                 case RenderEventType.SetUniformBufferData:
-                    currentPos += Unsafe.SizeOf<SetUniformBufferDataEvent>();
+                    events = events[Unsafe.SizeOf<SetUniformBufferDataEvent>()..];
                     break;
 
                 case RenderEventType.UnbindFrameBuffer:
-                    currentPos += Unsafe.SizeOf<UnbindFrameBufferEvent>();
+                    events = events[Unsafe.SizeOf<UnbindFrameBufferEvent>()..];
                     break;
 
                 case RenderEventType.UnbindShader:
-                    currentPos += Unsafe.SizeOf<UnbindShaderEvent>();
+                    events = events[Unsafe.SizeOf<UnbindShaderEvent>()..];
                     break;
 
                 default:
