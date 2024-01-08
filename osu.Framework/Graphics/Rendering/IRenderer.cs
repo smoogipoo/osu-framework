@@ -56,6 +56,8 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         protected internal Storage? CacheStorage { set; }
 
+        event Action<FlushBatchSource?>? OnFlush;
+
         /// <summary>
         /// The current frame index.
         /// </summary>

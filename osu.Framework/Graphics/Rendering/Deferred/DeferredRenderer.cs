@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
@@ -13,6 +12,7 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Platform;
+using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics;
@@ -61,6 +61,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             set => baseRenderer.CacheStorage = value;
         }
 
+        event Action<FlushBatchSource?>? IRenderer.OnFlush
+        {
+            add { }
+            remove { }
+        }
+
         public ulong FrameIndex { get; private set; }
 
         public int MaxTextureSize => baseRenderer.MaxTextureSize;
@@ -101,7 +107,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IVertexBatch<TexturedVertex2D> DefaultQuadBatch { get; }
 
-        private readonly Dictionary<Type, object> batchesByType = new Dictionary<Type, object>();
+        private readonly Dictionary<DeferredVertexBatchLookup, IDeferredVertexBatch> deferredBatches = new Dictionary<DeferredVertexBatchLookup, IDeferredVertexBatch>();
 
         private readonly IRenderer baseRenderer;
         private readonly Stack<RectangleI> viewportStack = new Stack<RectangleI>();
@@ -115,6 +121,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public DeferredRenderer(IRenderer baseRenderer)
         {
             this.baseRenderer = baseRenderer;
+            baseRenderer.OnFlush += onFlush;
 
             DefaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
         }
@@ -142,72 +149,43 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             stencilInfoStack.Clear();
             currentMaskingInfo = default;
 
+            foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
+                batch.ResetCounters();
+
             FrameIndex++;
         }
 
-        private readonly byte[] uploadBuffer = new byte[1024 * 1024];
-        private VeldridMetalVertexBuffer<TexturedVertex2D>? vbo;
+        private IDeferredVertexBatch? currentDrawBatch;
+        private int drawStartIndex;
+        private int drawEndIndex;
 
         public void FinishFrame()
         {
-            baseRenderer.BeginFrame(windowSize);
+            renderEvents.TrimExcess();
 
-            int currentUploadIndex = 0;
+            foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
+                batch.Prepare();
+
+            // This is where the drawing actually starts.
+
+            baseRenderer.BeginFrame(windowSize);
 
             EventListReader reader = renderEvents.CreateReader();
 
             while (reader.ReadType(out RenderEventType type))
             {
-                switch (type)
-                {
-                    case RenderEventType.AddVertexToBatch:
-                    {
-                        AddVertexToBatchEvent e = reader.Read<AddVertexToBatchEvent>();
-                        Span<byte> buffer = e.Data.GetBuffer(this);
-
-                        if (currentUploadIndex + buffer.Length >= uploadBuffer.Length)
-                            currentUploadIndex = 0;
-
-                        buffer.CopyTo(uploadBuffer.AsSpan().Slice(currentUploadIndex));
-                        currentUploadIndex += buffer.Length;
-                        break;
-                    }
-
-                    default:
-                        reader.Skip(type);
-                        break;
-                }
-            }
-
-            VeldridRenderer veldridRenderer = (VeldridRenderer)baseRenderer;
-
-            ReadOnlySpan<TexturedVertex2D> verticesToDraw = MemoryMarshal.Cast<byte, TexturedVertex2D>(uploadBuffer.AsSpan().Slice(0, currentUploadIndex));
-            int numVertices = verticesToDraw.Length;
-
-            vbo ??= new VeldridMetalVertexBuffer<TexturedVertex2D>(veldridRenderer, IRenderer.MAX_QUADS);
-            vbo.SetBuffer(verticesToDraw);
-
-            veldridRenderer.BindVertexBuffer(vbo);
-            veldridRenderer.BindIndexBuffer(VeldridIndexLayout.Quad, numVertices);
-
-            int drawStartIndex = 0;
-            int drawEndIndex = 0;
-
-            reader = renderEvents.CreateReader();
-
-            while (reader.ReadType(out RenderEventType type))
-            {
                 if (type == RenderEventType.AddVertexToBatch)
                 {
-                    reader.Skip(type);
-                    drawEndIndex++;
-                    continue;
-                }
+                    AddVertexToBatchEvent e = reader.Read<AddVertexToBatchEvent>();
+                    IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(this);
 
-                if (drawStartIndex != drawEndIndex)
-                {
-                    veldridRenderer.DrawVertices(global::Veldrid.PrimitiveTopology.TriangleList, drawStartIndex, drawEndIndex - drawStartIndex);
-                    drawStartIndex = drawEndIndex;
+                    if (currentDrawBatch != null && batch != currentDrawBatch)
+                        FlushCurrentBatch(FlushBatchSource.BindBuffer);
+
+                    drawStartIndex = Math.Min(drawStartIndex, e.Index);
+                    drawEndIndex = Math.Max(drawEndIndex, e.Index);
+                    currentDrawBatch = batch;
+                    continue;
                 }
 
                 switch (type)
@@ -341,10 +319,26 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 }
             }
 
-            if (drawStartIndex != drawEndIndex)
-                veldridRenderer.DrawVertices(global::Veldrid.PrimitiveTopology.TriangleList, drawStartIndex, drawEndIndex - drawStartIndex);
+            FlushCurrentBatch(FlushBatchSource.FinishFrame);
 
             baseRenderer.FinishFrame();
+        }
+
+        private void onFlush(FlushBatchSource? obj)
+        {
+            if (currentDrawBatch == null)
+                return;
+
+            // Prevent re-entrancy
+            IDeferredVertexBatch batch = currentDrawBatch;
+            currentDrawBatch = null;
+
+            batch.Draw(drawStartIndex, drawEndIndex);
+
+            drawStartIndex = 0;
+            drawEndIndex = 0;
+
+            FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
         }
 
         public void SwapBuffers()
@@ -360,10 +354,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void ClearCurrent() => MakeCurrent();
 
-        public void FlushCurrentBatch(FlushBatchSource? source)
-        {
-            // Todo: We may want to track these.
-        }
+        public void FlushCurrentBatch(FlushBatchSource? source) => baseRenderer.FlushCurrentBatch(source);
 
         public bool BindTexture(Texture texture, int unit = 0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
         {
@@ -478,12 +469,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
             where T : class
-            => EnqueueEvent(DisposalEvent.Create(this, target!, disposalAction));
+            => EnqueueEvent(DisposalEvent.Create(this, target, disposalAction));
 
-        public Image<Rgba32> TakeScreenshot()
-        {
-            throw new NotImplementedException();
-        }
+        public Image<Rgba32> TakeScreenshot() => throw new NotImplementedException();
 
         public IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
             => baseRenderer.CreateShaderPart(store, name, rawData, partType);
@@ -503,15 +491,55 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
             where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-            => throw new NotImplementedException();
+        {
+            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), topology, IndexLayout.Linear);
+
+            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
+                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, topology, IndexLayout.Linear);
+
+            return (IVertexBatch<TVertex>)existing;
+        }
 
         public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
             where TVertex : unmanaged, IEquatable<TVertex>, IVertex
         {
-            if (!batchesByType.TryGetValue(typeof(TVertex), out object? existing))
-                existing = batchesByType[typeof(TVertex)] = new DeferredVertexBatch<TVertex>(this);
+            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), PrimitiveTopology.Triangles, IndexLayout.Quad);
+
+            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
+                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, PrimitiveTopology.Triangles, IndexLayout.Quad);
 
             return (IVertexBatch<TVertex>)existing;
+        }
+
+        internal VeldridMetalVertexBuffer<TVertex> CreateVertexBuffer<TVertex>(int size)
+            where TVertex : unmanaged, IEquatable<TVertex>, IVertex
+            => new VeldridMetalVertexBuffer<TVertex>((VeldridRenderer)baseRenderer, size);
+
+        internal void DrawVertexBuffer<TVertex>(VeldridMetalVertexBuffer<TVertex> vbo, IndexLayout layout, PrimitiveTopology topology, int offset, int count)
+            where TVertex : unmanaged, IEquatable<TVertex>, IVertex
+        {
+            VeldridRenderer veldridRenderer = (VeldridRenderer)baseRenderer;
+
+            VeldridIndexLayout veldridLayout = layout switch
+            {
+                IndexLayout.Linear => VeldridIndexLayout.Linear,
+                IndexLayout.Quad => VeldridIndexLayout.Quad,
+                _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
+            };
+
+            global::Veldrid.PrimitiveTopology veldridTopology = topology switch
+            {
+                PrimitiveTopology.Points => global::Veldrid.PrimitiveTopology.PointList,
+                PrimitiveTopology.Lines => global::Veldrid.PrimitiveTopology.LineList,
+                PrimitiveTopology.LineStrip => global::Veldrid.PrimitiveTopology.LineStrip,
+                PrimitiveTopology.Triangles => global::Veldrid.PrimitiveTopology.TriangleList,
+                PrimitiveTopology.TriangleStrip => global::Veldrid.PrimitiveTopology.TriangleStrip,
+                _ => throw new ArgumentOutOfRangeException(nameof(topology), topology, null)
+            };
+
+            veldridRenderer.BindVertexBuffer(vbo);
+            veldridRenderer.BindIndexBuffer(veldridLayout, vbo.Size);
+            veldridRenderer.DrawVertices(veldridTopology, offset, count);
         }
 
         public IUniformBuffer<TData> CreateUniformBuffer<TData>()

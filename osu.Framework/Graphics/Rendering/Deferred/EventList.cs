@@ -26,6 +26,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             renderEvents.AddRange(eventBytes);
         }
 
+        public void TrimExcess() => renderEvents.TrimExcess();
+
         public EventListReader CreateReader() => new EventListReader(renderEvents);
     }
 }

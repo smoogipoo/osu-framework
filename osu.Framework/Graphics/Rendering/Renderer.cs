@@ -47,6 +47,8 @@ namespace osu.Framework.Graphics.Rendering
             set => shaderCompilationStore.CacheStorage = value;
         }
 
+        public event Action<FlushBatchSource?>? OnFlush;
+
         public int MaxTextureSize { get; protected set; } = 4096; // default value is to allow roughly normal flow in cases we don't have graphics context, like headless CI.
 
         public int MaxTexturesUploadedPerFrame { get; set; } = 32;
@@ -811,6 +813,8 @@ namespace osu.Framework.Graphics.Rendering
         {
             if (currentActiveBatch?.Draw() > 0 && source != null)
                 flush_source_statistics[(int)source].Value++;
+
+            OnFlush?.Invoke(source);
         }
 
         private void freeUnusedVertexBuffers()

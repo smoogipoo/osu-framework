@@ -59,7 +59,12 @@ namespace osu.Framework.Graphics.Rendering.Dummy
 
         bool IRenderer.AllowTearing { get; set; }
 
-        Storage? IRenderer.CacheStorage { set { } }
+        Storage? IRenderer.CacheStorage
+        {
+            set { }
+        }
+
+        public event Action<FlushBatchSource?>? OnFlush;
 
         void IRenderer.Initialise(IGraphicsSurface graphicsSurface)
         {
@@ -236,12 +241,8 @@ namespace osu.Framework.Graphics.Rendering.Dummy
 
         event Action<Texture>? IRenderer.TextureCreated
         {
-            add
-            {
-            }
-            remove
-            {
-            }
+            add { }
+            remove { }
         }
 
         Texture[] IRenderer.GetAllTextures() => Array.Empty<Texture>();
