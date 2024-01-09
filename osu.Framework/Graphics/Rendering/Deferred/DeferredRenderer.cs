@@ -32,9 +32,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public object GetResource(RendererResource resource)
             => allocator.GetResource(resource);
 
-        public RendererMemoryBlock Allocate<T>()
+        public RendererMemoryBlock Allocate<T>(T data)
             where T : unmanaged
-            => allocator.Allocate<T>();
+            => allocator.Allocate(data);
 
         public Span<byte> GetBuffer(RendererMemoryBlock block)
             => allocator.GetBuffer(block);

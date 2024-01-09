@@ -10,6 +10,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     public interface IDeferredUniformBuffer
     {
         void SetDataFromBuffer(ReadOnlySpan<byte> buffer);
+
+        IUniformBuffer GetBuffer();
     }
 
     public class DeferredUniformBuffer<TData> : IUniformBuffer<TData>, IDeferredUniformBuffer
@@ -46,5 +48,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             Resource.Data = MemoryMarshal.Read<TData>(buffer);
         }
+
+        public IUniformBuffer GetBuffer() => Resource;
     }
 }

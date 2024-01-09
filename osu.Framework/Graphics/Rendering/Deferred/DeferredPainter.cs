@@ -177,7 +177,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void ProcessEvent(BindUniformBlockEvent e)
         {
-            e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(e.Name.Resolve<string>(deferredRenderer), e.Buffer.Resolve<IUniformBuffer>(deferredRenderer));
+            e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
+                e.Name.Resolve<string>(deferredRenderer),
+                e.Buffer.Resolve<IDeferredUniformBuffer>(deferredRenderer).GetBuffer());
         }
 
         public void ProcessEvent(ClearEvent e)

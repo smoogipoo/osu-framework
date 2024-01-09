@@ -35,7 +35,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => new DeferredUniform<T>(renderer, this, Resource.GetUniform<T>(name));
 
         public void BindUniformBlock(string blockName, IUniformBuffer buffer)
-            => renderer.EnqueueEvent(new BindUniformBlockEvent(renderer.Reference(this), renderer.Reference(blockName), renderer.Reference(buffer)));
+            => renderer.EnqueueEvent(BindUniformBlockEvent.Create(renderer, this, blockName, (IDeferredUniformBuffer)buffer));
 
         public void Dispose()
         {

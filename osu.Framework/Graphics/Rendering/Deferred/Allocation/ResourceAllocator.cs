@@ -44,17 +44,22 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return resourceReferences[obj] = new RendererResource(resources.Count - 1);
         }
 
-        public RendererMemoryBlock Allocate<T>()
+        public RendererMemoryBlock Allocate<T>(T data)
             where T : unmanaged
         {
             ThreadSafety.EnsureDrawThread();
 
-            int requiredSize = Marshal.SizeOf<T>();
+            int requiredSize = Marshal.SizeOf(data);
 
             if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < requiredSize)
                 memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size, requiredSize)));
 
-            return memoryBuffers[^1].Reserve(requiredSize);
+            RendererMemoryBlock block = memoryBuffers[^1].Reserve(requiredSize);
+            Span<byte> buffer = GetBuffer(block);
+
+            MemoryMarshal.Write(buffer, data);
+
+            return block;
         }
 
         public object GetResource(RendererResource resource)

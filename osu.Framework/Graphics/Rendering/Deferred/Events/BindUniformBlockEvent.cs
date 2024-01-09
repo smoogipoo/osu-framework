@@ -8,5 +8,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct BindUniformBlockEvent(RendererResource Shader, RendererResource Name, RendererResource Buffer) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindUniformBlock;
+
+        public static BindUniformBlockEvent Create(DeferredRenderer renderer, DeferredShader shader, string name, IDeferredUniformBuffer buffer)
+        {
+            return new BindUniformBlockEvent(renderer.Reference(shader), renderer.Reference(name), renderer.Reference(buffer));
+        }
     }
 }
