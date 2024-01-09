@@ -10,7 +10,7 @@ using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public struct DeferredPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
+    public struct EventPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
     {
         private IDeferredVertexBatch? currentDrawBatch;
         private int? drawStartIndex;

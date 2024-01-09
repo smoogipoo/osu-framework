@@ -117,7 +117,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly Stack<DepthInfo> depthInfoStack = new Stack<DepthInfo>();
         private readonly Stack<StencilInfo> stencilInfoStack = new Stack<StencilInfo>();
 
-        private DeferredPainter painter;
+        private EventPainter painter;
 
         public DeferredRenderer(IRenderer baseRenderer)
         {
@@ -166,7 +166,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             baseRenderer.BeginFrame(windowSize);
 
-            painter = new DeferredPainter(this, baseRenderer);
+            painter = new EventPainter(this, baseRenderer);
             painter.ProcessEvents(renderEvents.CreateReader());
             painter.Finish();
 
