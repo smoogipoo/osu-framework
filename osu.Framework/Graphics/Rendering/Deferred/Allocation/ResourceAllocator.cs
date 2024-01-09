@@ -13,7 +13,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
     {
         private const int min_buffer_size = 1024 * 1024; // 1MB
 
+        private readonly Dictionary<object, RendererResource> resourceReferences = new Dictionary<object, RendererResource>();
         private readonly List<object> resources = new List<object>();
+
         private readonly List<MemoryBuffer> memoryBuffers = new List<MemoryBuffer>();
 
         public void Reset()
@@ -21,6 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             for (int i = 0; i < memoryBuffers.Count; i++)
                 memoryBuffers[i].Dispose();
 
+            resourceReferences.Clear();
             resources.Clear();
             memoryBuffers.Clear();
         }
@@ -28,8 +31,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public RendererResource Reference<T>(T obj)
             where T : class
         {
+            if (resourceReferences.TryGetValue(obj, out RendererResource existing))
+                return existing;
+
             resources.Add(obj);
-            return new RendererResource(resources.Count - 1);
+
+            return resourceReferences[obj] = new RendererResource(resources.Count - 1);
         }
 
         public RendererMemoryBlock Allocate<T>()
@@ -43,7 +50,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return memoryBuffers[^1].Reserve(requiredSize);
         }
 
-        public object GetReference(RendererResource resource) => resources[resource.Id];
+        public object GetResource(RendererResource resource) => resources[resource.Id];
 
         public Span<byte> GetBuffer(RendererMemoryBlock block) => memoryBuffers[block.BufferId].GetBuffer(block);
 

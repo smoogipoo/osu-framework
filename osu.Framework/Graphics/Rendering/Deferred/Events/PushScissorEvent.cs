@@ -8,10 +8,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct PushScissorEvent(RectangleI Scissor) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PushScissor;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.PushScissor(Scissor);
-        }
     }
 }

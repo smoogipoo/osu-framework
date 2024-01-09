@@ -11,12 +11,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     {
         public RenderEventType Type => RenderEventType.SetUniformBufferData;
 
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            // This is temporary.
-            Buffer.Resolve<IDeferredUniformBuffer>(current).SetDataFromBuffer(Data.GetBuffer(current));
-        }
-
         public static SetUniformBufferDataEvent Create<T>(DeferredRenderer renderer, IDeferredUniformBuffer uniformBuffer, T data)
             where T : unmanaged, IEquatable<T>
         {

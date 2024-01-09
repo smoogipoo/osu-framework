@@ -8,10 +8,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct UnbindShaderEvent(RendererResource Shader) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.UnbindShader;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            Shader.Resolve<DeferredShader>(current).Resource.Unbind();
-        }
     }
 }

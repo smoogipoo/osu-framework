@@ -8,9 +8,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct AddVertexToBatchEvent(RendererResource VertexBatch, int Index) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.AddVertexToBatch;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-        }
     }
 }

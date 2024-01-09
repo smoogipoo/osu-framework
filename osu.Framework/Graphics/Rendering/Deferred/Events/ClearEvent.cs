@@ -6,10 +6,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct ClearEvent(ClearInfo Info) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.Clear;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.Clear(Info);
-        }
     }
 }

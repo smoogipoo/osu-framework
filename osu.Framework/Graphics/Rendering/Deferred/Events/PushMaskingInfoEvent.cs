@@ -6,10 +6,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct PushMaskingInfoEvent(MaskingInfo Info) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PushMaskingInfo;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.PushMaskingInfo(Info);
-        }
     }
 }

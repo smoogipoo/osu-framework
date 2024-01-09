@@ -10,11 +10,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     {
         public RenderEventType Type => RenderEventType.Disposal;
 
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.ScheduleDisposal(DisposalAction.Resolve<Action<object>>(current), Target.Resolve<object>(current));
-        }
-
         public static DisposalEvent Create<T>(DeferredRenderer renderer, T target, Action<T> action)
             where T : class
         {

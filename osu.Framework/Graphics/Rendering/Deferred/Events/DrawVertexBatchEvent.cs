@@ -6,9 +6,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct DrawVertexBatchEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.DrawVertexBatch;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-        }
     }
 }

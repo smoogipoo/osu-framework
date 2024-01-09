@@ -9,10 +9,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct BindTextureEvent(RendererResource Texture, int Unit, WrapMode? WrapModeS, WrapMode? WrapModeT) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindTexture;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.BindTexture(Texture.Resolve<Texture>(current), Unit, WrapModeS, WrapModeT);
-        }
     }
 }

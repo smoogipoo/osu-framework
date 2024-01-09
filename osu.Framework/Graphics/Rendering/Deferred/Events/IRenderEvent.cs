@@ -6,8 +6,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public interface IRenderEvent
     {
         RenderEventType Type { get; }
-
-        void Run(DeferredRenderer current, IRenderer target);
     }
 
     public enum RenderEventType

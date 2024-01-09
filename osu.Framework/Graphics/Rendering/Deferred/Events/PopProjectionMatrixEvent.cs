@@ -6,10 +6,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct PopProjectionMatrixEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopProjectionMatrix;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.PopProjectionMatrix();
-        }
     }
 }

@@ -8,10 +8,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct PushScissorOffsetEvent(Vector2I Offset) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PushScissorOffset;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.PushScissorOffset(Offset);
-        }
     }
 }

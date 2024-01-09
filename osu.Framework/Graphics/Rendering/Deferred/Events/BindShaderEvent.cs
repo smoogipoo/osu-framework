@@ -8,10 +8,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct BindShaderEvent(RendererResource Shader) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindShader;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            Shader.Resolve<DeferredShader>(current).Resource.Bind();
-        }
     }
 }

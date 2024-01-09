@@ -8,10 +8,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct BindFrameBufferEvent(RendererResource FrameBuffer) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindFrameBuffer;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            FrameBuffer.Resolve<DeferredFrameBuffer>(current).Resource.Bind();
-        }
     }
 }

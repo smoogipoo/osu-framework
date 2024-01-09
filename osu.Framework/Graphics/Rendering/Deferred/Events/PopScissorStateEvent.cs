@@ -6,10 +6,5 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     public readonly record struct PopScissorStateEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopScissorState;
-
-        public void Run(DeferredRenderer current, IRenderer target)
-        {
-            target.PopScissorState();
-        }
     }
 }

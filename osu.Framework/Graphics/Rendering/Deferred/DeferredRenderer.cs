@@ -12,7 +12,6 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Platform;
-using osu.Framework.Statistics;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics;
@@ -30,8 +29,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             where T : class
             => allocator.Reference(obj);
 
-        public object GetReference(RendererResource resource)
-            => allocator.GetReference(resource);
+        public object GetResource(RendererResource resource)
+            => allocator.GetResource(resource);
 
         public RendererMemoryBlock Allocate<T>()
             where T : unmanaged
@@ -118,12 +117,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly Stack<DepthInfo> depthInfoStack = new Stack<DepthInfo>();
         private readonly Stack<StencilInfo> stencilInfoStack = new Stack<StencilInfo>();
 
+        private DeferredPainter painter;
+
         public DeferredRenderer(IRenderer baseRenderer)
         {
             this.baseRenderer = baseRenderer;
-            baseRenderer.OnFlush += onFlush;
 
-            DefaultQuadBatch = CreateQuadBatch<TexturedVertex2D>(100, 1000);
+            DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
+
+            baseRenderer.OnFlush += s => painter.FlushCurrentBatch(s);
         }
 
         public void Initialise(IGraphicsSurface graphicsSurface)
@@ -155,10 +157,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             FrameIndex++;
         }
 
-        private IDeferredVertexBatch? currentDrawBatch;
-        private int drawStartIndex;
-        private int drawEndIndex;
-
         public void FinishFrame()
         {
             renderEvents.TrimExcess();
@@ -166,349 +164,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
                 batch.Prepare();
 
-            // This is where the drawing actually starts.
-
             baseRenderer.BeginFrame(windowSize);
 
-            EventListReader reader = renderEvents.CreateReader();
-
-            while (reader.ReadType(out RenderEventType type))
-            {
-                if (type == RenderEventType.AddVertexToBatch)
-                {
-                    AddVertexToBatchEvent e = reader.Read<AddVertexToBatchEvent>();
-                    IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(this);
-
-                    if (currentDrawBatch != null && batch != currentDrawBatch)
-                        FlushCurrentBatch(FlushBatchSource.BindBuffer);
-
-                    drawStartIndex = Math.Min(drawStartIndex, e.Index);
-                    drawEndIndex = Math.Max(drawEndIndex, e.Index);
-                    currentDrawBatch = batch;
-                    continue;
-                }
-
-                switch (type)
-                {
-                    case RenderEventType.BindFrameBuffer:
-                        reader.Read<BindFrameBufferEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.BindShader:
-                        reader.Read<BindShaderEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.BindTexture:
-                        reader.Read<BindTextureEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.BindUniformBlock:
-                        reader.Read<BindUniformBlockEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.Clear:
-                        reader.Read<ClearEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.Disposal:
-                        reader.Read<DisposalEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.DrawVertexBatch:
-                        reader.Read<DrawVertexBatchEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.ExpensiveOperation:
-                        reader.Read<ExpensiveOperationEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopDepthInfo:
-                        reader.Read<PopDepthInfoEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopMaskingInfo:
-                        reader.Read<PopMaskingInfoEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopProjectionMatrix:
-                        reader.Read<PopProjectionMatrixEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopQuadBatch:
-                        reader.Read<PopQuadBatchEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopScissor:
-                        reader.Read<PopScissorEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopScissorOffset:
-                        reader.Read<PopScissorOffsetEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopScissorState:
-                        reader.Read<PopScissorStateEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopStencilInfo:
-                        reader.Read<PopStencilInfoEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PopViewport:
-                        reader.Read<PopViewportEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushDepthInfo:
-                        reader.Read<PushDepthInfoEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushMaskingInfo:
-                        reader.Read<PushMaskingInfoEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushProjectionMatrix:
-                        reader.Read<PushProjectionMatrixEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushQuadBatch:
-                        reader.Read<PushQuadBatchEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushScissor:
-                        reader.Read<PushScissorEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushScissorOffset:
-                        reader.Read<PushScissorOffsetEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushScissorState:
-                        reader.Read<PushScissorStateEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushStencilInfo:
-                        reader.Read<PushStencilInfoEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.PushViewport:
-                        reader.Read<PushViewportEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.SetBlend:
-                        reader.Read<SetBlendEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.SetBlendMask:
-                        reader.Read<SetBlendMaskEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.SetUniformBufferData:
-                        reader.Read<SetUniformBufferDataEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.UnbindFrameBuffer:
-                        reader.Read<UnbindFrameBufferEvent>().Run(this, baseRenderer);
-                        break;
-
-                    case RenderEventType.UnbindShader:
-                        reader.Read<UnbindShaderEvent>().Run(this, baseRenderer);
-                        break;
-
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
-
-            FlushCurrentBatch(FlushBatchSource.FinishFrame);
+            painter = new DeferredPainter(this, baseRenderer);
+            painter.ProcessEvents(renderEvents.CreateReader());
+            painter.Finish();
 
             baseRenderer.FinishFrame();
-        }
-
-        private void onFlush(FlushBatchSource? obj)
-        {
-            if (currentDrawBatch == null)
-                return;
-
-            // Prevent re-entrancy
-            IDeferredVertexBatch batch = currentDrawBatch;
-            currentDrawBatch = null;
-
-            batch.Draw(drawStartIndex, drawEndIndex);
-
-            drawStartIndex = 0;
-            drawEndIndex = 0;
-
-            FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
-        }
-
-        public void SwapBuffers()
-        {
-            baseRenderer.SwapBuffers();
-        }
-
-        public void WaitUntilIdle() => baseRenderer.WaitUntilIdle();
-
-        public void WaitUntilNextFrameReady() => baseRenderer.WaitUntilNextFrameReady();
-
-        public void MakeCurrent() => baseRenderer.MakeCurrent();
-
-        public void ClearCurrent() => MakeCurrent();
-
-        public void FlushCurrentBatch(FlushBatchSource? source) => baseRenderer.FlushCurrentBatch(source);
-
-        public bool BindTexture(Texture texture, int unit = 0, WrapMode? wrapModeS = null, WrapMode? wrapModeT = null)
-        {
-            CurrentWrapModeS = wrapModeS ?? texture.WrapModeS;
-            CurrentWrapModeT = wrapModeT ?? texture.WrapModeT;
-            EnqueueEvent(new BindTextureEvent(Reference(texture), unit, wrapModeS, wrapModeT));
-            return true;
-        }
-
-        public void Clear(ClearInfo clearInfo) => EnqueueEvent(new ClearEvent(clearInfo));
-
-        public void PushScissorState(bool enabled) => EnqueueEvent(new PushScissorStateEvent(enabled));
-
-        public void PopScissorState() => EnqueueEvent(new PopScissorStateEvent());
-
-        public void SetBlend(BlendingParameters blendingParameters) => EnqueueEvent(new SetBlendEvent(blendingParameters));
-
-        public void SetBlendMask(BlendingMask blendingMask) => EnqueueEvent(new SetBlendMaskEvent(blendingMask));
-
-        public void PushViewport(RectangleI viewport)
-        {
-            viewportStack.Push(Viewport);
-            Viewport = viewport;
-            EnqueueEvent(new PushViewportEvent(viewport));
-        }
-
-        public void PopViewport()
-        {
-            Viewport = viewportStack.Pop();
-            EnqueueEvent(new PopViewportEvent());
-        }
-
-        public void PushScissor(RectangleI scissor)
-        {
-            scissorRectStack.Push(Scissor);
-            Scissor = scissor;
-            EnqueueEvent(new PushScissorEvent(scissor));
-        }
-
-        public void PopScissor()
-        {
-            Scissor = scissorRectStack.Pop();
-            EnqueueEvent(new PopScissorEvent());
-        }
-
-        public void PushScissorOffset(Vector2I offset)
-        {
-            scissorOffsetStack.Push(ScissorOffset);
-            ScissorOffset = offset;
-            EnqueueEvent(new PushScissorOffsetEvent(offset));
-        }
-
-        public void PopScissorOffset()
-        {
-            ScissorOffset = scissorOffsetStack.Pop();
-            EnqueueEvent(new PopScissorOffsetEvent());
-        }
-
-        public void PushProjectionMatrix(Matrix4 matrix)
-        {
-            projectionMatrixStack.Push(ProjectionMatrix);
-            ProjectionMatrix = matrix;
-            EnqueueEvent(new PushProjectionMatrixEvent(matrix));
-        }
-
-        public void PopProjectionMatrix()
-        {
-            ProjectionMatrix = projectionMatrixStack.Pop();
-            EnqueueEvent(new PopProjectionMatrixEvent());
-        }
-
-        public void PushMaskingInfo(in MaskingInfo maskingInfo, bool overwritePreviousScissor = false)
-        {
-            maskingInfoStack.Push(currentMaskingInfo);
-            currentMaskingInfo = maskingInfo;
-            EnqueueEvent(new PushMaskingInfoEvent(maskingInfo));
-        }
-
-        public void PopMaskingInfo()
-        {
-            currentMaskingInfo = maskingInfoStack.Pop();
-            EnqueueEvent(new PopMaskingInfoEvent());
-        }
-
-        public void PushDepthInfo(DepthInfo depthInfo)
-        {
-            depthInfoStack.Push(CurrentDepthInfo);
-            CurrentDepthInfo = depthInfo;
-            EnqueueEvent(new PushDepthInfoEvent(depthInfo));
-        }
-
-        public void PopDepthInfo()
-        {
-            CurrentDepthInfo = depthInfoStack.Pop();
-            EnqueueEvent(new PopDepthInfoEvent());
-        }
-
-        public void PushStencilInfo(StencilInfo stencilInfo)
-        {
-            stencilInfoStack.Push(CurrentStencilInfo);
-            CurrentStencilInfo = stencilInfo;
-            EnqueueEvent(new PushStencilInfoEvent(stencilInfo));
-        }
-
-        public void PopStencilInfo()
-        {
-            CurrentStencilInfo = stencilInfoStack.Pop();
-            EnqueueEvent(new PopStencilInfoEvent());
-        }
-
-        public void ScheduleExpensiveOperation(ScheduledDelegate operation) => EnqueueEvent(new ExpensiveOperationEvent(Reference(operation)));
-
-        public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
-            where T : class
-            => EnqueueEvent(DisposalEvent.Create(this, target, disposalAction));
-
-        public Image<Rgba32> TakeScreenshot() => throw new NotImplementedException();
-
-        public IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
-            => baseRenderer.CreateShaderPart(store, name, rawData, partType);
-
-        public IShader CreateShader(string name, IShaderPart[] parts)
-            => new DeferredShader(this, baseRenderer.CreateShader(name, parts));
-
-        public IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
-            => new DeferredFrameBuffer(this, baseRenderer.CreateFrameBuffer(renderBufferFormats, filteringMode));
-
-        public Texture CreateTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear, WrapMode wrapModeS = WrapMode.None,
-                                     WrapMode wrapModeT = WrapMode.None, Color4? initialisationColour = null)
-            => baseRenderer.CreateTexture(width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
-
-        public Texture CreateVideoTexture(int width, int height)
-            => baseRenderer.CreateVideoTexture(width, height);
-
-        public IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
-            where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-        {
-            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), topology, IndexLayout.Linear);
-
-            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
-                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, topology, IndexLayout.Linear);
-
-            return (IVertexBatch<TVertex>)existing;
-        }
-
-        public IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
-            where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-        {
-            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), PrimitiveTopology.Triangles, IndexLayout.Quad);
-
-            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
-                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, PrimitiveTopology.Triangles, IndexLayout.Quad);
-
-            return (IVertexBatch<TVertex>)existing;
         }
 
         internal VeldridMetalVertexBuffer<TVertex> CreateVertexBuffer<TVertex>(int size)
@@ -542,36 +204,196 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             veldridRenderer.DrawVertices(veldridTopology, offset, count);
         }
 
-        public IUniformBuffer<TData> CreateUniformBuffer<TData>()
-            where TData : unmanaged, IEquatable<TData>
-            => new DeferredUniformBuffer<TData>(this, baseRenderer.CreateUniformBuffer<TData>());
+        #region IRenderer Implementation
 
-        public IShaderStorageBufferObject<TData> CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize)
-            where TData : unmanaged, IEquatable<TData>
+        void IRenderer.SwapBuffers() => baseRenderer.SwapBuffers();
+
+        void IRenderer.WaitUntilIdle() => baseRenderer.WaitUntilIdle();
+
+        void IRenderer.WaitUntilNextFrameReady() => baseRenderer.WaitUntilNextFrameReady();
+
+        void IRenderer.MakeCurrent() => baseRenderer.MakeCurrent();
+
+        void IRenderer.ClearCurrent() => ((IRenderer)this).MakeCurrent();
+
+        void IRenderer.FlushCurrentBatch(FlushBatchSource? source) => baseRenderer.FlushCurrentBatch(source);
+
+        bool IRenderer.BindTexture(Texture texture, int unit, WrapMode? wrapModeS, WrapMode? wrapModeT)
         {
-            throw new NotImplementedException();
+            CurrentWrapModeS = wrapModeS ?? texture.WrapModeS;
+            CurrentWrapModeT = wrapModeT ?? texture.WrapModeT;
+            EnqueueEvent(new BindTextureEvent(Reference(texture), unit, wrapModeS, wrapModeT));
+            return true;
         }
 
-        public void SetUniform<T>(IUniformWithValue<T> uniform) where T : unmanaged, IEquatable<T>
+        void IRenderer.Clear(ClearInfo clearInfo) => EnqueueEvent(new ClearEvent(clearInfo));
+
+        void IRenderer.PushScissorState(bool enabled) => EnqueueEvent(new PushScissorStateEvent(enabled));
+
+        void IRenderer.PopScissorState() => EnqueueEvent(new PopScissorStateEvent());
+
+        void IRenderer.SetBlend(BlendingParameters blendingParameters) => EnqueueEvent(new SetBlendEvent(blendingParameters));
+
+        void IRenderer.SetBlendMask(BlendingMask blendingMask) => EnqueueEvent(new SetBlendMaskEvent(blendingMask));
+
+        void IRenderer.PushViewport(RectangleI viewport)
+        {
+            viewportStack.Push(Viewport);
+            Viewport = viewport;
+            EnqueueEvent(new PushViewportEvent(viewport));
+        }
+
+        void IRenderer.PopViewport()
+        {
+            Viewport = viewportStack.Pop();
+            EnqueueEvent(new PopViewportEvent());
+        }
+
+        void IRenderer.PushScissor(RectangleI scissor)
+        {
+            scissorRectStack.Push(Scissor);
+            Scissor = scissor;
+            EnqueueEvent(new PushScissorEvent(scissor));
+        }
+
+        void IRenderer.PopScissor()
+        {
+            Scissor = scissorRectStack.Pop();
+            EnqueueEvent(new PopScissorEvent());
+        }
+
+        void IRenderer.PushScissorOffset(Vector2I offset)
+        {
+            scissorOffsetStack.Push(ScissorOffset);
+            ScissorOffset = offset;
+            EnqueueEvent(new PushScissorOffsetEvent(offset));
+        }
+
+        void IRenderer.PopScissorOffset()
+        {
+            ScissorOffset = scissorOffsetStack.Pop();
+            EnqueueEvent(new PopScissorOffsetEvent());
+        }
+
+        void IRenderer.PushProjectionMatrix(Matrix4 matrix)
+        {
+            projectionMatrixStack.Push(ProjectionMatrix);
+            ProjectionMatrix = matrix;
+            EnqueueEvent(new PushProjectionMatrixEvent(matrix));
+        }
+
+        void IRenderer.PopProjectionMatrix()
+        {
+            ProjectionMatrix = projectionMatrixStack.Pop();
+            EnqueueEvent(new PopProjectionMatrixEvent());
+        }
+
+        void IRenderer.PushMaskingInfo(in MaskingInfo maskingInfo, bool overwritePreviousScissor)
+        {
+            maskingInfoStack.Push(currentMaskingInfo);
+            currentMaskingInfo = maskingInfo;
+            EnqueueEvent(new PushMaskingInfoEvent(maskingInfo));
+        }
+
+        void IRenderer.PopMaskingInfo()
+        {
+            currentMaskingInfo = maskingInfoStack.Pop();
+            EnqueueEvent(new PopMaskingInfoEvent());
+        }
+
+        void IRenderer.PushDepthInfo(DepthInfo depthInfo)
+        {
+            depthInfoStack.Push(CurrentDepthInfo);
+            CurrentDepthInfo = depthInfo;
+            EnqueueEvent(new PushDepthInfoEvent(depthInfo));
+        }
+
+        void IRenderer.PopDepthInfo()
+        {
+            CurrentDepthInfo = depthInfoStack.Pop();
+            EnqueueEvent(new PopDepthInfoEvent());
+        }
+
+        void IRenderer.PushStencilInfo(StencilInfo stencilInfo)
+        {
+            stencilInfoStack.Push(CurrentStencilInfo);
+            CurrentStencilInfo = stencilInfo;
+            EnqueueEvent(new PushStencilInfoEvent(stencilInfo));
+        }
+
+        void IRenderer.PopStencilInfo()
+        {
+            CurrentStencilInfo = stencilInfoStack.Pop();
+            EnqueueEvent(new PopStencilInfoEvent());
+        }
+
+        void IRenderer.ScheduleExpensiveOperation(ScheduledDelegate operation) => EnqueueEvent(new ExpensiveOperationEvent(Reference(operation)));
+
+        void IRenderer.ScheduleDisposal<T>(Action<T> disposalAction, T target)
+            where T : class
+            => EnqueueEvent(DisposalEvent.Create(this, target, disposalAction));
+
+        Image<Rgba32> IRenderer.TakeScreenshot() => throw new NotImplementedException();
+
+        IShaderPart IRenderer.CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
+            => baseRenderer.CreateShaderPart(store, name, rawData, partType);
+
+        IShader IRenderer.CreateShader(string name, IShaderPart[] parts)
+            => new DeferredShader(this, baseRenderer.CreateShader(name, parts));
+
+        IFrameBuffer IRenderer.CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats, TextureFilteringMode filteringMode)
+            => new DeferredFrameBuffer(this, baseRenderer.CreateFrameBuffer(renderBufferFormats, filteringMode));
+
+        Texture IRenderer.CreateTexture(int width, int height, bool manualMipmaps, TextureFilteringMode filteringMode, WrapMode wrapModeS, WrapMode wrapModeT, Color4? initialisationColour)
+            => baseRenderer.CreateTexture(width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
+
+        Texture IRenderer.CreateVideoTexture(int width, int height)
+            => baseRenderer.CreateVideoTexture(width, height);
+
+        IVertexBatch<TVertex> IRenderer.CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
+        {
+            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), topology, IndexLayout.Linear);
+
+            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
+                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, topology, IndexLayout.Linear);
+
+            return (IVertexBatch<TVertex>)existing;
+        }
+
+        IVertexBatch<TVertex> IRenderer.CreateQuadBatch<TVertex>(int size, int maxBuffers)
+        {
+            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), PrimitiveTopology.Triangles, IndexLayout.Quad);
+
+            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
+                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, PrimitiveTopology.Triangles, IndexLayout.Quad);
+
+            return (IVertexBatch<TVertex>)existing;
+        }
+
+        IUniformBuffer<TData> IRenderer.CreateUniformBuffer<TData>()
+            => new DeferredUniformBuffer<TData>(this, baseRenderer.CreateUniformBuffer<TData>());
+
+        IShaderStorageBufferObject<TData> IRenderer.CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize) => throw new NotImplementedException();
+
+        void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
         {
             // Todo: Fine to not implement for now.
         }
 
-        public void SetDrawDepth(float drawDepth)
-        {
-            BackbufferDrawDepth = drawDepth;
-        }
+        void IRenderer.SetDrawDepth(float drawDepth) => BackbufferDrawDepth = drawDepth;
 
-        public void PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => EnqueueEvent(new PushQuadBatchEvent(Reference(quadBatch)));
+        void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => EnqueueEvent(new PushQuadBatchEvent(Reference(quadBatch)));
 
-        public void PopQuadBatch() => EnqueueEvent(new PopQuadBatchEvent());
+        void IRenderer.PopQuadBatch() => EnqueueEvent(new PopQuadBatchEvent());
 
-        public event Action<Texture>? TextureCreated
+        event Action<Texture>? IRenderer.TextureCreated
         {
             add => baseRenderer.TextureCreated += value;
             remove => baseRenderer.TextureCreated -= value;
         }
 
-        public Texture[] GetAllTextures() => baseRenderer.GetAllTextures();
+        Texture[] IRenderer.GetAllTextures() => baseRenderer.GetAllTextures();
+
+        #endregion
     }
 }
