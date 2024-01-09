@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using osu.Framework.Development;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
@@ -20,6 +21,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
         public void Reset()
         {
+            ThreadSafety.EnsureDrawThread();
+
             for (int i = 0; i < memoryBuffers.Count; i++)
                 memoryBuffers[i].Dispose();
 
@@ -31,6 +34,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public RendererResource Reference<T>(T obj)
             where T : class
         {
+            ThreadSafety.EnsureDrawThread();
+
             if (resourceReferences.TryGetValue(obj, out RendererResource existing))
                 return existing;
 
@@ -42,6 +47,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public RendererMemoryBlock Allocate<T>()
             where T : unmanaged
         {
+            ThreadSafety.EnsureDrawThread();
+
             int requiredSize = Marshal.SizeOf<T>();
 
             if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < requiredSize)
@@ -50,9 +57,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return memoryBuffers[^1].Reserve(requiredSize);
         }
 
-        public object GetResource(RendererResource resource) => resources[resource.Id];
+        public object GetResource(RendererResource resource)
+        {
+            ThreadSafety.EnsureDrawThread();
+            return resources[resource.Id];
+        }
 
-        public Span<byte> GetBuffer(RendererMemoryBlock block) => memoryBuffers[block.BufferId].GetBuffer(block);
+        public Span<byte> GetBuffer(RendererMemoryBlock block)
+        {
+            ThreadSafety.EnsureDrawThread();
+            return memoryBuffers[block.BufferId].GetBuffer(block);
+        }
 
         private class MemoryBuffer : IDisposable
         {

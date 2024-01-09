@@ -327,11 +327,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             EnqueueEvent(new PopStencilInfoEvent());
         }
 
-        void IRenderer.ScheduleExpensiveOperation(ScheduledDelegate operation) => EnqueueEvent(new ExpensiveOperationEvent(Reference(operation)));
+        void IRenderer.ScheduleExpensiveOperation(ScheduledDelegate operation)
+            => baseRenderer.ScheduleExpensiveOperation(operation);
 
         void IRenderer.ScheduleDisposal<T>(Action<T> disposalAction, T target)
             where T : class
-            => EnqueueEvent(DisposalEvent.Create(this, target, disposalAction));
+            => baseRenderer.ScheduleDisposal(disposalAction, target);
 
         Image<Rgba32> IRenderer.TakeScreenshot() => throw new NotImplementedException();
 

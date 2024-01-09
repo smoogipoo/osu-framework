@@ -7,7 +7,6 @@ using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Statistics;
-using osu.Framework.Threading;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
@@ -47,16 +46,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         ProcessEvent(reader.Read<ClearEvent>());
                         break;
 
-                    case RenderEventType.Disposal:
-                        ProcessEvent(reader.Read<DisposalEvent>());
-                        break;
-
                     case RenderEventType.DrawVertexBatch:
                         ProcessEvent(reader.Read<DrawVertexBatchEvent>());
-                        break;
-
-                    case RenderEventType.ExpensiveOperation:
-                        ProcessEvent(reader.Read<ExpensiveOperationEvent>());
                         break;
 
                     case RenderEventType.PopDepthInfo:
@@ -194,19 +185,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             baseRenderer.Clear(e.Info);
         }
 
-        public void ProcessEvent(DisposalEvent e)
-        {
-            baseRenderer.ScheduleDisposal(e.DisposalAction.Resolve<Action<object>>(deferredRenderer), e.Target.Resolve<object>(deferredRenderer));
-        }
-
         public void ProcessEvent(DrawVertexBatchEvent e)
         {
             baseRenderer.FlushCurrentBatch(null);
-        }
-
-        public void ProcessEvent(ExpensiveOperationEvent e)
-        {
-            baseRenderer.ScheduleExpensiveOperation(e.Operation.Resolve<ScheduledDelegate>(deferredRenderer));
         }
 
         public void ProcessEvent(PopDepthInfoEvent e)

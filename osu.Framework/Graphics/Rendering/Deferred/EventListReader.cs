@@ -65,16 +65,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     events = events[Unsafe.SizeOf<ClearEvent>()..];
                     break;
 
-                case RenderEventType.Disposal:
-                    events = events[Unsafe.SizeOf<DisposalEvent>()..];
-                    break;
-
                 case RenderEventType.DrawVertexBatch:
                     events = events[Unsafe.SizeOf<DrawVertexBatchEvent>()..];
-                    break;
-
-                case RenderEventType.ExpensiveOperation:
-                    events = events[Unsafe.SizeOf<ExpensiveOperationEvent>()..];
                     break;
 
                 case RenderEventType.PopDepthInfo:
