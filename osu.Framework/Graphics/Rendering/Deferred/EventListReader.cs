@@ -9,19 +9,29 @@ using osu.Framework.Graphics.Rendering.Deferred.Events;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public ref struct EventListReader(List<byte> events)
+    public ref struct EventListReader
     {
-        private ReadOnlySpan<byte> events = CollectionsMarshal.AsSpan(events);
+        private readonly List<EventList.EventBuffer> buffers;
+
+        private int bufferIndex;
+        private ReadOnlySpan<byte> data;
+
+        public EventListReader(List<EventList.EventBuffer> buffers)
+        {
+            this.buffers = buffers;
+            data = buffers.Count > 0 ? buffers[0].GetData() : ReadOnlySpan<byte>.Empty;
+            bufferIndex = 0;
+        }
 
         public bool ReadType(out RenderEventType type)
         {
             type = default;
 
-            if (events.Length == 0)
+            if (data.Length == 0)
                 return false;
 
-            type = (RenderEventType)events[0];
-            events = events[1..];
+            type = (RenderEventType)data[0];
+            advanceBuffer(1);
 
             return true;
         }
@@ -31,8 +41,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             int size = Unsafe.SizeOf<T>();
 
-            ReadOnlySpan<byte> span = events[..size];
-            events = events[size..];
+            ReadOnlySpan<byte> span = data[..size];
+            advanceBuffer(size);
 
             return MemoryMarshal.Read<T>(span);
         }
@@ -42,128 +52,136 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             switch (type)
             {
                 case RenderEventType.AddVertexToBatch:
-                    events = events[Unsafe.SizeOf<AddVertexToBatchEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<AddVertexToBatchEvent>());
                     break;
 
                 case RenderEventType.BindFrameBuffer:
-                    events = events[Unsafe.SizeOf<BindFrameBufferEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<BindFrameBufferEvent>());
                     break;
 
                 case RenderEventType.BindShader:
-                    events = events[Unsafe.SizeOf<BindShaderEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<BindShaderEvent>());
                     break;
 
                 case RenderEventType.BindTexture:
-                    events = events[Unsafe.SizeOf<BindTextureEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<BindTextureEvent>());
                     break;
 
                 case RenderEventType.BindUniformBlock:
-                    events = events[Unsafe.SizeOf<BindUniformBlockEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<BindUniformBlockEvent>());
                     break;
 
                 case RenderEventType.Clear:
-                    events = events[Unsafe.SizeOf<ClearEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<ClearEvent>());
                     break;
 
                 case RenderEventType.DrawVertexBatch:
-                    events = events[Unsafe.SizeOf<DrawVertexBatchEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<DrawVertexBatchEvent>());
                     break;
 
                 case RenderEventType.PopDepthInfo:
-                    events = events[Unsafe.SizeOf<PopDepthInfoEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopDepthInfoEvent>());
                     break;
 
                 case RenderEventType.PopMaskingInfo:
-                    events = events[Unsafe.SizeOf<PopMaskingInfoEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopMaskingInfoEvent>());
                     break;
 
                 case RenderEventType.PopProjectionMatrix:
-                    events = events[Unsafe.SizeOf<PopProjectionMatrixEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopProjectionMatrixEvent>());
                     break;
 
                 case RenderEventType.PopQuadBatch:
-                    events = events[Unsafe.SizeOf<PopQuadBatchEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopQuadBatchEvent>());
                     break;
 
                 case RenderEventType.PopScissor:
-                    events = events[Unsafe.SizeOf<PopScissorEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopScissorEvent>());
                     break;
 
                 case RenderEventType.PopScissorOffset:
-                    events = events[Unsafe.SizeOf<PopScissorOffsetEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopScissorOffsetEvent>());
                     break;
 
                 case RenderEventType.PopScissorState:
-                    events = events[Unsafe.SizeOf<PopScissorStateEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopScissorStateEvent>());
                     break;
 
                 case RenderEventType.PopStencilInfo:
-                    events = events[Unsafe.SizeOf<PopStencilInfoEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopStencilInfoEvent>());
                     break;
 
                 case RenderEventType.PopViewport:
-                    events = events[Unsafe.SizeOf<PopViewportEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PopViewportEvent>());
                     break;
 
                 case RenderEventType.PushDepthInfo:
-                    events = events[Unsafe.SizeOf<PushDepthInfoEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushDepthInfoEvent>());
                     break;
 
                 case RenderEventType.PushMaskingInfo:
-                    events = events[Unsafe.SizeOf<PushMaskingInfoEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushMaskingInfoEvent>());
                     break;
 
                 case RenderEventType.PushProjectionMatrix:
-                    events = events[Unsafe.SizeOf<PushProjectionMatrixEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushProjectionMatrixEvent>());
                     break;
 
                 case RenderEventType.PushQuadBatch:
-                    events = events[Unsafe.SizeOf<PushQuadBatchEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushQuadBatchEvent>());
                     break;
 
                 case RenderEventType.PushScissor:
-                    events = events[Unsafe.SizeOf<PushScissorEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushScissorEvent>());
                     break;
 
                 case RenderEventType.PushScissorOffset:
-                    events = events[Unsafe.SizeOf<PushScissorOffsetEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushScissorOffsetEvent>());
                     break;
 
                 case RenderEventType.PushScissorState:
-                    events = events[Unsafe.SizeOf<PushScissorStateEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushScissorStateEvent>());
                     break;
 
                 case RenderEventType.PushStencilInfo:
-                    events = events[Unsafe.SizeOf<PushStencilInfoEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushStencilInfoEvent>());
                     break;
 
                 case RenderEventType.PushViewport:
-                    events = events[Unsafe.SizeOf<PushViewportEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<PushViewportEvent>());
                     break;
 
                 case RenderEventType.SetBlend:
-                    events = events[Unsafe.SizeOf<SetBlendEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<SetBlendEvent>());
                     break;
 
                 case RenderEventType.SetBlendMask:
-                    events = events[Unsafe.SizeOf<SetBlendMaskEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<SetBlendMaskEvent>());
                     break;
 
                 case RenderEventType.SetUniformBufferData:
-                    events = events[Unsafe.SizeOf<SetUniformBufferDataEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<SetUniformBufferDataEvent>());
                     break;
 
                 case RenderEventType.UnbindFrameBuffer:
-                    events = events[Unsafe.SizeOf<UnbindFrameBufferEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<UnbindFrameBufferEvent>());
                     break;
 
                 case RenderEventType.UnbindShader:
-                    events = events[Unsafe.SizeOf<UnbindShaderEvent>()..];
+                    advanceBuffer(Unsafe.SizeOf<UnbindShaderEvent>());
                     break;
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
+        }
+
+        private void advanceBuffer(int length)
+        {
+            data = data[length..];
+
+            if (data.Length == 0 && bufferIndex < buffers.Count - 1)
+                data = buffers[++bufferIndex].GetData();
         }
     }
 }

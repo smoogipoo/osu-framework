@@ -10,11 +10,23 @@ using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public struct EventPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
+    public struct EventPainter
     {
+        private readonly DeferredRenderer deferredRenderer;
+        private readonly IRenderer baseRenderer;
+
         private IDeferredVertexBatch? currentDrawBatch;
         private int? drawStartIndex;
         private int drawEndIndex;
+
+        public EventPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
+        {
+            this.deferredRenderer = deferredRenderer;
+            this.baseRenderer = baseRenderer;
+            currentDrawBatch = null;
+            drawStartIndex = null;
+            drawEndIndex = 0;
+        }
 
         public void ProcessEvents(EventListReader reader)
         {

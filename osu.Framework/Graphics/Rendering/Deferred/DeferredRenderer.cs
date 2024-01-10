@@ -160,8 +160,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void FinishFrame()
         {
-            renderEvents.TrimExcess();
-
             foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
                 batch.Prepare();
 

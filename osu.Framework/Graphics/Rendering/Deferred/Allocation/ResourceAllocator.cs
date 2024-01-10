@@ -57,7 +57,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             RendererMemoryBlock block = memoryBuffers[^1].Reserve(requiredSize);
             Span<byte> buffer = GetBuffer(block);
 
-            MemoryMarshal.Write(buffer, data);
+            MemoryMarshal.Write(buffer, ref data);
 
             return block;
         }
