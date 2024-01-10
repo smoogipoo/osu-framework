@@ -476,8 +476,6 @@ namespace osu.Framework.Platform
                 buffer.Object = Root.GenerateDrawNodeSubtree(frameCount, buffer.Index, false);
         }
 
-        private readonly DepthValue depthValue = new DepthValue();
-
         private bool didRenderFrame;
 
         protected virtual void DrawFrame()
@@ -521,15 +519,13 @@ namespace osu.Framework.Platform
 
                 if (!bypassFrontToBackPass.Value)
                 {
-                    depthValue.Reset();
-
                     Renderer.SetBlend(BlendingParameters.None);
 
                     Renderer.SetBlendMask(BlendingMask.None);
                     Renderer.PushDepthInfo(DepthInfo.Default);
 
                     // Front pass
-                    buffer.Object.DrawOpaqueInteriorSubTree(Renderer, depthValue);
+                    DrawNode.DrawOtherOpaqueInterior(buffer.Object, Renderer);
 
                     Renderer.PopDepthInfo();
                     Renderer.SetBlendMask(BlendingMask.All);
@@ -544,7 +540,7 @@ namespace osu.Framework.Platform
                 }
 
                 // Back pass
-                buffer.Object.Draw(Renderer);
+                DrawNode.DrawOther(buffer.Object, Renderer);
 
                 Renderer.PopDepthInfo();
 
