@@ -102,6 +102,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public float BackbufferDrawDepth { get; private set; }
         public bool UsingBackbuffer => true; // Todo: This is wrong.
         public Texture WhitePixel => baseRenderer.WhitePixel;
+        public DepthValue BackbufferDepth => baseRenderer.BackbufferDepth;
         public bool IsInitialised => baseRenderer.IsInitialised;
 
         public IVertexBatch<TexturedVertex2D> DefaultQuadBatch { get; }
@@ -380,8 +381,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             // Todo: Fine to not implement for now.
         }
-
-        void IRenderer.SetDrawDepth(float drawDepth) => BackbufferDrawDepth = drawDepth;
 
         void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => EnqueueEvent(new PushQuadBatchEvent(Reference(quadBatch)));
 
