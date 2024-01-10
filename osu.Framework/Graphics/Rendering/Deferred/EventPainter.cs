@@ -168,7 +168,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 FlushCurrentBatch(FlushBatchSource.BindBuffer);
 
             drawStartIndex ??= e.Index;
-            drawEndIndex = e.Index;
+            drawEndIndex = e.Index + e.Count;
             currentDrawBatch = batch;
         }
 

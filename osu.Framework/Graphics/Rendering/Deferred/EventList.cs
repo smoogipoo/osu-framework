@@ -16,6 +16,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private const int buffer_size = 1024 * 1024; // 1MB
 
         private readonly List<EventBuffer> buffers = new List<EventBuffer>();
+        private AddVertexToBatchEvent? bufferedAddVertexEvent;
 
         public void Reset()
         {
@@ -25,6 +26,38 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         }
 
         public void Enqueue<T>(in T renderEvent)
+            where T : unmanaged, IRenderEvent
+        {
+            if (typeof(T) == typeof(AddVertexToBatchEvent))
+            {
+                AddVertexToBatchEvent thisEvent = (AddVertexToBatchEvent)(object)renderEvent;
+
+                if (bufferedAddVertexEvent is not AddVertexToBatchEvent bufferedEvent)
+                {
+                    bufferedAddVertexEvent = thisEvent;
+                    return;
+                }
+
+                if (thisEvent.VertexBatch != bufferedEvent.VertexBatch || thisEvent.Index != bufferedEvent.Index + bufferedEvent.Count)
+                {
+                    enqueue(in bufferedEvent);
+                    bufferedAddVertexEvent = thisEvent;
+                }
+                else
+                    bufferedAddVertexEvent = bufferedEvent with { Count = bufferedEvent.Count + thisEvent.Count };
+            }
+            else
+            {
+                if (bufferedAddVertexEvent is AddVertexToBatchEvent bufferedEvent)
+                    enqueue(in bufferedEvent);
+
+                bufferedAddVertexEvent = null;
+
+                enqueue(in renderEvent);
+            }
+        }
+
+        private void enqueue<T>(in T renderEvent)
             where T : unmanaged, IRenderEvent
         {
             if (buffers.Count == 0 || !buffers[^1].HasSpace<T>())

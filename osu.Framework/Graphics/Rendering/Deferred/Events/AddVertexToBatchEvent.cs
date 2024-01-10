@@ -5,7 +5,7 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct AddVertexToBatchEvent(RendererResource VertexBatch, int Index) : IRenderEvent
+    public readonly record struct AddVertexToBatchEvent(RendererResource VertexBatch, int Index, int Count = 1) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.AddVertexToBatch;
     }
