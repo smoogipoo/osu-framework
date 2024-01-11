@@ -73,17 +73,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        public void Draw(int startIndex, int endIndex)
+        public void Draw(int startIndex, int count)
         {
-            while (startIndex < endIndex)
+            while (count > 0)
             {
                 int batch = startIndex / Size;
                 int indexInBatch = startIndex % Size;
-                int countToDraw = Math.Min(endIndex - startIndex, Size - indexInBatch);
+                int countToDraw = Math.Min(count, Size);
 
                 renderer.DrawVertexBuffer(batches[batch], indexLayout, topology, indexInBatch, countToDraw);
 
                 startIndex += countToDraw;
+                count -= countToDraw;
             }
         }
 

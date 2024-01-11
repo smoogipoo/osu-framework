@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private IDeferredVertexBatch? currentDrawBatch;
         private int? drawStartIndex;
-        private int drawEndIndex;
+        private int drawCount;
 
         public EventPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
         {
@@ -25,7 +25,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             this.baseRenderer = baseRenderer;
             currentDrawBatch = null;
             drawStartIndex = null;
-            drawEndIndex = 0;
+            drawCount = 0;
         }
 
         public void ProcessEvents(EventListReader reader)
@@ -168,7 +168,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 FlushCurrentBatch(FlushBatchSource.BindBuffer);
 
             drawStartIndex ??= e.Index;
-            drawEndIndex = e.Index + e.Count;
+            drawCount += e.Count;
             currentDrawBatch = batch;
         }
 
@@ -334,10 +334,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             currentDrawBatch = null;
 
             Debug.Assert(drawStartIndex != null);
-            batch.Draw(drawStartIndex.Value, drawEndIndex);
+            batch.Draw(drawStartIndex.Value, drawCount);
 
             drawStartIndex = null;
-            drawEndIndex = 0;
+            drawCount = 0;
 
             FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
         }
