@@ -79,7 +79,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             {
                 int batch = startIndex / Size;
                 int indexInBatch = startIndex % Size;
-                int countToDraw = Math.Min(endIndex - startIndex + 1, Size - indexInBatch);
+                int countToDraw = Math.Min(endIndex - startIndex, Size - indexInBatch);
 
                 renderer.DrawVertexBuffer(batches[batch], indexLayout, topology, indexInBatch, countToDraw);
 

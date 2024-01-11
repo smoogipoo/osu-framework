@@ -188,19 +188,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
             };
 
-            global::Veldrid.PrimitiveTopology veldridTopology = topology switch
-            {
-                PrimitiveTopology.Points => global::Veldrid.PrimitiveTopology.PointList,
-                PrimitiveTopology.Lines => global::Veldrid.PrimitiveTopology.LineList,
-                PrimitiveTopology.LineStrip => global::Veldrid.PrimitiveTopology.LineStrip,
-                PrimitiveTopology.Triangles => global::Veldrid.PrimitiveTopology.TriangleList,
-                PrimitiveTopology.TriangleStrip => global::Veldrid.PrimitiveTopology.TriangleStrip,
-                _ => throw new ArgumentOutOfRangeException(nameof(topology), topology, null)
-            };
-
             veldridRenderer.BindVertexBuffer(vbo);
             veldridRenderer.BindIndexBuffer(veldridLayout, vbo.Size);
-            veldridRenderer.DrawVertices(veldridTopology, offset, count);
+            veldridRenderer.DrawVertices(topology.ToPrimitiveTopology(), offset, count);
         }
 
         #region IRenderer Implementation
