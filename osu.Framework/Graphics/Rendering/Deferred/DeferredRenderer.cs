@@ -66,7 +66,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             remove { }
         }
 
-        public ulong FrameIndex { get; private set; }
+        public ulong FrameIndex => baseRenderer.FrameIndex;
 
         public int MaxTextureSize => baseRenderer.MaxTextureSize;
 
@@ -99,7 +99,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public WrapMode CurrentWrapModeS { get; private set; }
         public WrapMode CurrentWrapModeT { get; private set; }
         public bool IsMaskingActive => maskingInfoStack.Count > 0;
-        public float BackbufferDrawDepth { get; private set; }
         public bool UsingBackbuffer => true; // Todo: This is wrong.
         public Texture WhitePixel => baseRenderer.WhitePixel;
         public DepthValue BackbufferDepth => baseRenderer.BackbufferDepth;
@@ -154,8 +153,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
                 batch.ResetCounters();
-
-            FrameIndex++;
         }
 
         public void FinishFrame()
@@ -163,12 +160,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
                 batch.Prepare();
 
-            baseRenderer.BeginFrame(windowSize);
-
             painter = new EventPainter(this, baseRenderer);
-            painter.ProcessEvents(renderEvents.CreateReader());
-            painter.Finish();
 
+            baseRenderer.BeginFrame(windowSize);
+            painter.ProcessEvents(renderEvents.CreateReader());
             baseRenderer.FinishFrame();
         }
 

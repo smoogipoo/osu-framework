@@ -158,6 +158,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         throw new ArgumentOutOfRangeException();
                 }
             }
+
+            FlushCurrentBatch(FlushBatchSource.FinishFrame);
         }
 
         public void ProcessEvent(AddVertexToBatchEvent e)
@@ -317,11 +319,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public void ProcessEvent(UnbindShaderEvent e)
         {
             e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.Unbind();
-        }
-
-        public void Finish()
-        {
-            FlushCurrentBatch(FlushBatchSource.FinishFrame);
         }
 
         public void FlushCurrentBatch(FlushBatchSource? source)
