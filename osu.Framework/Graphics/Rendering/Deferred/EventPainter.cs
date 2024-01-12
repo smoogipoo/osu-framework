@@ -30,128 +30,128 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void ProcessEvents(EventListReader reader)
         {
-            while (reader.ReadType(out RenderEventType type))
+            while (reader.Next())
             {
-                switch (type)
+                switch (reader.CurrentType())
                 {
                     case RenderEventType.AddVertexToBatch:
-                        ProcessEvent(reader.Read<AddVertexToBatchEvent>());
+                        ProcessEvent(reader.Current<AddVertexToBatchEvent>());
                         break;
 
                     case RenderEventType.BindFrameBuffer:
-                        ProcessEvent(reader.Read<BindFrameBufferEvent>());
+                        ProcessEvent(reader.Current<BindFrameBufferEvent>());
                         break;
 
                     case RenderEventType.BindShader:
-                        ProcessEvent(reader.Read<BindShaderEvent>());
+                        ProcessEvent(reader.Current<BindShaderEvent>());
                         break;
 
                     case RenderEventType.BindTexture:
-                        ProcessEvent(reader.Read<BindTextureEvent>());
+                        ProcessEvent(reader.Current<BindTextureEvent>());
                         break;
 
                     case RenderEventType.BindUniformBlock:
-                        ProcessEvent(reader.Read<BindUniformBlockEvent>());
+                        ProcessEvent(reader.Current<BindUniformBlockEvent>());
                         break;
 
                     case RenderEventType.Clear:
-                        ProcessEvent(reader.Read<ClearEvent>());
+                        ProcessEvent(reader.Current<ClearEvent>());
                         break;
 
                     case RenderEventType.DrawVertexBatch:
-                        ProcessEvent(reader.Read<DrawVertexBatchEvent>());
+                        ProcessEvent(reader.Current<DrawVertexBatchEvent>());
                         break;
 
                     case RenderEventType.PopDepthInfo:
-                        ProcessEvent(reader.Read<PopDepthInfoEvent>());
+                        ProcessEvent(reader.Current<PopDepthInfoEvent>());
                         break;
 
                     case RenderEventType.PopMaskingInfo:
-                        ProcessEvent(reader.Read<PopMaskingInfoEvent>());
+                        ProcessEvent(reader.Current<PopMaskingInfoEvent>());
                         break;
 
                     case RenderEventType.PopProjectionMatrix:
-                        ProcessEvent(reader.Read<PopProjectionMatrixEvent>());
+                        ProcessEvent(reader.Current<PopProjectionMatrixEvent>());
                         break;
 
                     case RenderEventType.PopQuadBatch:
-                        ProcessEvent(reader.Read<PopQuadBatchEvent>());
+                        ProcessEvent(reader.Current<PopQuadBatchEvent>());
                         break;
 
                     case RenderEventType.PopScissor:
-                        ProcessEvent(reader.Read<PopScissorEvent>());
+                        ProcessEvent(reader.Current<PopScissorEvent>());
                         break;
 
                     case RenderEventType.PopScissorOffset:
-                        ProcessEvent(reader.Read<PopScissorOffsetEvent>());
+                        ProcessEvent(reader.Current<PopScissorOffsetEvent>());
                         break;
 
                     case RenderEventType.PopScissorState:
-                        ProcessEvent(reader.Read<PopScissorStateEvent>());
+                        ProcessEvent(reader.Current<PopScissorStateEvent>());
                         break;
 
                     case RenderEventType.PopStencilInfo:
-                        ProcessEvent(reader.Read<PopStencilInfoEvent>());
+                        ProcessEvent(reader.Current<PopStencilInfoEvent>());
                         break;
 
                     case RenderEventType.PopViewport:
-                        ProcessEvent(reader.Read<PopViewportEvent>());
+                        ProcessEvent(reader.Current<PopViewportEvent>());
                         break;
 
                     case RenderEventType.PushDepthInfo:
-                        ProcessEvent(reader.Read<PushDepthInfoEvent>());
+                        ProcessEvent(reader.Current<PushDepthInfoEvent>());
                         break;
 
                     case RenderEventType.PushMaskingInfo:
-                        ProcessEvent(reader.Read<PushMaskingInfoEvent>());
+                        ProcessEvent(reader.Current<PushMaskingInfoEvent>());
                         break;
 
                     case RenderEventType.PushProjectionMatrix:
-                        ProcessEvent(reader.Read<PushProjectionMatrixEvent>());
+                        ProcessEvent(reader.Current<PushProjectionMatrixEvent>());
                         break;
 
                     case RenderEventType.PushQuadBatch:
-                        ProcessEvent(reader.Read<PushQuadBatchEvent>());
+                        ProcessEvent(reader.Current<PushQuadBatchEvent>());
                         break;
 
                     case RenderEventType.PushScissor:
-                        ProcessEvent(reader.Read<PushScissorEvent>());
+                        ProcessEvent(reader.Current<PushScissorEvent>());
                         break;
 
                     case RenderEventType.PushScissorOffset:
-                        ProcessEvent(reader.Read<PushScissorOffsetEvent>());
+                        ProcessEvent(reader.Current<PushScissorOffsetEvent>());
                         break;
 
                     case RenderEventType.PushScissorState:
-                        ProcessEvent(reader.Read<PushScissorStateEvent>());
+                        ProcessEvent(reader.Current<PushScissorStateEvent>());
                         break;
 
                     case RenderEventType.PushStencilInfo:
-                        ProcessEvent(reader.Read<PushStencilInfoEvent>());
+                        ProcessEvent(reader.Current<PushStencilInfoEvent>());
                         break;
 
                     case RenderEventType.PushViewport:
-                        ProcessEvent(reader.Read<PushViewportEvent>());
+                        ProcessEvent(reader.Current<PushViewportEvent>());
                         break;
 
                     case RenderEventType.SetBlend:
-                        ProcessEvent(reader.Read<SetBlendEvent>());
+                        ProcessEvent(reader.Current<SetBlendEvent>());
                         break;
 
                     case RenderEventType.SetBlendMask:
-                        ProcessEvent(reader.Read<SetBlendMaskEvent>());
+                        ProcessEvent(reader.Current<SetBlendMaskEvent>());
                         break;
 
                     case RenderEventType.SetUniformBufferData:
-                        ProcessEvent(reader.Read<SetUniformBufferDataEvent>());
+                        ProcessEvent(reader.Current<SetUniformBufferDataEvent>());
                         break;
 
                     case RenderEventType.UnbindFrameBuffer:
-                        ProcessEvent(reader.Read<UnbindFrameBufferEvent>());
+                        ProcessEvent(reader.Current<UnbindFrameBufferEvent>());
                         break;
 
                     case RenderEventType.UnbindShader:
-                        ProcessEvent(reader.Read<UnbindShaderEvent>());
+                        ProcessEvent(reader.Current<UnbindShaderEvent>());
                         break;
 
                     default:

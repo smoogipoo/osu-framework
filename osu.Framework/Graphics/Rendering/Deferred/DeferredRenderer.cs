@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal class DeferredRenderer : IRenderer
     {
         private readonly ResourceAllocator allocator = new ResourceAllocator();
-        private readonly EventList renderEvents = new EventList();
+        private readonly EventList renderEvents;
 
         public RendererResource Reference<T>(T obj)
             where T : class
@@ -35,6 +35,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public RendererMemoryBlock Allocate<T>(T data)
             where T : unmanaged
             => allocator.Allocate(data);
+
+        public RendererMemoryBlock AllocateRegion(int length)
+            => allocator.AllocateRegion(length);
 
         public Span<byte> GetBuffer(RendererMemoryBlock block)
             => allocator.GetBuffer(block);
@@ -123,6 +126,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             this.baseRenderer = baseRenderer;
 
+            renderEvents = new EventList(this);
             DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
             baseRenderer.OnFlush += s => painter.FlushCurrentBatch(s);

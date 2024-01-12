@@ -2,27 +2,29 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class EventList
     {
-        private const int buffer_size = 1024 * 1024; // 1MB
+        private readonly DeferredRenderer renderer;
+        private readonly List<RendererMemoryBlock> events = new List<RendererMemoryBlock>();
 
-        private readonly List<EventBuffer> buffers = new List<EventBuffer>();
         private AddVertexToBatchEvent? bufferedAddVertexEvent;
+
+        public EventList(DeferredRenderer renderer)
+        {
+            this.renderer = renderer;
+        }
 
         public void Reset()
         {
-            foreach (EventBuffer buf in buffers)
-                buf.Dispose();
-            buffers.Clear();
+            events.Clear();
         }
 
         public void Enqueue<T>(in T renderEvent)
@@ -60,48 +62,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private void enqueue<T>(in T renderEvent)
             where T : unmanaged, IRenderEvent
         {
-            if (buffers.Count == 0 || !buffers[^1].HasSpace<T>())
-                buffers.Add(new EventBuffer(Unsafe.SizeOf<T>() + 1));
+            int requiredSize = Unsafe.SizeOf<T>() + 1;
 
-            buffers[^1].Write(in renderEvent);
+            RendererMemoryBlock block = renderer.AllocateRegion(requiredSize);
+            Span<byte> buffer = renderer.GetBuffer(block);
+
+            buffer[0] = (byte)renderEvent.Type;
+            MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(in renderEvent));
+
+            events.Add(block);
         }
 
-        public EventListReader CreateReader() => new EventListReader(buffers);
-
-        internal class EventBuffer : IDisposable
-        {
-            public int DataLength { get; private set; }
-            public readonly int Size;
-
-            private readonly byte[] data;
-
-            public EventBuffer(int minSize)
-            {
-                data = ArrayPool<byte>.Shared.Rent(Math.Max(buffer_size, minSize));
-                Size = data.Length;
-            }
-
-            public bool HasSpace<T>()
-                where T : unmanaged, IRenderEvent
-                => DataLength + Unsafe.SizeOf<T>() + 1 <= Size;
-
-            public ReadOnlySpan<byte> GetData() => data.AsSpan()[..DataLength];
-
-            public void Write<T>(in T renderEvent)
-                where T : unmanaged, IRenderEvent
-            {
-                Debug.Assert(HasSpace<T>());
-
-                data[DataLength] = (byte)renderEvent.Type;
-                MemoryMarshal.Write(data.AsSpan(DataLength + 1), ref Unsafe.AsRef(in renderEvent));
-
-                DataLength += Unsafe.SizeOf<T>() + 1;
-            }
-
-            public void Dispose()
-            {
-                ArrayPool<byte>.Shared.Return(data);
-            }
-        }
+        public EventListReader CreateReader() => new EventListReader(renderer, events);
     }
 }

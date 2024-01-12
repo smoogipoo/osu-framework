@@ -47,19 +47,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public RendererMemoryBlock Allocate<T>(T data)
             where T : unmanaged
         {
+            RendererMemoryBlock block = AllocateRegion(Marshal.SizeOf(data));
+            MemoryMarshal.Write(GetBuffer(block), ref data);
+            return block;
+        }
+
+        public RendererMemoryBlock AllocateRegion(int length)
+        {
             ThreadSafety.EnsureDrawThread();
 
-            int requiredSize = Marshal.SizeOf(data);
+            if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < length)
+                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size, length)));
 
-            if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < requiredSize)
-                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size, requiredSize)));
-
-            RendererMemoryBlock block = memoryBuffers[^1].Reserve(requiredSize);
-            Span<byte> buffer = GetBuffer(block);
-
-            MemoryMarshal.Write(buffer, ref data);
-
-            return block;
+            return memoryBuffers[^1].Reserve(length);
         }
 
         public object GetResource(RendererResource resource)
