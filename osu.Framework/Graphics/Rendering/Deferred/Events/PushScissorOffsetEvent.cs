@@ -5,7 +5,7 @@ using osu.Framework.Graphics.Primitives;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushScissorOffsetEvent(Vector2I Offset) : IRenderEvent
+    internal readonly record struct PushScissorOffsetEvent(Vector2I Offset) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PushScissorOffset;
     }

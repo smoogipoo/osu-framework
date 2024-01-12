@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopMaskingInfoEvent : IRenderEvent
+    internal readonly record struct PopMaskingInfoEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopMaskingInfo;
     }

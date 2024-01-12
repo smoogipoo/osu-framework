@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopScissorEvent : IRenderEvent
+    internal readonly record struct PopScissorEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopScissor;
     }

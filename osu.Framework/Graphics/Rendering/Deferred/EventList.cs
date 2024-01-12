@@ -11,7 +11,7 @@ using osu.Framework.Graphics.Rendering.Deferred.Events;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class EventList
+    internal class EventList
     {
         private const int buffer_size = 1024 * 1024; // 1MB
 
@@ -68,7 +68,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public EventListReader CreateReader() => new EventListReader(buffers);
 
-        public class EventBuffer : IDisposable
+        internal class EventBuffer : IDisposable
         {
             public int DataLength { get; private set; }
             public readonly int Size;

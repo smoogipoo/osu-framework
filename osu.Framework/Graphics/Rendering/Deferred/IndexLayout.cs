@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public enum IndexLayout
+    internal enum IndexLayout
     {
         /// <summary>
         /// An index layout that draws the vertices in the order they are added.

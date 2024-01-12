@@ -6,7 +6,7 @@ using osu.Framework.Graphics.Shaders;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class DeferredUniform<T> : Uniform<T>
+    internal class DeferredUniform<T> : Uniform<T>
         where T : unmanaged, IEquatable<T>
     {
         public readonly Uniform<T> Uniform;

@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct SetBlendMaskEvent(BlendingMask Mask) : IRenderEvent
+    internal readonly record struct SetBlendMaskEvent(BlendingMask Mask) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.SetBlendMask;
     }

@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopStencilInfoEvent : IRenderEvent
+    internal readonly record struct PopStencilInfoEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopStencilInfo;
     }

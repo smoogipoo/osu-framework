@@ -7,7 +7,7 @@ using osuTK;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class DeferredFrameBuffer : IFrameBuffer
+    internal class DeferredFrameBuffer : IFrameBuffer
     {
         public IFrameBuffer Resource { get; }
 

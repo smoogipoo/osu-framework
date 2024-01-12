@@ -5,7 +5,7 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct BindShaderEvent(RendererResource Shader) : IRenderEvent
+    internal readonly record struct BindShaderEvent(RendererResource Shader) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindShader;
     }

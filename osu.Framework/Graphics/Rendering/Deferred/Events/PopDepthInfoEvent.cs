@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopDepthInfoEvent : IRenderEvent
+    internal readonly record struct PopDepthInfoEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopDepthInfo;
     }

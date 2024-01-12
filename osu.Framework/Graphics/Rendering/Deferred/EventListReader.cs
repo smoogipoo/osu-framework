@@ -9,7 +9,7 @@ using osu.Framework.Graphics.Rendering.Deferred.Events;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public ref struct EventListReader
+    internal ref struct EventListReader
     {
         private readonly List<EventList.EventBuffer> buffers;
 

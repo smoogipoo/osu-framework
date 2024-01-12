@@ -5,7 +5,7 @@ using System;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
-    public readonly record struct RendererMemoryBlock(int BufferId, int Index, int Length)
+    internal readonly record struct RendererMemoryBlock(int BufferId, int Index, int Length)
     {
         public Span<byte> GetBuffer(DeferredRenderer renderer) => renderer.GetBuffer(this);
     }

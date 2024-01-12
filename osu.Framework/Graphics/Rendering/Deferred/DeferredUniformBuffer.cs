@@ -7,14 +7,14 @@ using osu.Framework.Graphics.Rendering.Deferred.Events;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public interface IDeferredUniformBuffer
+    internal interface IDeferredUniformBuffer
     {
         void SetDataFromBuffer(ReadOnlySpan<byte> buffer);
 
         IUniformBuffer GetBuffer();
     }
 
-    public class DeferredUniformBuffer<TData> : IUniformBuffer<TData>, IDeferredUniformBuffer
+    internal class DeferredUniformBuffer<TData> : IUniformBuffer<TData>, IDeferredUniformBuffer
         where TData : unmanaged, IEquatable<TData>
     {
         public IUniformBuffer<TData> Resource { get; }

@@ -10,7 +10,7 @@ using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public struct EventPainter
+    internal struct EventPainter
     {
         private readonly DeferredRenderer deferredRenderer;
         private readonly IRenderer baseRenderer;

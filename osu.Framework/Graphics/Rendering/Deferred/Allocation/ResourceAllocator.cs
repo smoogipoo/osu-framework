@@ -10,7 +10,7 @@ using osu.Framework.Development;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
-    public class ResourceAllocator
+    internal class ResourceAllocator
     {
         private const int min_buffer_size = 1024 * 1024; // 1MB
 

@@ -8,7 +8,7 @@ using osu.Framework.Graphics.Shaders;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class DeferredShader : IShader
+    internal class DeferredShader : IShader
     {
         public IShader Resource { get; }
 

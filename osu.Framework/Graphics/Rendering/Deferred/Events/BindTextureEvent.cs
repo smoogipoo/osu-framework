@@ -6,7 +6,7 @@ using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct BindTextureEvent(RendererResource Texture, int Unit, WrapMode? WrapModeS, WrapMode? WrapModeT) : IRenderEvent
+    internal readonly record struct BindTextureEvent(RendererResource Texture, int Unit, WrapMode? WrapModeS, WrapMode? WrapModeT) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindTexture;
     }

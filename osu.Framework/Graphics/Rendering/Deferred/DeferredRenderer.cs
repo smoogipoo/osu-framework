@@ -20,7 +20,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public class DeferredRenderer : IRenderer
+    internal class DeferredRenderer : IRenderer
     {
         private readonly ResourceAllocator allocator = new ResourceAllocator();
         private readonly EventList renderEvents = new EventList();

@@ -3,12 +3,12 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public interface IRenderEvent
+    internal interface IRenderEvent
     {
         RenderEventType Type { get; }
     }
 
-    public enum RenderEventType
+    internal enum RenderEventType
     {
         AddVertexToBatch,
         BindFrameBuffer,

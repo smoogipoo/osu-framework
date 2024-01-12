@@ -10,16 +10,16 @@ using osu.Framework.Graphics.Veldrid.Buffers;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    public interface IDeferredVertexBatch
+    internal interface IDeferredVertexBatch
     {
         void Prepare();
         void Draw(int startIndex, int endIndex);
         void ResetCounters();
     }
 
-    public readonly record struct DeferredVertexBatchLookup(Type VertexType, PrimitiveTopology Topology, IndexLayout IndexLayout);
+    internal readonly record struct DeferredVertexBatchLookup(Type VertexType, PrimitiveTopology Topology, IndexLayout IndexLayout);
 
-    public class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>, IDeferredVertexBatch
+    internal class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>, IDeferredVertexBatch
         where TVertex : unmanaged, IEquatable<TVertex>, IVertex
     {
         public Action<TVertex> AddAction { get; }

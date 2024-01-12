@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PopProjectionMatrixEvent : IRenderEvent
+    internal readonly record struct PopProjectionMatrixEvent : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PopProjectionMatrix;
     }

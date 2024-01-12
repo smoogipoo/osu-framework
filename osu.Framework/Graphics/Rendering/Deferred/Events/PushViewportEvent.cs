@@ -5,7 +5,7 @@ using osu.Framework.Graphics.Primitives;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    public readonly record struct PushViewportEvent(RectangleI Viewport) : IRenderEvent
+    internal readonly record struct PushViewportEvent(RectangleI Viewport) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.PushViewport;
     }
