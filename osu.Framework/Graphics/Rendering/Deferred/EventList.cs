@@ -15,8 +15,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly DeferredRenderer renderer;
         private readonly List<RendererMemoryBlock> events = new List<RendererMemoryBlock>();
 
-        private AddVertexToBatchEvent? bufferedAddVertexEvent;
-
         public EventList(DeferredRenderer renderer)
         {
             this.renderer = renderer;
@@ -28,38 +26,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         }
 
         public void Enqueue<T>(in T renderEvent)
-            where T : unmanaged, IRenderEvent
-        {
-            if (typeof(T) == typeof(AddVertexToBatchEvent))
-            {
-                AddVertexToBatchEvent thisEvent = (AddVertexToBatchEvent)(object)renderEvent;
-
-                if (bufferedAddVertexEvent is not AddVertexToBatchEvent bufferedEvent)
-                {
-                    bufferedAddVertexEvent = thisEvent;
-                    return;
-                }
-
-                if (thisEvent.VertexBatch != bufferedEvent.VertexBatch || thisEvent.Index != bufferedEvent.Index + bufferedEvent.Count)
-                {
-                    enqueue(in bufferedEvent);
-                    bufferedAddVertexEvent = thisEvent;
-                }
-                else
-                    bufferedAddVertexEvent = bufferedEvent with { Count = bufferedEvent.Count + thisEvent.Count };
-            }
-            else
-            {
-                if (bufferedAddVertexEvent is AddVertexToBatchEvent bufferedEvent)
-                    enqueue(in bufferedEvent);
-
-                bufferedAddVertexEvent = null;
-
-                enqueue(in renderEvent);
-            }
-        }
-
-        private void enqueue<T>(in T renderEvent)
             where T : unmanaged, IRenderEvent
         {
             int requiredSize = Unsafe.SizeOf<T>() + 1;

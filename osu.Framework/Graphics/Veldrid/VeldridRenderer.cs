@@ -11,7 +11,6 @@ using System.Threading;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
-using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid.Batches;
@@ -496,14 +495,13 @@ namespace osu.Framework.Graphics.Veldrid
             pipeline.Outputs = framebuffer.OutputDescription;
         }
 
-        public void BindVertexBuffer<T>(IVeldridVertexBuffer<T> buffer)
-            where T : unmanaged, IEquatable<T>, IVertex
+        public void BindVertexBuffer(IVeldridVertexBuffer buffer)
         {
             if (buffer == boundVertexBuffer)
                 return;
 
             Commands.SetVertexBuffer(0, buffer.Buffer);
-            pipeline.ShaderSet.VertexLayouts[0] = IVeldridVertexBuffer<T>.LAYOUT;
+            pipeline.ShaderSet.VertexLayouts[0] = buffer.Layout;
 
             FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
 

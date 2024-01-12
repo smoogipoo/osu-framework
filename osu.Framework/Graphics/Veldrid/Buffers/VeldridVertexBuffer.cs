@@ -7,6 +7,7 @@ using osu.Framework.Development;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid.Buffers.Staging;
+using osu.Framework.Graphics.Veldrid.Vertices;
 using osu.Framework.Platform;
 using osu.Framework.Statistics;
 using Veldrid;
@@ -24,7 +25,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         private DeviceBuffer? buffer;
 
-        DeviceBuffer IVeldridVertexBuffer<T>.Buffer => buffer ?? throw new InvalidOperationException("The buffer is not initialised yet.");
+        DeviceBuffer IVeldridVertexBuffer.Buffer => buffer ?? throw new InvalidOperationException("The buffer is not initialised yet.");
 
         private int lastWrittenVertexIndex = -1;
 
@@ -78,7 +79,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             getMemory();
             Debug.Assert(stagingBuffer != null);
 
-            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(Size * IVeldridVertexBuffer<T>.STRIDE), BufferUsage.VertexBuffer | stagingBuffer.CopyTargetUsageFlags));
+            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(Size * VeldridVertexUtils<T>.STRIDE), BufferUsage.VertexBuffer | stagingBuffer.CopyTargetUsageFlags));
             memoryLease = NativeMemoryTracker.AddMemory(this, buffer.SizeInBytes);
         }
 

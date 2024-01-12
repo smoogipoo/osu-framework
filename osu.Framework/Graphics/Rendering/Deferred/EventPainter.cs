@@ -2,10 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Diagnostics;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
@@ -16,7 +16,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly IRenderer baseRenderer;
 
         private IDeferredVertexBatch? currentDrawBatch;
-        private int? drawStartIndex;
         private int drawCount;
 
         public EventPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
@@ -24,12 +23,24 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             this.deferredRenderer = deferredRenderer;
             this.baseRenderer = baseRenderer;
             currentDrawBatch = null;
-            drawStartIndex = null;
             drawCount = 0;
         }
 
         public void ProcessEvents(EventListReader reader)
         {
+            while (reader.Next())
+            {
+                switch (reader.CurrentType())
+                {
+                    case RenderEventType.AddVertexToBatch:
+                        AddVertexToBatchEvent e = reader.Current<AddVertexToBatchEvent>();
+                        e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer).Write(e.Memory, ((VeldridRenderer)baseRenderer).Commands);
+                        break;
+                }
+            }
+
+            reader.Reset();
+
             while (reader.Next())
             {
                 switch (reader.CurrentType())
@@ -169,9 +180,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             if (currentDrawBatch != null && batch != currentDrawBatch)
                 FlushCurrentBatch(FlushBatchSource.BindBuffer);
 
-            drawStartIndex ??= e.Index;
-            drawCount += e.Count;
             currentDrawBatch = batch;
+            drawCount++;
         }
 
         public void ProcessEvent(BindFrameBufferEvent e)
@@ -330,10 +340,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             IDeferredVertexBatch batch = currentDrawBatch;
             currentDrawBatch = null;
 
-            Debug.Assert(drawStartIndex != null);
-            batch.Draw(drawStartIndex.Value, drawCount);
+            batch.Draw((VeldridRenderer)baseRenderer, drawCount);
 
-            drawStartIndex = null;
             drawCount = 0;
 
             FrameStatistics.Increment(StatisticsCounterType.DrawCalls);

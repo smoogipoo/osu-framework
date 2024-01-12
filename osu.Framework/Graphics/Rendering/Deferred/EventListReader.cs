@@ -44,5 +44,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public T Current<T>()
             where T : unmanaged, IRenderEvent
             => MemoryMarshal.Read<T>(eventData[1..]);
+
+        public void Reset()
+        {
+            eventIndex = -1;
+            eventData = Span<byte>.Empty;
+        }
     }
 }

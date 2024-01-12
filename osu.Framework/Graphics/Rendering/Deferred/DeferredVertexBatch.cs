@@ -3,17 +3,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
+using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
+using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Vertices;
+using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredVertexBatch
     {
-        void Prepare();
-        void Draw(int startIndex, int endIndex);
+        void Write(RendererStagingMemoryBlock block, CommandList commandList);
+        void Draw(VeldridRenderer veldridRenderer, int endIndex);
         void ResetCounters();
     }
 
@@ -30,8 +33,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly PrimitiveTopology topology;
         private readonly IndexLayout indexLayout;
 
-        private readonly List<TVertex> pendingVertices = new List<TVertex>();
-        private readonly List<VeldridMetalVertexBuffer<TVertex>> batches = new List<VeldridMetalVertexBuffer<TVertex>>();
+        private readonly List<VeldridVertexBuffer2> buffers = new List<VeldridVertexBuffer2>();
+        private int currentBuffer;
+        private int currentWriteIndex;
+        private int currentDrawIndex;
 
         public DeferredVertexBatch(DeferredRenderer renderer, PrimitiveTopology topology, IndexLayout indexLayout)
         {
@@ -49,48 +54,49 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public void Prepare()
+        public void Write(RendererStagingMemoryBlock block, CommandList commandList)
         {
-            // Todo: This must consider the number of vertices required to form a primitive.
-            // Todo: This makes no effort to be space-efficient.
-
-            int numBatchesRequired = pendingVertices.Count / Size + 1;
-
-            while (batches.Count < numBatchesRequired)
-                batches.Add(renderer.CreateVertexBuffer<TVertex>(Size));
-
-            ReadOnlySpan<TVertex> vertices = CollectionsMarshal.AsSpan(pendingVertices);
-            int batch = 0;
-
-            while (vertices.Length > 0)
+            if (currentWriteIndex == Size)
             {
-                int sizeToUpload = Math.Min(batches[batch].Size, vertices.Length);
-
-                batches[batch].SetBuffer(vertices[..sizeToUpload]);
-                vertices = vertices[sizeToUpload..];
-
-                batch++;
+                currentBuffer++;
+                currentWriteIndex = 0;
             }
+
+            if (currentBuffer == buffers.Count)
+                buffers.Add(new VeldridVertexBuffer2(renderer, Size, VeldridVertexUtils<TVertex>.STRIDE, VeldridVertexUtils<TVertex>.Layout));
+
+            buffers[currentBuffer].Write(block, commandList, currentWriteIndex++);
         }
 
-        public void Draw(int startIndex, int count)
+        public void Draw(VeldridRenderer veldridRenderer, int count)
         {
+            VeldridIndexLayout veldridLayout = indexLayout switch
+            {
+                IndexLayout.Linear => VeldridIndexLayout.Linear,
+                IndexLayout.Quad => VeldridIndexLayout.Quad,
+                _ => throw new InvalidOperationException()
+            };
+
             while (count > 0)
             {
-                int batch = startIndex / Size;
-                int indexInBatch = startIndex % Size;
+                int bufferIndex = currentDrawIndex / Size;
+                int indexInBuffer = currentDrawIndex % Size;
                 int countToDraw = Math.Min(count, Size);
 
-                renderer.DrawVertexBuffer(batches[batch], indexLayout, topology, indexInBatch, countToDraw);
+                veldridRenderer.BindVertexBuffer(buffers[bufferIndex]);
+                veldridRenderer.BindIndexBuffer(veldridLayout, Size);
+                veldridRenderer.DrawVertices(topology.ToPrimitiveTopology(), indexInBuffer, count);
 
-                startIndex += countToDraw;
+                currentDrawIndex += countToDraw;
                 count -= countToDraw;
             }
         }
 
         public void ResetCounters()
         {
-            pendingVertices.Clear();
+            currentBuffer = 0;
+            currentWriteIndex = 0;
+            currentDrawIndex = 0;
         }
 
         int IVertexBatch.Size => int.MaxValue;
@@ -103,8 +109,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVertexBatch<TVertex>.Add(TVertex vertex)
         {
-            pendingVertices.Add(vertex);
-            renderer.EnqueueEvent(new AddVertexToBatchEvent(renderer.Reference(this), pendingVertices.Count - 1));
+            renderer.EnqueueEvent(AddVertexToBatchEvent.Create(renderer, this, vertex));
         }
 
         public void Dispose()

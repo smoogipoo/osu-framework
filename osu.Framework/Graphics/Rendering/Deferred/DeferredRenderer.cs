@@ -17,12 +17,14 @@ using osuTK;
 using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Veldrid;
+using Texture = osu.Framework.Graphics.Textures.Texture;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class DeferredRenderer : IRenderer
     {
-        private readonly ResourceAllocator allocator = new ResourceAllocator();
+        private readonly ResourceAllocator allocator;
         private readonly EventList renderEvents;
 
         public RendererResource Reference<T>(T obj)
@@ -42,9 +44,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public Span<byte> GetBuffer(RendererMemoryBlock block)
             => allocator.GetBuffer(block);
 
+        public RendererStagingMemoryBlock AllocateStaging<T>(T data)
+            where T : unmanaged
+            => allocator.AllocateStaging(data);
+
+        public void CopyStagingBuffer(RendererStagingMemoryBlock block, CommandList commandList, DeviceBuffer target, int offsetInTarget)
+            => allocator.CopyStagingBuffer(block, commandList, target, offsetInTarget);
+
         public void EnqueueEvent<T>(in T @event)
             where T : unmanaged, IRenderEvent
             => renderEvents.Enqueue(@event);
+
+        public ResourceFactory Factory => ((VeldridRenderer)baseRenderer).Factory;
+        public GraphicsDevice Device => ((VeldridRenderer)baseRenderer).Device;
 
         public bool VerticalSync
         {
@@ -126,7 +138,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             this.baseRenderer = baseRenderer;
 
+            allocator = new ResourceAllocator(this);
             renderEvents = new EventList(this);
+
             DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
             baseRenderer.OnFlush += s => painter.FlushCurrentBatch(s);
@@ -161,35 +175,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void FinishFrame()
         {
-            foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
-                batch.Prepare();
-
             painter = new EventPainter(this, baseRenderer);
 
             baseRenderer.BeginFrame(windowSize);
             painter.ProcessEvents(renderEvents.CreateReader());
             baseRenderer.FinishFrame();
-        }
-
-        internal VeldridMetalVertexBuffer<TVertex> CreateVertexBuffer<TVertex>(int size)
-            where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-            => new VeldridMetalVertexBuffer<TVertex>((VeldridRenderer)baseRenderer, size);
-
-        internal void DrawVertexBuffer<TVertex>(VeldridMetalVertexBuffer<TVertex> vbo, IndexLayout layout, PrimitiveTopology topology, int offset, int count)
-            where TVertex : unmanaged, IEquatable<TVertex>, IVertex
-        {
-            VeldridRenderer veldridRenderer = (VeldridRenderer)baseRenderer;
-
-            VeldridIndexLayout veldridLayout = layout switch
-            {
-                IndexLayout.Linear => VeldridIndexLayout.Linear,
-                IndexLayout.Quad => VeldridIndexLayout.Quad,
-                _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
-            };
-
-            veldridRenderer.BindVertexBuffer(vbo);
-            veldridRenderer.BindIndexBuffer(veldridLayout, vbo.Size);
-            veldridRenderer.DrawVertices(topology.ToPrimitiveTopology(), offset, count);
         }
 
         #region IRenderer Implementation
@@ -318,7 +308,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         void IRenderer.ScheduleExpensiveOperation(ScheduledDelegate operation)
             => baseRenderer.ScheduleExpensiveOperation(operation);
 
-        void IRenderer.ScheduleDisposal<T>(Action<T> disposalAction, T target)
+        public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
             where T : class
             => baseRenderer.ScheduleDisposal(disposalAction, target);
 
