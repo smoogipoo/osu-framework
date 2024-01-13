@@ -10,7 +10,6 @@ using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
-using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Platform;
 using osu.Framework.Threading;
 using osuTK;
@@ -132,7 +131,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly Stack<DepthInfo> depthInfoStack = new Stack<DepthInfo>();
         private readonly Stack<StencilInfo> stencilInfoStack = new Stack<StencilInfo>();
 
-        private EventPainter painter;
+        private readonly EventPainter painter;
 
         public DeferredRenderer(IRenderer baseRenderer)
         {
@@ -140,6 +139,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             allocator = new ResourceAllocator(this);
             renderEvents = new EventList(this);
+            painter = new EventPainter(this, baseRenderer);
 
             DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
 
@@ -175,8 +175,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void FinishFrame()
         {
-            painter = new EventPainter(this, baseRenderer);
-
             baseRenderer.BeginFrame(windowSize);
             painter.ProcessEvents(renderEvents.CreateReader());
             baseRenderer.FinishFrame();

@@ -812,5 +812,7 @@ namespace osu.Framework.Graphics.Veldrid
         public void BindTextureResource(VeldridTextureResources resource, int unit) => boundTextureUnits[unit] = resource;
 
         private record struct FrameCompletionFence(Fence Fence, ulong FrameIndex);
+
+        public ref GraphicsPipelineDescription GetPipeline() => ref pipeline;
     }
 }
