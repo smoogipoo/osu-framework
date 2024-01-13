@@ -131,7 +131,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly Stack<DepthInfo> depthInfoStack = new Stack<DepthInfo>();
         private readonly Stack<StencilInfo> stencilInfoStack = new Stack<StencilInfo>();
 
-        private readonly EventPainter painter;
+        private readonly EventProcessor processor;
 
         public DeferredRenderer(IRenderer baseRenderer)
         {
@@ -139,11 +139,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             allocator = new ResourceAllocator(this);
             renderEvents = new EventList(this);
-            painter = new EventPainter(this, baseRenderer);
+            processor = new EventProcessor(this, baseRenderer);
 
             DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
-
-            baseRenderer.OnFlush += s => painter.FlushCurrentBatch(s);
         }
 
         public void Initialise(IGraphicsSurface graphicsSurface)
@@ -176,7 +174,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public void FinishFrame()
         {
             baseRenderer.BeginFrame(windowSize);
-            painter.ProcessEvents(renderEvents.CreateReader());
+            processor.ProcessEvents(renderEvents.CreateReader());
             baseRenderer.FinishFrame();
         }
 

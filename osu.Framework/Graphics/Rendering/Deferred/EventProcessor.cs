@@ -12,7 +12,7 @@ using Texture = osu.Framework.Graphics.Textures.Texture;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    internal class EventPainter
+    internal class EventProcessor
     {
         private ref GraphicsPipelineDescription pipeline => ref baseRenderer.GetPipeline();
         private CommandList commands => baseRenderer.Commands;
@@ -29,7 +29,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private IDeferredVertexBatch? currentDrawBatch;
         private int drawCount;
 
-        public EventPainter(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
+        public EventProcessor(DeferredRenderer deferredRenderer, IRenderer baseRenderer)
         {
             this.deferredRenderer = deferredRenderer;
             this.baseRenderer = (VeldridRenderer)baseRenderer;
@@ -39,6 +39,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             scissorStack = new GraphicsStateStack<RectangleI>(setScissor);
             depthStack = new GraphicsStateStack<DepthInfo>(setDepth);
             scissorStateStack = new GraphicsStateStack<bool>(setScissorState);
+
+            baseRenderer.OnFlush += flushCurrentBatch;
         }
 
         public void ProcessEvents(EventListReader reader)
@@ -69,123 +71,123 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 switch (reader.CurrentType())
                 {
                     case RenderEventType.AddVertexToBatch:
-                        ProcessEvent(reader.Current<AddVertexToBatchEvent>());
+                        processEvent(reader.Current<AddVertexToBatchEvent>());
                         break;
 
                     case RenderEventType.BindFrameBuffer:
-                        ProcessEvent(reader.Current<BindFrameBufferEvent>());
+                        processEvent(reader.Current<BindFrameBufferEvent>());
                         break;
 
                     case RenderEventType.BindShader:
-                        ProcessEvent(reader.Current<BindShaderEvent>());
+                        processEvent(reader.Current<BindShaderEvent>());
                         break;
 
                     case RenderEventType.BindTexture:
-                        ProcessEvent(reader.Current<BindTextureEvent>());
+                        processEvent(reader.Current<BindTextureEvent>());
                         break;
 
                     case RenderEventType.BindUniformBlock:
-                        ProcessEvent(reader.Current<BindUniformBlockEvent>());
+                        processEvent(reader.Current<BindUniformBlockEvent>());
                         break;
 
                     case RenderEventType.Clear:
-                        ProcessEvent(reader.Current<ClearEvent>());
+                        processEvent(reader.Current<ClearEvent>());
                         break;
 
                     case RenderEventType.DrawVertexBatch:
-                        ProcessEvent(reader.Current<DrawVertexBatchEvent>());
+                        processEvent(reader.Current<DrawVertexBatchEvent>());
                         break;
 
                     case RenderEventType.PopDepthInfo:
-                        ProcessEvent(reader.Current<PopDepthInfoEvent>());
+                        processEvent(reader.Current<PopDepthInfoEvent>());
                         break;
 
                     case RenderEventType.PopMaskingInfo:
-                        ProcessEvent(reader.Current<PopMaskingInfoEvent>());
+                        processEvent(reader.Current<PopMaskingInfoEvent>());
                         break;
 
                     case RenderEventType.PopProjectionMatrix:
-                        ProcessEvent(reader.Current<PopProjectionMatrixEvent>());
+                        processEvent(reader.Current<PopProjectionMatrixEvent>());
                         break;
 
                     case RenderEventType.PopQuadBatch:
-                        ProcessEvent(reader.Current<PopQuadBatchEvent>());
+                        processEvent(reader.Current<PopQuadBatchEvent>());
                         break;
 
                     case RenderEventType.PopScissor:
-                        ProcessEvent(reader.Current<PopScissorEvent>());
+                        processEvent(reader.Current<PopScissorEvent>());
                         break;
 
                     case RenderEventType.PopScissorOffset:
-                        ProcessEvent(reader.Current<PopScissorOffsetEvent>());
+                        processEvent(reader.Current<PopScissorOffsetEvent>());
                         break;
 
                     case RenderEventType.PopScissorState:
-                        ProcessEvent(reader.Current<PopScissorStateEvent>());
+                        processEvent(reader.Current<PopScissorStateEvent>());
                         break;
 
                     case RenderEventType.PopStencilInfo:
-                        ProcessEvent(reader.Current<PopStencilInfoEvent>());
+                        processEvent(reader.Current<PopStencilInfoEvent>());
                         break;
 
                     case RenderEventType.PopViewport:
-                        ProcessEvent(reader.Current<PopViewportEvent>());
+                        processEvent(reader.Current<PopViewportEvent>());
                         break;
 
                     case RenderEventType.PushDepthInfo:
-                        ProcessEvent(reader.Current<PushDepthInfoEvent>());
+                        processEvent(reader.Current<PushDepthInfoEvent>());
                         break;
 
                     case RenderEventType.PushMaskingInfo:
-                        ProcessEvent(reader.Current<PushMaskingInfoEvent>());
+                        processEvent(reader.Current<PushMaskingInfoEvent>());
                         break;
 
                     case RenderEventType.PushProjectionMatrix:
-                        ProcessEvent(reader.Current<PushProjectionMatrixEvent>());
+                        processEvent(reader.Current<PushProjectionMatrixEvent>());
                         break;
 
                     case RenderEventType.PushQuadBatch:
-                        ProcessEvent(reader.Current<PushQuadBatchEvent>());
+                        processEvent(reader.Current<PushQuadBatchEvent>());
                         break;
 
                     case RenderEventType.PushScissor:
-                        ProcessEvent(reader.Current<PushScissorEvent>());
+                        processEvent(reader.Current<PushScissorEvent>());
                         break;
 
                     case RenderEventType.PushScissorOffset:
-                        ProcessEvent(reader.Current<PushScissorOffsetEvent>());
+                        processEvent(reader.Current<PushScissorOffsetEvent>());
                         break;
 
                     case RenderEventType.PushScissorState:
-                        ProcessEvent(reader.Current<PushScissorStateEvent>());
+                        processEvent(reader.Current<PushScissorStateEvent>());
                         break;
 
                     case RenderEventType.PushStencilInfo:
-                        ProcessEvent(reader.Current<PushStencilInfoEvent>());
+                        processEvent(reader.Current<PushStencilInfoEvent>());
                         break;
 
                     case RenderEventType.PushViewport:
-                        ProcessEvent(reader.Current<PushViewportEvent>());
+                        processEvent(reader.Current<PushViewportEvent>());
                         break;
 
                     case RenderEventType.SetBlend:
-                        ProcessEvent(reader.Current<SetBlendEvent>());
+                        processEvent(reader.Current<SetBlendEvent>());
                         break;
 
                     case RenderEventType.SetBlendMask:
-                        ProcessEvent(reader.Current<SetBlendMaskEvent>());
+                        processEvent(reader.Current<SetBlendMaskEvent>());
                         break;
 
                     case RenderEventType.SetUniformBufferData:
-                        ProcessEvent(reader.Current<SetUniformBufferDataEvent>());
+                        processEvent(reader.Current<SetUniformBufferDataEvent>());
                         break;
 
                     case RenderEventType.UnbindFrameBuffer:
-                        ProcessEvent(reader.Current<UnbindFrameBufferEvent>());
+                        processEvent(reader.Current<UnbindFrameBufferEvent>());
                         break;
 
                     case RenderEventType.UnbindShader:
-                        ProcessEvent(reader.Current<UnbindShaderEvent>());
+                        processEvent(reader.Current<UnbindShaderEvent>());
                         break;
 
                     default:
@@ -193,43 +195,43 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 }
             }
 
-            FlushCurrentBatch(FlushBatchSource.FinishFrame);
+            flushCurrentBatch(FlushBatchSource.FinishFrame);
         }
 
-        public void ProcessEvent(AddVertexToBatchEvent e)
+        private void processEvent(AddVertexToBatchEvent e)
         {
             IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer);
 
             if (currentDrawBatch != null && batch != currentDrawBatch)
-                FlushCurrentBatch(FlushBatchSource.BindBuffer);
+                flushCurrentBatch(FlushBatchSource.BindBuffer);
 
             currentDrawBatch = batch;
             drawCount++;
         }
 
-        public void ProcessEvent(BindFrameBufferEvent e)
+        private void processEvent(BindFrameBufferEvent e)
         {
             e.FrameBuffer.Resolve<DeferredFrameBuffer>(deferredRenderer).Resource.Bind();
         }
 
-        public void ProcessEvent(BindShaderEvent e)
+        private void processEvent(BindShaderEvent e)
         {
             e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.Bind();
         }
 
-        public void ProcessEvent(BindTextureEvent e)
+        private void processEvent(BindTextureEvent e)
         {
             baseRenderer.BindTexture(e.Texture.Resolve<Texture>(deferredRenderer), e.Unit, e.WrapModeS, e.WrapModeT);
         }
 
-        public void ProcessEvent(BindUniformBlockEvent e)
+        private void processEvent(BindUniformBlockEvent e)
         {
             e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
                 e.Name.Resolve<string>(deferredRenderer),
                 e.Buffer.Resolve<IDeferredUniformBuffer>(deferredRenderer).GetBuffer());
         }
 
-        public void ProcessEvent(ClearEvent e)
+        private void processEvent(ClearEvent e)
         {
             commands.ClearColorTarget(0, e.Info.Colour.ToRgbaFloat());
 
@@ -237,14 +239,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 commands.ClearDepthStencil((float)e.Info.Depth, (byte)e.Info.Stencil);
         }
 
-        public void ProcessEvent(DrawVertexBatchEvent e)
+        private void processEvent(DrawVertexBatchEvent e)
         {
             baseRenderer.FlushCurrentBatch(null);
         }
 
-        public void ProcessEvent(PushDepthInfoEvent e) => depthStack.Push(e.Info);
+        private void processEvent(PushDepthInfoEvent e) => depthStack.Push(e.Info);
 
-        public void ProcessEvent(PopDepthInfoEvent e) => depthStack.Pop();
+        private void processEvent(PopDepthInfoEvent e) => depthStack.Pop();
 
         private void setDepth(ref DepthInfo depth)
         {
@@ -253,71 +255,71 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             pipeline.DepthStencilState.DepthComparison = depth.Function.ToComparisonKind();
         }
 
-        public void ProcessEvent(PushMaskingInfoEvent e)
+        private void processEvent(PushMaskingInfoEvent e)
         {
             baseRenderer.PushMaskingInfo(e.Info);
         }
 
-        public void ProcessEvent(PopMaskingInfoEvent e)
+        private void processEvent(PopMaskingInfoEvent e)
         {
             baseRenderer.PopMaskingInfo();
         }
 
-        public void ProcessEvent(PushProjectionMatrixEvent e)
+        private void processEvent(PushProjectionMatrixEvent e)
         {
             baseRenderer.PushProjectionMatrix(e.Matrix);
         }
 
-        public void ProcessEvent(PopProjectionMatrixEvent e)
+        private void processEvent(PopProjectionMatrixEvent e)
         {
             baseRenderer.PopProjectionMatrix();
         }
 
-        public void ProcessEvent(PushQuadBatchEvent e)
+        private void processEvent(PushQuadBatchEvent e)
         {
             // Todo: This method is only used in recursion.
             baseRenderer.PushQuadBatch(e.VertexBatch.Resolve<IVertexBatch<TexturedVertex2D>>(deferredRenderer));
         }
 
-        public void ProcessEvent(PopQuadBatchEvent e)
+        private void processEvent(PopQuadBatchEvent e)
         {
             // Todo: This method is only used in recursion.
             baseRenderer.PopQuadBatch();
         }
 
-        public void ProcessEvent(PushScissorEvent e) => scissorStack.Push(e.Scissor);
+        private void processEvent(PushScissorEvent e) => scissorStack.Push(e.Scissor);
 
-        public void ProcessEvent(PopScissorEvent e) => scissorStack.Pop();
+        private void processEvent(PopScissorEvent e) => scissorStack.Pop();
 
         private void setScissor(ref RectangleI scissor)
         {
             commands.SetScissorRect(0, (uint)scissor.X, (uint)scissor.Y, (uint)scissor.Width, (uint)scissor.Height);
         }
 
-        public void ProcessEvent(PushScissorOffsetEvent e)
+        private void processEvent(PushScissorOffsetEvent e)
         {
             // Todo: Pretty sure this event is broken (or only used in recursion).
             baseRenderer.PushScissorOffset(e.Offset);
         }
 
-        public void ProcessEvent(PopScissorOffsetEvent e)
+        private void processEvent(PopScissorOffsetEvent e)
         {
             // Todo: Pretty sure this event is broken (or only used in recursion).
             baseRenderer.PopScissorOffset();
         }
 
-        public void ProcessEvent(PushScissorStateEvent e) => scissorStateStack.Push(e.Enabled);
+        private void processEvent(PushScissorStateEvent e) => scissorStateStack.Push(e.Enabled);
 
-        public void ProcessEvent(PopScissorStateEvent e) => scissorStateStack.Pop();
+        private void processEvent(PopScissorStateEvent e) => scissorStateStack.Pop();
 
         private void setScissorState(ref bool enabled)
         {
             pipeline.RasterizerState.ScissorTestEnabled = enabled;
         }
 
-        public void ProcessEvent(PushStencilInfoEvent e) => stencilStack.Push(e.Info);
+        private void processEvent(PushStencilInfoEvent e) => stencilStack.Push(e.Info);
 
-        public void ProcessEvent(PopStencilInfoEvent e) => stencilStack.Pop();
+        private void processEvent(PopStencilInfoEvent e) => stencilStack.Pop();
 
         private void setStencil(ref StencilInfo stencil)
         {
@@ -330,16 +332,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             pipeline.DepthStencilState.StencilBack.Comparison = pipeline.DepthStencilState.StencilFront.Comparison = stencil.TestFunction.ToComparisonKind();
         }
 
-        public void ProcessEvent(PushViewportEvent e) => viewportStack.Push(e.Viewport);
+        private void processEvent(PushViewportEvent e) => viewportStack.Push(e.Viewport);
 
-        public void ProcessEvent(PopViewportEvent e) => viewportStack.Pop();
+        private void processEvent(PopViewportEvent e) => viewportStack.Pop();
 
         private void setViewport(ref RectangleI viewport)
         {
             commands.SetViewport(0, new Viewport(viewport.Left, viewport.Top, viewport.Width, viewport.Height, 0, 1));
         }
 
-        public void ProcessEvent(SetBlendEvent e)
+        private void processEvent(SetBlendEvent e)
         {
             pipeline.BlendState.AttachmentStates[0].BlendEnabled = !e.Parameters.IsDisabled;
             pipeline.BlendState.AttachmentStates[0].SourceColorFactor = e.Parameters.Source.ToBlendFactor();
@@ -350,27 +352,27 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             pipeline.BlendState.AttachmentStates[0].AlphaFunction = e.Parameters.AlphaEquation.ToBlendFunction();
         }
 
-        public void ProcessEvent(SetBlendMaskEvent e)
+        private void processEvent(SetBlendMaskEvent e)
         {
             pipeline.BlendState.AttachmentStates[0].ColorWriteMask = e.Mask.ToColorWriteMask();
         }
 
-        public void ProcessEvent(SetUniformBufferDataEvent e)
+        private void processEvent(SetUniformBufferDataEvent e)
         {
             e.Buffer.Resolve<IDeferredUniformBuffer>(deferredRenderer).SetDataFromBuffer(e.Data.GetBuffer(deferredRenderer));
         }
 
-        public void ProcessEvent(UnbindFrameBufferEvent e)
+        private void processEvent(UnbindFrameBufferEvent e)
         {
             e.FrameBuffer.Resolve<DeferredFrameBuffer>(deferredRenderer).Resource.Unbind();
         }
 
-        public void ProcessEvent(UnbindShaderEvent e)
+        private void processEvent(UnbindShaderEvent e)
         {
             e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.Unbind();
         }
 
-        public void FlushCurrentBatch(FlushBatchSource? source)
+        private void flushCurrentBatch(FlushBatchSource? source)
         {
             if (currentDrawBatch == null)
                 return;
