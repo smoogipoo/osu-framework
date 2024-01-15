@@ -25,6 +25,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     {
         private readonly ResourceAllocator allocator;
         private readonly EventList renderEvents;
+        private readonly VertexManager vertexManager;
 
         public RendererResource Reference<T>(T obj)
             where T : class
@@ -44,6 +45,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => allocator.GetBuffer(block);
 
         public RendererStagingMemoryBlock AllocateStaging<T>(T data)
+            where T : unmanaged
+            => allocator.AllocateStaging(data);
+
+        public RendererStagingMemoryBlock AllocateStaging<T>(ReadOnlySpan<T> data)
             where T : unmanaged
             => allocator.AllocateStaging(data);
 
@@ -120,8 +125,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IVertexBatch<TexturedVertex2D> DefaultQuadBatch { get; }
 
-        private readonly Dictionary<DeferredVertexBatchLookup, IDeferredVertexBatch> deferredBatches = new Dictionary<DeferredVertexBatchLookup, IDeferredVertexBatch>();
-
         private readonly IRenderer baseRenderer;
         private readonly Stack<RectangleI> viewportStack = new Stack<RectangleI>();
         private readonly Stack<RectangleI> scissorRectStack = new Stack<RectangleI>();
@@ -140,6 +143,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             allocator = new ResourceAllocator(this);
             renderEvents = new EventList(this);
             processor = new EventProcessor(this, baseRenderer);
+            vertexManager = new VertexManager(this);
 
             DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
         }
@@ -157,6 +161,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             allocator.Reset();
             renderEvents.Reset();
+            vertexManager.Reset();
 
             viewportStack.Clear();
             scissorRectStack.Clear();
@@ -166,9 +171,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             depthInfoStack.Clear();
             stencilInfoStack.Clear();
             currentMaskingInfo = default;
-
-            foreach ((_, IDeferredVertexBatch batch) in deferredBatches)
-                batch.ResetCounters();
         }
 
         public void FinishFrame()
@@ -326,24 +328,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => baseRenderer.CreateVideoTexture(width, height);
 
         IVertexBatch<TVertex> IRenderer.CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
-        {
-            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), topology, IndexLayout.Linear);
-
-            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
-                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, topology, IndexLayout.Linear);
-
-            return (IVertexBatch<TVertex>)existing;
-        }
+            => new DeferredVertexBatch<TVertex>(this, vertexManager, topology, IndexLayout.Linear);
 
         IVertexBatch<TVertex> IRenderer.CreateQuadBatch<TVertex>(int size, int maxBuffers)
-        {
-            DeferredVertexBatchLookup lookup = new DeferredVertexBatchLookup(typeof(TVertex), PrimitiveTopology.Triangles, IndexLayout.Quad);
-
-            if (!deferredBatches.TryGetValue(lookup, out IDeferredVertexBatch? existing))
-                existing = deferredBatches[lookup] = new DeferredVertexBatch<TVertex>(this, PrimitiveTopology.Triangles, IndexLayout.Quad);
-
-            return (IVertexBatch<TVertex>)existing;
-        }
+            => new DeferredVertexBatch<TVertex>(this, vertexManager, PrimitiveTopology.Triangles, IndexLayout.Quad);
 
         IUniformBuffer<TData> IRenderer.CreateUniformBuffer<TData>()
             => new DeferredUniformBuffer<TData>(this, baseRenderer.CreateUniformBuffer<TData>());

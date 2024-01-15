@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using Veldrid;
 
@@ -15,25 +14,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     {
         public int Size { get; }
         public DeviceBuffer Buffer { get; }
-        public int Stride { get; }
         public VertexLayoutDescription Layout { get; }
 
         private readonly DeferredRenderer renderer;
 
-        public VeldridVertexBuffer2(DeferredRenderer renderer, int size, int stride, VertexLayoutDescription layout)
+        public VeldridVertexBuffer2(DeferredRenderer renderer, int sizeInBytes)
         {
             this.renderer = renderer;
 
-            Size = size;
-            Stride = stride;
-            Layout = layout;
+            Size = sizeInBytes;
+            Layout = default; // Todo: BAD BAD BAD
 
-            Buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(Stride * Size), BufferUsage.VertexBuffer));
-        }
-
-        public void Write(RendererStagingMemoryBlock block, CommandList commandList, int index)
-        {
-            block.CopyTo(renderer, commandList, Buffer, index * Stride);
+            Buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)sizeInBytes, BufferUsage.VertexBuffer));
         }
 
         ulong IVertexBuffer.LastUseFrameIndex => 0;

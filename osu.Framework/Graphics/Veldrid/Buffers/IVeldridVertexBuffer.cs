@@ -21,16 +21,12 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// </summary>
         DeviceBuffer Buffer { get; }
 
-        int Stride { get; }
-
         VertexLayoutDescription Layout { get; }
     }
 
     internal interface IVeldridVertexBuffer<in T> : IVeldridVertexBuffer
         where T : unmanaged, IEquatable<T>, IVertex
     {
-        int IVeldridVertexBuffer.Stride => VeldridVertexUtils<T>.STRIDE;
-
         VertexLayoutDescription IVeldridVertexBuffer.Layout => VeldridVertexUtils<T>.Layout;
 
         /// <summary>

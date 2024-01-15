@@ -508,6 +508,14 @@ namespace osu.Framework.Graphics.Veldrid
             boundVertexBuffer = buffer;
         }
 
+        public void BindVertexBuffer(IVeldridVertexBuffer buffer, VertexLayoutDescription layout, int offset)
+        {
+            Commands.SetVertexBuffer(0, buffer.Buffer, (uint)offset);
+            pipeline.ShaderSet.VertexLayouts[0] = layout;
+
+            FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+        }
+
         public void BindIndexBuffer(VeldridIndexLayout layout, int verticesCount)
         {
             ref var indexBuffer = ref layout == VeldridIndexLayout.Quad

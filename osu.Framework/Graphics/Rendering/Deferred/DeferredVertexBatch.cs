@@ -2,102 +2,73 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid;
-using osu.Framework.Graphics.Veldrid.Buffers;
-using osu.Framework.Graphics.Veldrid.Vertices;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredVertexBatch
     {
-        void Write(RendererStagingMemoryBlock block, CommandList commandList);
-        void Draw(VeldridRenderer veldridRenderer, int endIndex);
-        void ResetCounters();
-    }
+        PrimitiveTopology Topology { get; }
+        IndexLayout IndexLayout { get; }
 
-    internal readonly record struct DeferredVertexBatchLookup(Type VertexType, PrimitiveTopology Topology, IndexLayout IndexLayout);
+        int PrimitiveSize { get; }
+
+        void WritePrimitive(RendererStagingMemoryBlock primitive, CommandList commandList);
+        void Draw(VeldridRenderer veldridRenderer, int count);
+    }
 
     internal class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>, IDeferredVertexBatch
         where TVertex : unmanaged, IEquatable<TVertex>, IVertex
     {
+        private static readonly TVertex[] current_primitive = new TVertex[4];
+
+        // ReSharper disable once StaticMemberInGenericType
+        private static int currentPrimitiveSize;
+
         public Action<TVertex> AddAction { get; }
 
-        public readonly int Size;
-
         private readonly DeferredRenderer renderer;
-        private readonly PrimitiveTopology topology;
-        private readonly IndexLayout indexLayout;
+        private readonly VertexManager vertexManager;
 
-        private readonly List<VeldridVertexBuffer2> buffers = new List<VeldridVertexBuffer2>();
-        private int currentBuffer;
-        private int currentWriteIndex;
-        private int currentDrawIndex;
-
-        public DeferredVertexBatch(DeferredRenderer renderer, PrimitiveTopology topology, IndexLayout indexLayout)
+        public DeferredVertexBatch(DeferredRenderer renderer, VertexManager vertexManager, PrimitiveTopology topology, IndexLayout indexLayout)
         {
             this.renderer = renderer;
-            this.topology = topology;
-            this.indexLayout = indexLayout;
+            this.vertexManager = vertexManager;
 
-            Size = indexLayout switch
+            Topology = topology;
+            IndexLayout = indexLayout;
+
+            if (IndexLayout == IndexLayout.Linear)
             {
-                IndexLayout.Linear => IRenderer.MAX_VERTICES,
-                IndexLayout.Quad => IRenderer.MAX_QUADS * IRenderer.VERTICES_PER_QUAD,
-                _ => throw new ArgumentOutOfRangeException(nameof(indexLayout), indexLayout, null)
-            };
+                PrimitiveSize = Topology switch
+                {
+                    PrimitiveTopology.Points => 1,
+                    PrimitiveTopology.Lines => 2,
+                    PrimitiveTopology.LineStrip => throw new NotSupportedException(),
+                    PrimitiveTopology.Triangles => 3,
+                    PrimitiveTopology.TriangleStrip => throw new NotSupportedException(),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+            }
+            else
+                PrimitiveSize = 4;
 
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public void Write(RendererStagingMemoryBlock block, CommandList commandList)
-        {
-            if (currentWriteIndex == Size)
-            {
-                currentBuffer++;
-                currentWriteIndex = 0;
-            }
+        public PrimitiveTopology Topology { get; }
 
-            if (currentBuffer == buffers.Count)
-                buffers.Add(new VeldridVertexBuffer2(renderer, Size, VeldridVertexUtils<TVertex>.STRIDE, VeldridVertexUtils<TVertex>.Layout));
+        public IndexLayout IndexLayout { get; }
 
-            buffers[currentBuffer].Write(block, commandList, currentWriteIndex++);
-        }
+        public int PrimitiveSize { get; }
 
-        public void Draw(VeldridRenderer veldridRenderer, int count)
-        {
-            VeldridIndexLayout veldridLayout = indexLayout switch
-            {
-                IndexLayout.Linear => VeldridIndexLayout.Linear,
-                IndexLayout.Quad => VeldridIndexLayout.Quad,
-                _ => throw new InvalidOperationException()
-            };
+        public void WritePrimitive(RendererStagingMemoryBlock primitive, CommandList commandList) => vertexManager.Commit(primitive, commandList);
 
-            while (count > 0)
-            {
-                int bufferIndex = currentDrawIndex / Size;
-                int indexInBuffer = currentDrawIndex % Size;
-                int countToDraw = Math.Min(count, Size);
-
-                veldridRenderer.BindVertexBuffer(buffers[bufferIndex]);
-                veldridRenderer.BindIndexBuffer(veldridLayout, Size);
-                veldridRenderer.DrawVertices(topology.ToPrimitiveTopology(), indexInBuffer, count);
-
-                currentDrawIndex += countToDraw;
-                count -= countToDraw;
-            }
-        }
-
-        public void ResetCounters()
-        {
-            currentBuffer = 0;
-            currentWriteIndex = 0;
-            currentDrawIndex = 0;
-        }
+        public void Draw(VeldridRenderer veldridRenderer, int count) => vertexManager.Draw<TVertex>(veldridRenderer, count, Topology, IndexLayout, PrimitiveSize);
 
         int IVertexBatch.Size => int.MaxValue;
 
@@ -107,9 +78,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             return 0;
         }
 
+        void IVertexBatch.ResetCounters()
+        {
+        }
+
         void IVertexBatch<TVertex>.Add(TVertex vertex)
         {
-            renderer.EnqueueEvent(AddVertexToBatchEvent.Create(renderer, this, vertex));
+            current_primitive[currentPrimitiveSize] = vertex;
+
+            if (++currentPrimitiveSize == PrimitiveSize)
+            {
+                renderer.EnqueueEvent(AddPrimitiveToBatchEvent.Create(renderer, this, current_primitive.AsSpan()[..PrimitiveSize]));
+                currentPrimitiveSize = 0;
+            }
         }
 
         public void Dispose()

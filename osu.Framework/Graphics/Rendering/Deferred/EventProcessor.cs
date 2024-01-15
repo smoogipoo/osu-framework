@@ -57,9 +57,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             {
                 switch (reader.CurrentType())
                 {
-                    case RenderEventType.AddVertexToBatch:
-                        AddVertexToBatchEvent e = reader.Current<AddVertexToBatchEvent>();
-                        e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer).Write(e.Memory, commands);
+                    case RenderEventType.AddPrimitiveToBatch:
+                        AddPrimitiveToBatchEvent e = reader.Current<AddPrimitiveToBatchEvent>();
+                        IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer);
+
+                        batch.WritePrimitive(e.Memory, commands);
                         break;
                 }
             }
@@ -70,8 +72,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             {
                 switch (reader.CurrentType())
                 {
-                    case RenderEventType.AddVertexToBatch:
-                        processEvent(reader.Current<AddVertexToBatchEvent>());
+                    case RenderEventType.AddPrimitiveToBatch:
+                        processEvent(reader.Current<AddPrimitiveToBatchEvent>());
                         break;
 
                     case RenderEventType.BindFrameBuffer:
@@ -198,7 +200,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             flushCurrentBatch(FlushBatchSource.FinishFrame);
         }
 
-        private void processEvent(AddVertexToBatchEvent e)
+        private void processEvent(AddPrimitiveToBatchEvent e)
         {
             IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer);
 
@@ -206,7 +208,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 flushCurrentBatch(FlushBatchSource.BindBuffer);
 
             currentDrawBatch = batch;
-            drawCount++;
+            drawCount += batch.PrimitiveSize;
         }
 
         private void processEvent(BindFrameBufferEvent e)

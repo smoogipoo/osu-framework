@@ -34,9 +34,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             for (int i = 0; i < memoryBuffers.Count; i++)
                 memoryBuffers[i].Dispose();
 
+            for (int i = 0; i < stagingMemoryBuffers.Count; i++)
+                stagingMemoryBuffers[i].Dispose();
+
             resourceReferences.Clear();
             resources.Clear();
             memoryBuffers.Clear();
+            stagingMemoryBuffers.Clear();
         }
 
         public RendererResource Reference<T>(T obj)
@@ -85,7 +89,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public RendererStagingMemoryBlock AllocateStaging<T>(T data)
             where T : unmanaged
         {
-            Span<byte> dataSpan = MemoryMarshal.Cast<T, byte>(MemoryMarshal.CreateSpan(ref data, 1));
+            return AllocateStaging(MemoryMarshal.CreateReadOnlySpan(ref data, 1));
+        }
+
+        public RendererStagingMemoryBlock AllocateStaging<T>(ReadOnlySpan<T> data)
+            where T : unmanaged
+        {
+            ThreadSafety.EnsureDrawThread();
+
+            ReadOnlySpan<byte> dataSpan = MemoryMarshal.Cast<T, byte>(data);
 
             if (stagingMemoryBuffers.Count == 0 || stagingMemoryBuffers[^1].Remaining < dataSpan.Length)
                 stagingMemoryBuffers.Add(new StagingMemoryBuffer(renderer, stagingMemoryBuffers.Count, Math.Max(min_buffer_size, dataSpan.Length)));
@@ -152,7 +164,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 Remaining = Size;
             }
 
-            public RendererStagingMemoryBlock Write(Span<byte> data)
+            public RendererStagingMemoryBlock Write(ReadOnlySpan<byte> data)
             {
                 Debug.Assert(data.Length <= Remaining);
 
