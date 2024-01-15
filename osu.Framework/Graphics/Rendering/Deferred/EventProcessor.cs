@@ -59,7 +59,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 {
                     case RenderEventType.AddPrimitiveToBatch:
                         AddPrimitiveToBatchEvent e = reader.Current<AddPrimitiveToBatchEvent>();
-                        IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer);
+                        IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
 
                         batch.WritePrimitive(e.Memory, commands);
                         break;
@@ -202,7 +202,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(AddPrimitiveToBatchEvent e)
         {
-            IDeferredVertexBatch batch = e.VertexBatch.Resolve<IDeferredVertexBatch>(deferredRenderer);
+            IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
 
             if (currentDrawBatch != null && batch != currentDrawBatch)
                 flushCurrentBatch(FlushBatchSource.BindBuffer);
@@ -213,24 +213,24 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(BindFrameBufferEvent e)
         {
-            e.FrameBuffer.Resolve<DeferredFrameBuffer>(deferredRenderer).Resource.Bind();
+            e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource.Bind();
         }
 
         private void processEvent(BindShaderEvent e)
         {
-            e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.Bind();
+            e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource.Bind();
         }
 
         private void processEvent(BindTextureEvent e)
         {
-            baseRenderer.BindTexture(e.Texture.Resolve<Texture>(deferredRenderer), e.Unit, e.WrapModeS, e.WrapModeT);
+            baseRenderer.BindTexture(e.Texture.Dereference<Texture>(deferredRenderer), e.Unit, e.WrapModeS, e.WrapModeT);
         }
 
         private void processEvent(BindUniformBlockEvent e)
         {
-            e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
-                e.Name.Resolve<string>(deferredRenderer),
-                e.Buffer.Resolve<IDeferredUniformBuffer>(deferredRenderer).GetBuffer());
+            e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
+                e.Name.Dereference<string>(deferredRenderer),
+                e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).GetBuffer());
         }
 
         private void processEvent(ClearEvent e)
@@ -280,7 +280,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private void processEvent(PushQuadBatchEvent e)
         {
             // Todo: This method is only used in recursion.
-            baseRenderer.PushQuadBatch(e.VertexBatch.Resolve<IVertexBatch<TexturedVertex2D>>(deferredRenderer));
+            baseRenderer.PushQuadBatch(e.VertexBatch.Dereference<IVertexBatch<TexturedVertex2D>>(deferredRenderer));
         }
 
         private void processEvent(PopQuadBatchEvent e)
@@ -361,17 +361,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(SetUniformBufferDataEvent e)
         {
-            e.Buffer.Resolve<IDeferredUniformBuffer>(deferredRenderer).SetDataFromBuffer(e.Data.GetBuffer(deferredRenderer));
+            e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).SetDataFromBuffer(e.Data.GetRegion(deferredRenderer));
         }
 
         private void processEvent(UnbindFrameBufferEvent e)
         {
-            e.FrameBuffer.Resolve<DeferredFrameBuffer>(deferredRenderer).Resource.Unbind();
+            e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource.Unbind();
         }
 
         private void processEvent(UnbindShaderEvent e)
         {
-            e.Shader.Resolve<DeferredShader>(deferredRenderer).Resource.Unbind();
+            e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource.Unbind();
         }
 
         private void flushCurrentBatch(FlushBatchSource? source)

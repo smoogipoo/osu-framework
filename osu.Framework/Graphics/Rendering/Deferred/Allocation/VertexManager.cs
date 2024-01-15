@@ -44,7 +44,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
-            primitive.CopyTo(renderer, commandList, buffers[currentBuffer], currentWriteIndex);
+            primitive.WriteTo(renderer, buffers[currentBuffer], currentWriteIndex, commandList);
             currentWriteIndex += primitive.Length;
 
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);

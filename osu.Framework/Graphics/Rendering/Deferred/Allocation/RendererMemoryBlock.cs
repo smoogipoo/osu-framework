@@ -8,14 +8,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal readonly record struct RendererMemoryBlock(int BufferId, int Index, int Length)
     {
-        public Span<byte> GetBuffer(DeferredRenderer renderer) => renderer.GetBuffer(this);
+        public Span<byte> GetRegion(DeferredRenderer renderer) => renderer.GetRegion(this);
     }
 
     internal readonly record struct RendererStagingMemoryBlock(int BufferId, int Index, int Length, bool IsTemporary)
     {
-        public void CopyTo(DeferredRenderer renderer, CommandList commandList, DeviceBuffer target, int offsetInTarget)
+        public void WriteTo(DeferredRenderer renderer, DeviceBuffer target, int offsetInTarget, CommandList commandList)
         {
-            renderer.CopyStagingBuffer(this, commandList, target, offsetInTarget);
+            renderer.WriteRegionToBuffer(this, target, offsetInTarget, commandList);
         }
     }
 }

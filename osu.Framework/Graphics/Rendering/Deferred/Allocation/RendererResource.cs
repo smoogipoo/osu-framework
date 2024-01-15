@@ -5,6 +5,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal readonly record struct RendererResource(int Id)
     {
-        public T Resolve<T>(DeferredRenderer renderer) => (T)renderer.GetResource(this);
+        public T Dereference<T>(DeferredRenderer renderer) => (T)renderer.Dereference(this);
     }
 }

@@ -34,7 +34,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
 
             eventIndex++;
-            eventData = events[eventIndex].GetBuffer(renderer);
+            eventData = events[eventIndex].GetRegion(renderer);
             return true;
         }
 

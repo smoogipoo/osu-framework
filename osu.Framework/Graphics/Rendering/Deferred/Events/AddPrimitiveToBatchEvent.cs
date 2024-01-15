@@ -14,7 +14,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
         public static AddPrimitiveToBatchEvent Create<T>(DeferredRenderer renderer, DeferredVertexBatch<T> batch, ReadOnlySpan<T> vertices)
             where T : unmanaged, IVertex, IEquatable<T>
         {
-            return new AddPrimitiveToBatchEvent(renderer.Reference(batch), renderer.AllocateStaging(vertices));
+            return new AddPrimitiveToBatchEvent(renderer.Reference(batch), renderer.AllocateStagingRegion(vertices));
         }
     }
 }

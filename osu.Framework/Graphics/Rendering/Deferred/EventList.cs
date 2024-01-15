@@ -31,7 +31,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             int requiredSize = Unsafe.SizeOf<T>() + 1;
 
             RendererMemoryBlock block = renderer.AllocateRegion(requiredSize);
-            Span<byte> buffer = renderer.GetBuffer(block);
+            Span<byte> buffer = renderer.GetRegion(block);
 
             buffer[0] = (byte)renderEvent.Type;
             MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(in renderEvent));

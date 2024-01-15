@@ -31,29 +31,29 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             where T : class
             => allocator.Reference(obj);
 
-        public object GetResource(RendererResource resource)
-            => allocator.GetResource(resource);
+        public object Dereference(RendererResource resource)
+            => allocator.Dereference(resource);
 
-        public RendererMemoryBlock Allocate<T>(T data)
+        public RendererMemoryBlock AllocateObject<T>(T data)
             where T : unmanaged
-            => allocator.Allocate(data);
+            => allocator.AllocateObject(data);
 
         public RendererMemoryBlock AllocateRegion(int length)
             => allocator.AllocateRegion(length);
 
-        public Span<byte> GetBuffer(RendererMemoryBlock block)
-            => allocator.GetBuffer(block);
+        public Span<byte> GetRegion(RendererMemoryBlock block)
+            => allocator.GetRegion(block);
 
-        public RendererStagingMemoryBlock AllocateStaging<T>(T data)
+        public RendererStagingMemoryBlock AllocateStagingObject<T>(T data)
             where T : unmanaged
-            => allocator.AllocateStaging(data);
+            => allocator.AllocateStagingObject(data);
 
-        public RendererStagingMemoryBlock AllocateStaging<T>(ReadOnlySpan<T> data)
+        public RendererStagingMemoryBlock AllocateStagingRegion<T>(ReadOnlySpan<T> data)
             where T : unmanaged
-            => allocator.AllocateStaging(data);
+            => allocator.AllocateStagingRegion(data);
 
-        public void CopyStagingBuffer(RendererStagingMemoryBlock block, CommandList commandList, DeviceBuffer target, int offsetInTarget)
-            => allocator.CopyStagingBuffer(block, commandList, target, offsetInTarget);
+        public void WriteRegionToBuffer(RendererStagingMemoryBlock block, DeviceBuffer target, int offsetInTarget, CommandList commandList)
+            => allocator.WriteRegionToBuffer(block, target, offsetInTarget, commandList);
 
         public void EnqueueEvent<T>(in T @event)
             where T : unmanaged, IRenderEvent

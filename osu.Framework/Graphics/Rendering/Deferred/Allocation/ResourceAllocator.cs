@@ -65,17 +65,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return resourceReferences[obj] = new RendererResource(resources.Count - 1);
         }
 
-        public object GetResource(RendererResource resource)
+        public object Dereference(RendererResource resource)
         {
             ThreadSafety.EnsureDrawThread();
             return resources[resource.Id];
         }
 
-        public RendererMemoryBlock Allocate<T>(T data)
+        public RendererMemoryBlock AllocateObject<T>(T data)
             where T : unmanaged
         {
             RendererMemoryBlock block = AllocateRegion(Marshal.SizeOf(data));
-            MemoryMarshal.Write(GetBuffer(block), ref data);
+            MemoryMarshal.Write(GetRegion(block), ref data);
             return block;
         }
 
@@ -89,19 +89,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return memoryBuffers[^1].Reserve(length);
         }
 
-        public Span<byte> GetBuffer(RendererMemoryBlock block)
+        public Span<byte> GetRegion(RendererMemoryBlock block)
         {
             ThreadSafety.EnsureDrawThread();
             return memoryBuffers[block.BufferId].GetBuffer(block);
         }
 
-        public RendererStagingMemoryBlock AllocateStaging<T>(T data)
+        public RendererStagingMemoryBlock AllocateStagingObject<T>(T data)
             where T : unmanaged
         {
-            return AllocateStaging(MemoryMarshal.CreateReadOnlySpan(ref data, 1));
+            return AllocateStagingRegion(MemoryMarshal.CreateReadOnlySpan(ref data, 1));
         }
 
-        public RendererStagingMemoryBlock AllocateStaging<T>(ReadOnlySpan<T> data)
+        public RendererStagingMemoryBlock AllocateStagingRegion<T>(ReadOnlySpan<T> data)
             where T : unmanaged
         {
             ThreadSafety.EnsureDrawThread();
@@ -128,7 +128,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
         private void addStagingBuffer() => stagingMemoryBuffers.Add(new StagingMemoryBuffer(renderer, stagingMemoryBuffers.Count, staging_buffer_size, false));
 
-        public void CopyStagingBuffer(RendererStagingMemoryBlock block, CommandList commandList, DeviceBuffer target, int offsetInTarget)
+        public void WriteRegionToBuffer(RendererStagingMemoryBlock block, DeviceBuffer target, int offsetInTarget, CommandList commandList)
         {
             ThreadSafety.EnsureDrawThread();
 
