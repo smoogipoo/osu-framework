@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
 using Veldrid;
@@ -74,7 +75,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public RendererMemoryBlock AllocateObject<T>(T data)
             where T : unmanaged
         {
-            RendererMemoryBlock block = AllocateRegion(Marshal.SizeOf(data));
+            RendererMemoryBlock block = AllocateRegion(Unsafe.SizeOf<T>());
             MemoryMarshal.Write(GetRegion(block), ref data);
             return block;
         }
