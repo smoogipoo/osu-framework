@@ -11,7 +11,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public Span<byte> GetBuffer(DeferredRenderer renderer) => renderer.GetBuffer(this);
     }
 
-    internal readonly record struct RendererStagingMemoryBlock(int BufferId, int Index, int Length)
+    internal readonly record struct RendererStagingMemoryBlock(int BufferId, int Index, int Length, bool IsTemporary)
     {
         public void CopyTo(DeferredRenderer renderer, CommandList commandList, DeviceBuffer target, int offsetInTarget)
         {
