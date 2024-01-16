@@ -297,14 +297,6 @@ namespace osu.Framework.Graphics.Veldrid
         void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer)
             => UnbindFrameBuffer(frameBuffer);
 
-        void IVeldridRenderer.DeleteFrameBuffer(VeldridFrameBuffer frameBuffer)
-        {
-            while (FrameBuffer == frameBuffer)
-                UnbindFrameBuffer(frameBuffer);
-
-            frameBuffer.DeleteResources(true);
-        }
-
         bool IVeldridRenderer.IsFrameBufferBound(VeldridFrameBuffer frameBuffer)
             => FrameBuffer == frameBuffer;
 

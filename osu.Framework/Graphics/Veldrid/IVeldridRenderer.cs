@@ -69,12 +69,6 @@ namespace osu.Framework.Graphics.Veldrid
         void UnbindFrameBuffer(VeldridFrameBuffer frameBuffer);
 
         /// <summary>
-        /// Deletes a frame buffer.
-        /// </summary>
-        /// <param name="frameBuffer">The frame buffer to delete.</param>
-        void DeleteFrameBuffer(VeldridFrameBuffer frameBuffer);
-
-        /// <summary>
         /// Checks whether the given frame buffer is currently bound.
         /// </summary>
         /// <param name="frameBuffer">The frame buffer to check.</param>

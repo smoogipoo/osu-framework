@@ -203,15 +203,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer) => UnbindFrameBuffer(frameBuffer);
 
-        void IVeldridRenderer.DeleteFrameBuffer(VeldridFrameBuffer frameBuffer)
+        public bool IsFrameBufferBound(VeldridFrameBuffer frameBuffer)
         {
-            while (FrameBuffer == frameBuffer)
-                UnbindFrameBuffer(frameBuffer);
+            if (FrameBuffer is DeferredFrameBuffer deferred)
+                return deferred.Resource == frameBuffer;
 
-            frameBuffer.DeleteResources(true);
+            return FrameBuffer == frameBuffer;
         }
-
-        bool IVeldridRenderer.IsFrameBufferBound(VeldridFrameBuffer frameBuffer) => FrameBuffer == frameBuffer;
 
         Textures.Texture IVeldridRenderer.CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT) => CreateTexture(nativeTexture, wrapModeS, wrapModeT);
 
