@@ -111,10 +111,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         protected override bool SetTextureImplementation(INativeTexture? texture, int unit)
         {
             if (texture == null)
-                EnqueueEvent(new UnbindTextureEvent(unit));
-            else
-                EnqueueEvent(new BindTextureEvent(Reference(texture), unit));
+                return false;
 
+            EnqueueEvent(new BindTextureEvent(Reference(texture), unit));
             return true;
         }
 

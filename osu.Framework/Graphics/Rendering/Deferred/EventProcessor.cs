@@ -59,10 +59,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<BindTextureEvent>());
                         break;
 
-                    case RenderEventType.UnbindTexture:
-                        processEvent(reader.Current<UnbindTextureEvent>());
-                        break;
-
                     case RenderEventType.BindUniformBlock:
                         processEvent(reader.Current<BindUniformBlockEvent>());
                         break;
@@ -124,11 +120,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private void processEvent(SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
 
         private void processEvent(BindTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<VeldridTexture>(deferredRenderer));
-
-        private void processEvent(UnbindTextureEvent e)
-        {
-            // This does nothing?
-        }
 
         private void processEvent(BindUniformBlockEvent e)
         {

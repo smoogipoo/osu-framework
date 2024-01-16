@@ -14,9 +14,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal class ResourceAllocator
     {
-        private readonly DeferredRenderer renderer;
         private const int min_buffer_size = 1024 * 1024; // 1MB
         private const int staging_buffer_size = 4 * 1024 * 1024; // 4MB
+
+        private readonly DeferredRenderer renderer;
 
         private readonly Dictionary<object, RendererResource> resourceReferences = new Dictionary<object, RendererResource>();
         private readonly List<object> resources = new List<object>();

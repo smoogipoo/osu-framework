@@ -15,7 +15,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
         UnbindFrameBuffer,
         SetShader,
         BindTexture,
-        UnbindTexture,
         BindUniformBlock,
         Clear,
         SetDepthInfo,
