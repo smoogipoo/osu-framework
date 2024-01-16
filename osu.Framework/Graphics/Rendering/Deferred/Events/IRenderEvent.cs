@@ -8,7 +8,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
         RenderEventType Type { get; }
     }
 
-    internal enum RenderEventType
+    internal enum RenderEventType : byte
     {
         AddPrimitiveToBatch,
         BindFrameBuffer,
