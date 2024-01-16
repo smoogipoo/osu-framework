@@ -10,7 +10,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
 
     internal enum RenderEventType
     {
-        AddVertexToBatch,
         AddPrimitiveToBatch,
         BindFrameBuffer,
         BindShader,
