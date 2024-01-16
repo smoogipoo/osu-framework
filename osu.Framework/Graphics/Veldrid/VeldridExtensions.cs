@@ -8,7 +8,9 @@ using System.Runtime.InteropServices;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Rendering.Deferred;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Logging;
 using osuTK.Graphics;
 using SharpGen.Runtime;
@@ -328,6 +330,21 @@ namespace osu.Framework.Graphics.Veldrid
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type));
+            }
+        }
+
+        public static VeldridIndexLayout ToVeldridIndexLayout(this IndexLayout layout)
+        {
+            switch (layout)
+            {
+                case IndexLayout.Linear:
+                    return VeldridIndexLayout.Linear;
+
+                case IndexLayout.Quad:
+                    return VeldridIndexLayout.Quad;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(layout), layout, null);
             }
         }
 

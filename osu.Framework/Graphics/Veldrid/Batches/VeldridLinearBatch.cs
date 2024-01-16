@@ -4,7 +4,7 @@
 using System;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid.Buffers;
-using Veldrid;
+using PrimitiveTopology = osu.Framework.Graphics.Rendering.PrimitiveTopology;
 
 namespace osu.Framework.Graphics.Veldrid.Batches
 {

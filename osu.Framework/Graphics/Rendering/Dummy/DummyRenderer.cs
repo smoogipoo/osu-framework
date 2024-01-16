@@ -64,12 +64,6 @@ namespace osu.Framework.Graphics.Rendering.Dummy
             set { }
         }
 
-        event Action<FlushBatchSource?>? IRenderer.OnFlush
-        {
-            add { }
-            remove { }
-        }
-
         void IRenderer.Initialise(IGraphicsSurface graphicsSurface)
         {
             IsInitialised = true;

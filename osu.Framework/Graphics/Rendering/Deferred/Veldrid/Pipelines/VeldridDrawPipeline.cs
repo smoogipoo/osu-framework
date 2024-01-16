@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Shaders;
@@ -29,9 +28,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             ShaderSet = { VertexLayouts = new VertexLayoutDescription[1] }
         };
 
-        private IFrameBuffer? currentFrameBuffer;
-        private IShader? currentShader;
-        private IVeldridVertexBuffer? currentVertexBuffer;
+        private VeldridFrameBuffer? currentFrameBuffer;
+        private VeldridShader? currentShader;
         private VeldridIndexBuffer? currentIndexBuffer;
 
         public VeldridDrawPipeline(IVeldridDevice device)
@@ -48,7 +46,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             attachedUniformBuffers.Clear();
             currentFrameBuffer = null;
             currentShader = null;
-            currentVertexBuffer = null;
             currentIndexBuffer = null;
         }
 
@@ -56,17 +53,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
         {
             Commands.ClearColorTarget(0, clearInfo.Colour.ToRgbaFloat());
 
-            var framebuffer = (currentFrameBuffer as VeldridFrameBuffer)?.Framebuffer ?? Device.SwapchainFramebuffer;
+            var framebuffer = currentFrameBuffer?.Framebuffer ?? Device.SwapchainFramebuffer;
             if (framebuffer.DepthTarget != null)
                 Commands.ClearDepthStencil((float)clearInfo.Depth, (byte)clearInfo.Stencil);
         }
 
         public void SetScissorState(bool enabled) => pipelineDesc.RasterizerState.ScissorTestEnabled = enabled;
 
-        public void SetShader(IShader shader)
+        public void SetShader(VeldridShader shader)
         {
+            shader.EnsureShaderInitialised();
+
             currentShader = shader;
-            pipelineDesc.ShaderSet.Shaders = ((VeldridShader)shader).Shaders;
+            pipelineDesc.ShaderSet.Shaders = shader.Shaders;
         }
 
         public void SetBlend(BlendingParameters blendingParameters)
@@ -113,22 +112,20 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             pipelineDesc.DepthStencilState.StencilBack.Comparison = pipelineDesc.DepthStencilState.StencilFront.Comparison = stencilInfo.TestFunction.ToComparisonKind();
         }
 
-        public void SetFrameBuffer(IFrameBuffer? frameBuffer)
+        public void SetFrameBuffer(VeldridFrameBuffer? frameBuffer)
         {
             currentFrameBuffer = frameBuffer;
 
-            Framebuffer fb = (frameBuffer as VeldridFrameBuffer)?.Framebuffer ?? Device.SwapchainFramebuffer;
+            Framebuffer fb = frameBuffer?.Framebuffer ?? Device.SwapchainFramebuffer;
 
             Commands.SetFramebuffer(fb);
             pipelineDesc.Outputs = fb.OutputDescription;
         }
 
-        public void SetVertexBuffer(IVeldridVertexBuffer vertexBuffer)
+        public void SetVertexBuffer(DeviceBuffer buffer, VertexLayoutDescription layout, uint offsetInBuffer = 0)
         {
-            currentVertexBuffer = vertexBuffer;
-
-            Commands.SetVertexBuffer(0, vertexBuffer.Buffer);
-            pipelineDesc.ShaderSet.VertexLayouts[0] = vertexBuffer.Layout;
+            Commands.SetVertexBuffer(0, buffer, offsetInBuffer);
+            pipelineDesc.ShaderSet.VertexLayouts[0] = layout;
 
             FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
         }
@@ -139,7 +136,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             Commands.SetIndexBuffer(indexBuffer.Buffer, VeldridIndexBuffer.FORMAT);
         }
 
-        public void AttachTexture(int unit, VeldridTextureResources texture) => attachedTextures[unit] = texture;
+        public void AttachTexture(int unit, VeldridTexture texture)
+        {
+            var resources = texture.GetResourceList();
+
+            for (int i = 0; i < resources.Count; i++)
+                attachedTextures[unit++] = resources[i];
+        }
 
         public void AttachUniformBuffer(string name, IVeldridUniformBuffer buffer) => attachedUniformBuffers[name] = buffer;
 
@@ -151,15 +154,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             if (currentIndexBuffer == null)
                 throw new InvalidOperationException("No index buffer bound.");
 
-            VeldridShader veldridShader = (VeldridShader)currentShader;
-
             pipelineDesc.PrimitiveTopology = topology;
-            Array.Resize(ref pipelineDesc.ResourceLayouts, veldridShader.LayoutCount);
+            Array.Resize(ref pipelineDesc.ResourceLayouts, currentShader.LayoutCount);
 
             // Activate texture layouts.
             foreach (var (unit, _) in attachedTextures)
             {
-                var layout = veldridShader.GetTextureLayout(unit);
+                var layout = currentShader.GetTextureLayout(unit);
                 if (layout == null)
                     continue;
 
@@ -169,7 +170,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             // Activate uniform buffer layouts.
             foreach (var (name, _) in attachedUniformBuffers)
             {
-                var layout = veldridShader.GetUniformBufferLayout(name);
+                var layout = currentShader.GetUniformBufferLayout(name);
                 if (layout == null)
                     continue;
 
@@ -182,7 +183,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             // Activate texture resources.
             foreach (var (unit, texture) in attachedTextures)
             {
-                var layout = veldridShader.GetTextureLayout(unit);
+                var layout = currentShader.GetTextureLayout(unit);
                 if (layout == null)
                     continue;
 
@@ -192,7 +193,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             // Activate uniform buffer resources.
             foreach (var (name, buffer) in attachedUniformBuffers)
             {
-                var layout = veldridShader.GetUniformBufferLayout(name);
+                var layout = currentShader.GetUniformBufferLayout(name);
                 if (layout == null)
                     continue;
 

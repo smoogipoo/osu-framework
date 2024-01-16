@@ -21,7 +21,7 @@ using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
-using PrimitiveTopology = Veldrid.PrimitiveTopology;
+using Texture = osu.Framework.Graphics.Textures.Texture;
 
 namespace osu.Framework.Graphics.Veldrid
 {
@@ -114,11 +114,7 @@ namespace osu.Framework.Graphics.Veldrid
             if (texture is not VeldridTexture veldridTexture)
                 return false;
 
-            var resources = veldridTexture.GetResourceList();
-
-            for (int i = 0; i < resources.Count; i++)
-                BindTextureResource(resources[i], unit++);
-
+            drawPipeline.AttachTexture(unit, veldridTexture);
             return true;
         }
 
@@ -156,11 +152,15 @@ namespace osu.Framework.Graphics.Veldrid
 
         CommandList IVeldridRenderer.BufferUpdateCommands => bufferUpdatePipeline.Commands;
 
-        void IVeldridRenderer.EnqueueTextureUpload(VeldridTexture texture) => base.EnqueueTextureUpload(texture);
+        void IVeldridRenderer.EnqueueTextureUpload(VeldridTexture texture) => EnqueueTextureUpload(texture);
 
         void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => drawPipeline.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
 
-        protected override void SetShaderImplementation(IShader shader) => drawPipeline.SetShader(shader);
+        void IVeldridRenderer.BindFrameBuffer(VeldridFrameBuffer frameBuffer) => BindFrameBuffer(frameBuffer);
+
+        void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer) => UnbindFrameBuffer(frameBuffer);
+
+        protected override void SetShaderImplementation(IShader shader) => drawPipeline.SetShader((VeldridShader)shader);
 
         protected override void SetBlendImplementation(BlendingParameters blendingParameters) => drawPipeline.SetBlend(blendingParameters);
 
@@ -174,9 +174,9 @@ namespace osu.Framework.Graphics.Veldrid
 
         protected override void SetStencilInfoImplementation(StencilInfo stencilInfo) => drawPipeline.SetStencilInfo(stencilInfo);
 
-        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer) => drawPipeline.SetFrameBuffer(frameBuffer);
+        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer) => drawPipeline.SetFrameBuffer((VeldridFrameBuffer?)frameBuffer);
 
-        public void BindVertexBuffer(IVeldridVertexBuffer buffer) => drawPipeline.SetVertexBuffer(buffer);
+        public void BindVertexBuffer(IVeldridVertexBuffer buffer, VertexLayoutDescription layout) => drawPipeline.SetVertexBuffer(buffer.Buffer, layout);
 
         public void BindIndexBuffer(VeldridIndexLayout layout, int verticesCount)
         {
@@ -195,7 +195,7 @@ namespace osu.Framework.Graphics.Veldrid
 
         public void BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer) => drawPipeline.AttachUniformBuffer(blockName, veldridBuffer);
 
-        public void DrawVertices(PrimitiveTopology type, int vertexStart, int verticesCount)
+        public override void DrawVerticesImplementation(Rendering.PrimitiveTopology type, int vertexStart, int verticesCount)
         {
             // normally we would flush/submit all texture upload commands at the end of the frame, since no actual rendering by the GPU will happen until then,
             // but turns out on macOS with non-apple GPU, this results in rendering corruption.
@@ -204,10 +204,7 @@ namespace osu.Framework.Graphics.Veldrid
             // until that appears to be problem, let's just flush here.
             flushTextureUploadCommands();
 
-            var veldridShader = (VeldridShader)Shader!;
-            veldridShader.BindUniformBlock("g_GlobalUniforms", GlobalUniformBuffer!);
-
-            drawPipeline.DrawVertices(type, vertexStart, verticesCount);
+            drawPipeline.DrawVertices(type.ToPrimitiveTopology(), vertexStart, verticesCount);
         }
 
         private void ensureTextureUploadCommandsBegan()
@@ -246,6 +243,10 @@ namespace osu.Framework.Graphics.Veldrid
             frameBuffer.DeleteResources(true);
         }
 
+        bool IVeldridRenderer.IsFrameBufferBound(VeldridFrameBuffer frameBuffer) => FrameBuffer == frameBuffer;
+
+        Texture IVeldridRenderer.CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT) => CreateTexture(nativeTexture, wrapModeS, wrapModeT);
+
         protected internal override Image<Rgba32> TakeScreenshot() => veldridDevice.TakeScreenshot();
 
         protected override IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
@@ -260,7 +261,7 @@ namespace osu.Framework.Graphics.Veldrid
         protected override IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, Rendering.PrimitiveTopology primitiveType)
         {
             // maxBuffers is ignored because batches are not allowed to wrap around in Veldrid.
-            return new VeldridLinearBatch<TVertex>(this, size, primitiveType.ToPrimitiveTopology());
+            return new VeldridLinearBatch<TVertex>(this, size, primitiveType);
         }
 
         protected override IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
@@ -322,7 +323,5 @@ namespace osu.Framework.Graphics.Veldrid
         {
             uniformBufferResetList.Add(buffer);
         }
-
-        public void BindTextureResource(VeldridTextureResources resource, int unit) => drawPipeline.AttachTexture(unit, resource);
     }
 }

@@ -29,6 +29,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.OpenGL;
 using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Rendering.Deferred;
 using osu.Framework.Input;
 using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Handlers;
@@ -973,7 +974,7 @@ namespace osu.Framework.Platform
         {
             Logger.Log($"🖼️ Initialising \"{renderer.GetType().ReadableName().Replace("Renderer", "")}\" renderer with \"{surfaceType}\" surface");
 
-            Renderer = renderer;
+            Renderer = new DeferredRenderer();
             Renderer.CacheStorage = CacheStorage.GetStorageForDirectory("shaders");
 
             try

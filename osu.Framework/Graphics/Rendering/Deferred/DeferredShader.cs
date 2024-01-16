@@ -5,30 +5,45 @@ using System;
 using System.Collections.Generic;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Veldrid.Shaders;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class DeferredShader : IShader
     {
-        public IShader Resource { get; }
+        public VeldridShader Resource { get; }
 
         private readonly DeferredRenderer renderer;
 
-        public DeferredShader(DeferredRenderer renderer, IShader shader)
+        public DeferredShader(DeferredRenderer renderer, VeldridShader shader)
         {
             this.renderer = renderer;
             Resource = shader;
         }
 
-        public IReadOnlyDictionary<string, IUniform> Uniforms => Resource.Uniforms;
+        IReadOnlyDictionary<string, IUniform> IShader.Uniforms { get; } = new Dictionary<string, IUniform>();
 
-        public void Bind() => renderer.BindShader(this);
+        public void Bind()
+        {
+            if (IsBound)
+                return;
 
-        public void Unbind() => renderer.UnbindShader(this);
+            renderer.BindShader(this);
+            IsBound = true;
+        }
+
+        public void Unbind()
+        {
+            if (!IsBound)
+                return;
+
+            renderer.UnbindShader(this);
+            IsBound = false;
+        }
 
         public bool IsLoaded => Resource.IsLoaded;
 
-        public bool IsBound => false; // Todo: Could be done better but this is never used right now.
+        public bool IsBound { get; private set; }
 
         public Uniform<T> GetUniform<T>(string name)
             where T : unmanaged, IEquatable<T>

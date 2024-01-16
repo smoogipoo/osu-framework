@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         public Framebuffer Framebuffer { get; private set; }
 
-        private readonly VeldridRenderer renderer;
+        private readonly IVeldridRenderer renderer;
         private readonly PixelFormat? depthFormat;
 
         private readonly VeldridTexture colourTarget;
@@ -50,7 +50,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         private readonly bool externalColourTarget;
 
-        public VeldridFrameBuffer(VeldridRenderer renderer, PixelFormat[]? formats = null, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
+        public VeldridFrameBuffer(IVeldridRenderer renderer, PixelFormat[]? formats = null, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
         {
             // todo: we probably want the arguments separated to "PixelFormat[] colorFormats, PixelFormat depthFormat".
             if (formats?.Length > 1)
@@ -66,7 +66,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             recreateResources();
         }
 
-        internal VeldridFrameBuffer(VeldridRenderer renderer, VeldridTexture colourTarget, int mipLevel)
+        internal VeldridFrameBuffer(IVeldridRenderer renderer, VeldridTexture colourTarget, int mipLevel)
         {
             this.renderer = renderer;
             this.colourTarget = colourTarget;
@@ -150,7 +150,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         {
             protected override TextureUsage Usages => base.Usages | TextureUsage.RenderTarget;
 
-            public FrameBufferTexture(VeldridRenderer renderer, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
+            public FrameBufferTexture(IVeldridRenderer renderer, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
                 : base(renderer, 1, 1, true, filteringMode)
             {
                 BypassTextureUploadQueueing = true;

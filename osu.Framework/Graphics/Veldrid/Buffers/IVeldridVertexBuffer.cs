@@ -20,15 +20,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// The underlying <see cref="DeviceBuffer"/> to bind for drawing.
         /// </summary>
         DeviceBuffer Buffer { get; }
-
-        VertexLayoutDescription Layout { get; }
     }
 
     internal interface IVeldridVertexBuffer<in T> : IVeldridVertexBuffer
         where T : unmanaged, IEquatable<T>, IVertex
     {
-        VertexLayoutDescription IVeldridVertexBuffer.Layout => VeldridVertexUtils<T>.Layout;
-
         /// <summary>
         /// Sets the vertex at a specific index of this <see cref="VeldridVertexBuffer{T}"/>.
         /// </summary>

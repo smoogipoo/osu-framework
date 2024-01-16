@@ -4,8 +4,8 @@
 using System;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
+using osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines;
 using osu.Framework.Graphics.Rendering.Vertices;
-using osu.Framework.Graphics.Veldrid;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
@@ -18,7 +18,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         int PrimitiveSize { get; }
 
         void WritePrimitive(RendererStagingMemoryBlock primitive, CommandList commandList);
-        void Draw(VeldridRenderer veldridRenderer, int count);
+        void Draw(VeldridDrawPipeline pipeline, int count);
     }
 
     internal class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>, IDeferredVertexBatch
@@ -70,7 +70,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void WritePrimitive(RendererStagingMemoryBlock primitive, CommandList commandList) => vertexManager.Commit(primitive, commandList);
 
-        public void Draw(VeldridRenderer veldridRenderer, int count) => vertexManager.Draw<TVertex>(veldridRenderer, count, Topology, IndexLayout, PrimitiveSize);
+        public void Draw(VeldridDrawPipeline pipeline, int count) => vertexManager.Draw<TVertex>(pipeline, count, Topology, IndexLayout, PrimitiveSize);
 
         int IVertexBatch.Size => int.MaxValue;
 
@@ -82,6 +82,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             if (count == 0)
                 return 0;
 
+            renderer.DrawVertices(Topology, 0, count);
             renderer.EnqueueEvent(new FlushEvent(renderer.Reference(this), count));
             return count;
         }
@@ -94,6 +95,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVertexBatch<TVertex>.Add(TVertex vertex)
         {
+            renderer.SetActiveBatch(this);
+
             current_primitive[currentPrimitiveSize] = vertex;
 
             if (++currentPrimitiveSize == PrimitiveSize)
