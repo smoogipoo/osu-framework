@@ -2,11 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
-using osu.Framework.Graphics.Textures;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct BindTextureEvent(RendererResource Texture, int Unit, WrapMode? WrapModeS, WrapMode? WrapModeT) : IRenderEvent
+    internal readonly record struct BindTextureEvent(RendererResource Texture, int Unit) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.BindTexture;
     }

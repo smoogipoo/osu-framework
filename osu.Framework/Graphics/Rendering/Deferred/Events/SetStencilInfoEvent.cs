@@ -3,8 +3,8 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct PushMaskingInfoEvent(MaskingInfo Info) : IRenderEvent
+    internal readonly record struct SetStencilInfoEvent(StencilInfo Info) : IRenderEvent
     {
-        public RenderEventType Type => RenderEventType.PushMaskingInfo;
+        public RenderEventType Type => RenderEventType.SetStencilInfo;
     }
 }

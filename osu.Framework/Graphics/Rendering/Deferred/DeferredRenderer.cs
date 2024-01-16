@@ -2,26 +2,28 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
-using osu.Framework.Graphics.Rendering.Vertices;
+using osu.Framework.Graphics.Rendering.Deferred.Veldrid;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
+using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Shaders;
+using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Platform;
-using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
-using Texture = osu.Framework.Graphics.Textures.Texture;
+using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    internal class DeferredRenderer : IRenderer
+    internal class DeferredRenderer : Renderer, IVeldridRenderer
     {
         private readonly ResourceAllocator allocator;
         private readonly EventList renderEvents;
@@ -59,305 +61,185 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             where T : unmanaged, IRenderEvent
             => renderEvents.Enqueue(@event);
 
-        public ResourceFactory Factory => ((VeldridRenderer)baseRenderer).Factory;
-        public GraphicsDevice Device => ((VeldridRenderer)baseRenderer).Device;
+        // private readonly EventProcessor processor;
+        private VeldridDevice veldridDevice = null!;
 
-        public bool VerticalSync
+        public DeferredRenderer()
         {
-            get => baseRenderer.VerticalSync;
-            set => baseRenderer.VerticalSync = value;
-        }
-
-        public bool AllowTearing
-        {
-            get => baseRenderer.AllowTearing;
-            set => baseRenderer.AllowTearing = value;
-        }
-
-        public Storage? CacheStorage
-        {
-            set => baseRenderer.CacheStorage = value;
-        }
-
-        event Action<FlushBatchSource?>? IRenderer.OnFlush
-        {
-            add { }
-            remove { }
-        }
-
-        public ulong FrameIndex => baseRenderer.FrameIndex;
-
-        public int MaxTextureSize => baseRenderer.MaxTextureSize;
-
-        public int MaxTexturesUploadedPerFrame
-        {
-            get => baseRenderer.MaxTexturesUploadedPerFrame;
-            set => baseRenderer.MaxTexturesUploadedPerFrame = value;
-        }
-
-        public int MaxPixelsUploadedPerFrame
-        {
-            get => baseRenderer.MaxPixelsUploadedPerFrame;
-            set => baseRenderer.MaxPixelsUploadedPerFrame = value;
-        }
-
-        public bool IsDepthRangeZeroToOne => baseRenderer.IsDepthRangeZeroToOne;
-        public bool IsUvOriginTopLeft => baseRenderer.IsUvOriginTopLeft;
-        public bool IsClipSpaceYInverted => baseRenderer.IsClipSpaceYInverted;
-
-        public ref readonly MaskingInfo CurrentMaskingInfo => ref currentMaskingInfo;
-
-        private MaskingInfo currentMaskingInfo;
-
-        public RectangleI Viewport { get; private set; }
-        public RectangleI Scissor { get; private set; }
-        public Vector2I ScissorOffset { get; private set; }
-        public Matrix4 ProjectionMatrix { get; private set; }
-        public DepthInfo CurrentDepthInfo { get; private set; }
-        public StencilInfo CurrentStencilInfo { get; private set; }
-        public WrapMode CurrentWrapModeS { get; private set; }
-        public WrapMode CurrentWrapModeT { get; private set; }
-        public bool IsMaskingActive => maskingInfoStack.Count > 0;
-        public bool UsingBackbuffer => true; // Todo: This is wrong.
-        public Texture WhitePixel => baseRenderer.WhitePixel;
-        public DepthValue BackbufferDepth => baseRenderer.BackbufferDepth;
-        public bool IsInitialised => baseRenderer.IsInitialised;
-
-        public IVertexBatch<TexturedVertex2D> DefaultQuadBatch { get; }
-
-        private readonly IRenderer baseRenderer;
-        private readonly Stack<RectangleI> viewportStack = new Stack<RectangleI>();
-        private readonly Stack<RectangleI> scissorRectStack = new Stack<RectangleI>();
-        private readonly Stack<Vector2I> scissorOffsetStack = new Stack<Vector2I>();
-        private readonly Stack<Matrix4> projectionMatrixStack = new Stack<Matrix4>();
-        private readonly Stack<MaskingInfo> maskingInfoStack = new Stack<MaskingInfo>();
-        private readonly Stack<DepthInfo> depthInfoStack = new Stack<DepthInfo>();
-        private readonly Stack<StencilInfo> stencilInfoStack = new Stack<StencilInfo>();
-
-        private readonly EventProcessor processor;
-
-        public DeferredRenderer(IRenderer baseRenderer)
-        {
-            this.baseRenderer = baseRenderer;
-
             allocator = new ResourceAllocator(this);
             renderEvents = new EventList(this);
-            processor = new EventProcessor(this, baseRenderer);
+            // processor = new EventProcessor(this);
             vertexManager = new VertexManager(this);
-
-            DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(1, 1);
         }
 
-        public void Initialise(IGraphicsSurface graphicsSurface)
+        protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
-            baseRenderer.Initialise(graphicsSurface);
+            veldridDevice = new VeldridDevice(graphicsSurface);
         }
 
-        private Vector2 windowSize;
-
-        public void BeginFrame(Vector2 windowSize)
+        protected internal override void BeginFrame(Vector2 windowSize)
         {
-            this.windowSize = windowSize;
+            base.BeginFrame(windowSize);
 
             allocator.Reset();
             renderEvents.Reset();
             vertexManager.Reset();
-
-            viewportStack.Clear();
-            scissorRectStack.Clear();
-            scissorOffsetStack.Clear();
-            projectionMatrixStack.Clear();
-            maskingInfoStack.Clear();
-            depthInfoStack.Clear();
-            stencilInfoStack.Clear();
-            currentMaskingInfo = default;
         }
 
-        public void FinishFrame()
+        protected internal override void FinishFrame()
         {
-            baseRenderer.BeginFrame(windowSize);
-            processor.ProcessEvents(renderEvents.CreateReader());
-            baseRenderer.FinishFrame();
+            // processor.ProcessEvents(renderEvents.CreateReader());
         }
 
-        #region IRenderer Implementation
-
-        void IRenderer.SwapBuffers() => baseRenderer.SwapBuffers();
-
-        void IRenderer.WaitUntilIdle() => baseRenderer.WaitUntilIdle();
-
-        void IRenderer.WaitUntilNextFrameReady() => baseRenderer.WaitUntilNextFrameReady();
-
-        void IRenderer.MakeCurrent() => baseRenderer.MakeCurrent();
-
-        void IRenderer.ClearCurrent() => ((IRenderer)this).MakeCurrent();
-
-        void IRenderer.FlushCurrentBatch(FlushBatchSource? source) => baseRenderer.FlushCurrentBatch(source);
-
-        bool IRenderer.BindTexture(Texture texture, int unit, WrapMode? wrapModeS, WrapMode? wrapModeT)
+        protected override bool SetTextureImplementation(INativeTexture? texture, int unit)
         {
-            CurrentWrapModeS = wrapModeS ?? texture.WrapModeS;
-            CurrentWrapModeT = wrapModeT ?? texture.WrapModeT;
-            EnqueueEvent(new BindTextureEvent(Reference(texture), unit, wrapModeS, wrapModeT));
+            if (texture == null)
+                EnqueueEvent(new UnbindTextureEvent(unit));
+            else
+                EnqueueEvent(new BindTextureEvent(Reference(texture), unit));
+
             return true;
         }
 
-        void IRenderer.Clear(ClearInfo clearInfo) => EnqueueEvent(new ClearEvent(clearInfo));
-
-        void IRenderer.PushScissorState(bool enabled) => EnqueueEvent(new PushScissorStateEvent(enabled));
-
-        void IRenderer.PopScissorState() => EnqueueEvent(new PopScissorStateEvent());
-
-        void IRenderer.SetBlend(BlendingParameters blendingParameters) => EnqueueEvent(new SetBlendEvent(blendingParameters));
-
-        void IRenderer.SetBlendMask(BlendingMask blendingMask) => EnqueueEvent(new SetBlendMaskEvent(blendingMask));
-
-        void IRenderer.PushViewport(RectangleI viewport)
+        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
         {
-            viewportStack.Push(Viewport);
-            Viewport = viewport;
-            EnqueueEvent(new PushViewportEvent(viewport));
+            if (frameBuffer == null)
+                EnqueueEvent(new UnbindFrameBufferEvent());
+            else
+                EnqueueEvent(new BindFrameBufferEvent(Reference(frameBuffer)));
         }
 
-        void IRenderer.PopViewport()
+        protected override void ClearImplementation(ClearInfo clearInfo) => EnqueueEvent(new ClearEvent(clearInfo));
+
+        protected override void SetScissorStateImplementation(bool enabled) => EnqueueEvent(new SetScissorStateEvent(enabled));
+
+        protected override void SetBlendImplementation(BlendingParameters blendingParameters) => EnqueueEvent(new SetBlendEvent(blendingParameters));
+
+        protected override void SetBlendMaskImplementation(BlendingMask blendingMask) => EnqueueEvent(new SetBlendMaskEvent(blendingMask));
+
+        protected override void SetViewportImplementation(RectangleI viewport) => EnqueueEvent(new SetViewportEvent(viewport));
+
+        protected override void SetScissorImplementation(RectangleI scissor) => EnqueueEvent(new SetScissorEvent(scissor));
+
+        protected override void SetDepthInfoImplementation(DepthInfo depthInfo) => EnqueueEvent(new SetDepthInfoEvent(depthInfo));
+
+        protected override void SetStencilInfoImplementation(StencilInfo stencilInfo) => EnqueueEvent(new SetStencilInfoEvent(stencilInfo));
+
+        protected override void SetShaderImplementation(IShader shader) => EnqueueEvent(new SetShaderEvent(Reference(shader)));
+
+        protected override void SetUniformImplementation<T>(IUniformWithValue<T> uniform)
         {
-            Viewport = viewportStack.Pop();
-            EnqueueEvent(new PopViewportEvent());
+            throw new NotSupportedException();
         }
 
-        void IRenderer.PushScissor(RectangleI scissor)
+        protected override IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
+            => new VeldridShaderPart(this, rawData, partType, store);
+
+        protected override IShader CreateShader(string name, IShaderPart[] parts, ShaderCompilationStore compilationStore)
+            => new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), compilationStore);
+
+        public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
         {
-            scissorRectStack.Push(Scissor);
-            Scissor = scissor;
-            EnqueueEvent(new PushScissorEvent(scissor));
+            throw new NotImplementedException();
         }
 
-        void IRenderer.PopScissor()
+        protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
+                                                              Color4? initialisationColour = null)
         {
-            Scissor = scissorRectStack.Pop();
-            EnqueueEvent(new PopScissorEvent());
+            throw new NotImplementedException();
         }
 
-        void IRenderer.PushScissorOffset(Vector2I offset)
+        protected override INativeTexture CreateNativeVideoTexture(int width, int height)
         {
-            scissorOffsetStack.Push(ScissorOffset);
-            ScissorOffset = offset;
-            EnqueueEvent(new PushScissorOffsetEvent(offset));
+            throw new NotImplementedException();
         }
 
-        void IRenderer.PopScissorOffset()
-        {
-            ScissorOffset = scissorOffsetStack.Pop();
-            EnqueueEvent(new PopScissorOffsetEvent());
-        }
-
-        void IRenderer.PushProjectionMatrix(Matrix4 matrix)
-        {
-            projectionMatrixStack.Push(ProjectionMatrix);
-            ProjectionMatrix = matrix;
-            EnqueueEvent(new PushProjectionMatrixEvent(matrix));
-        }
-
-        void IRenderer.PopProjectionMatrix()
-        {
-            ProjectionMatrix = projectionMatrixStack.Pop();
-            EnqueueEvent(new PopProjectionMatrixEvent());
-        }
-
-        void IRenderer.PushMaskingInfo(in MaskingInfo maskingInfo, bool overwritePreviousScissor)
-        {
-            maskingInfoStack.Push(currentMaskingInfo);
-            currentMaskingInfo = maskingInfo;
-            EnqueueEvent(new PushMaskingInfoEvent(maskingInfo));
-        }
-
-        void IRenderer.PopMaskingInfo()
-        {
-            currentMaskingInfo = maskingInfoStack.Pop();
-            EnqueueEvent(new PopMaskingInfoEvent());
-        }
-
-        void IRenderer.PushDepthInfo(DepthInfo depthInfo)
-        {
-            depthInfoStack.Push(CurrentDepthInfo);
-            CurrentDepthInfo = depthInfo;
-            EnqueueEvent(new PushDepthInfoEvent(depthInfo));
-        }
-
-        void IRenderer.PopDepthInfo()
-        {
-            CurrentDepthInfo = depthInfoStack.Pop();
-            EnqueueEvent(new PopDepthInfoEvent());
-        }
-
-        void IRenderer.PushStencilInfo(StencilInfo stencilInfo)
-        {
-            stencilInfoStack.Push(CurrentStencilInfo);
-            CurrentStencilInfo = stencilInfo;
-            EnqueueEvent(new PushStencilInfoEvent(stencilInfo));
-        }
-
-        void IRenderer.PopStencilInfo()
-        {
-            CurrentStencilInfo = stencilInfoStack.Pop();
-            EnqueueEvent(new PopStencilInfoEvent());
-        }
-
-        void IRenderer.ScheduleExpensiveOperation(ScheduledDelegate operation)
-            => baseRenderer.ScheduleExpensiveOperation(operation);
-
-        public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
-            where T : class
-            => baseRenderer.ScheduleDisposal(disposalAction, target);
-
-        Image<Rgba32> IRenderer.TakeScreenshot() => throw new NotImplementedException();
-
-        IShaderPart IRenderer.CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
-            => baseRenderer.CreateShaderPart(store, name, rawData, partType);
-
-        IShader IRenderer.CreateShader(string name, IShaderPart[] parts)
-            => new DeferredShader(this, baseRenderer.CreateShader(name, parts));
-
-        IFrameBuffer IRenderer.CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats, TextureFilteringMode filteringMode)
-            => new DeferredFrameBuffer(this, baseRenderer.CreateFrameBuffer(renderBufferFormats, filteringMode));
-
-        Texture IRenderer.CreateTexture(int width, int height, bool manualMipmaps, TextureFilteringMode filteringMode, WrapMode wrapModeS, WrapMode wrapModeT, Color4? initialisationColour)
-            => baseRenderer.CreateTexture(width, height, manualMipmaps, filteringMode, wrapModeS, wrapModeT, initialisationColour);
-
-        Texture IRenderer.CreateVideoTexture(int width, int height)
-            => baseRenderer.CreateVideoTexture(width, height);
-
-        IVertexBatch<TVertex> IRenderer.CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
+        protected override IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
             => new DeferredVertexBatch<TVertex>(this, vertexManager, topology, IndexLayout.Linear);
 
-        IVertexBatch<TVertex> IRenderer.CreateQuadBatch<TVertex>(int size, int maxBuffers)
+        protected override IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
             => new DeferredVertexBatch<TVertex>(this, vertexManager, PrimitiveTopology.Triangles, IndexLayout.Quad);
 
-        IUniformBuffer<TData> IRenderer.CreateUniformBuffer<TData>()
-            => new DeferredUniformBuffer<TData>(this, baseRenderer.CreateUniformBuffer<TData>());
-
-        IShaderStorageBufferObject<TData> IRenderer.CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize) => throw new NotImplementedException();
-
-        void IRenderer.SetUniform<T>(IUniformWithValue<T> uniform)
+        protected override IUniformBuffer<TData> CreateUniformBuffer<TData>()
         {
-            // Todo: Fine to not implement for now.
+            throw new NotImplementedException();
         }
 
-        void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch)
+        protected override IShaderStorageBufferObject<TData> CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize)
         {
+            throw new NotImplementedException();
         }
 
-        void IRenderer.PopQuadBatch()
+        void IVeldridRenderer.BindShader(VeldridShader shader) => BindShader(shader);
+
+        void IVeldridRenderer.UnbindShader(VeldridShader shader) => UnbindShader(shader);
+
+        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer)
         {
+            throw new NotImplementedException();
         }
 
-        event Action<Texture>? IRenderer.TextureCreated
+        public void UpdateTexture<T>(Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data) where T : unmanaged
         {
-            add => baseRenderer.TextureCreated += value;
-            remove => baseRenderer.TextureCreated -= value;
+            throw new NotImplementedException();
         }
 
-        Texture[] IRenderer.GetAllTextures() => baseRenderer.GetAllTextures();
+        public void UpdateTexture(Texture texture, int x, int y, int width, int height, int level, IntPtr data, int rowLengthInBytes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public CommandList BufferUpdateCommands { get; } = null!;
+
+        public void EnqueueTextureUpload(VeldridTexture texture)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void GenerateMipmaps(VeldridTexture texture)
+        {
+            throw new NotImplementedException();
+        }
+
+        #region VeldridImpl delegation
+
+        public bool UseStructuredBuffers => veldridDevice.UseStructuredBuffers;
+
+        public GraphicsSurfaceType SurfaceType => veldridDevice.SurfaceType;
+
+        public ResourceFactory Factory => veldridDevice.Factory;
+
+        public GraphicsDevice Device => veldridDevice.Device;
+
+        protected internal override bool VerticalSync
+        {
+            get => veldridDevice.VerticalSync;
+            set => veldridDevice.VerticalSync = value;
+        }
+
+        protected internal override bool AllowTearing
+        {
+            get => veldridDevice.AllowTearing;
+            set => veldridDevice.AllowTearing = value;
+        }
+
+        public override bool IsDepthRangeZeroToOne => veldridDevice.IsDepthRangeZeroToOne;
+
+        public override bool IsUvOriginTopLeft => veldridDevice.IsUvOriginTopLeft;
+
+        public override bool IsClipSpaceYInverted => veldridDevice.IsClipSpaceYInverted;
+
+        protected internal override void SwapBuffers() => veldridDevice.SwapBuffers();
+
+        protected internal override void WaitUntilIdle() => veldridDevice.WaitUntilIdle();
+
+        protected internal override void WaitUntilNextFrameReady() => veldridDevice.WaitUntilNextFrameReady();
+
+        protected internal override void MakeCurrent() => veldridDevice.MakeCurrent();
+
+        protected internal override void ClearCurrent() => veldridDevice.ClearCurrent();
+
+        protected internal override Image<Rgba32> TakeScreenshot() => veldridDevice.TakeScreenshot();
 
         #endregion
     }

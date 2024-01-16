@@ -5,8 +5,8 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct BindShaderEvent(RendererResource Shader) : IRenderEvent
+    internal readonly record struct FlushEvent(RendererResource VertexBatch, int VertexCount) : IRenderEvent
     {
-        public RenderEventType Type => RenderEventType.BindShader;
+        public RenderEventType Type => RenderEventType.Flush;
     }
 }

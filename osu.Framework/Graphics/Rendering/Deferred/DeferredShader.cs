@@ -22,9 +22,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public IReadOnlyDictionary<string, IUniform> Uniforms => Resource.Uniforms;
 
-        public void Bind() => renderer.EnqueueEvent(new BindShaderEvent(renderer.Reference(this)));
+        public void Bind() => renderer.BindShader(this);
 
-        public void Unbind() => renderer.EnqueueEvent(new UnbindShaderEvent(renderer.Reference(this)));
+        public void Unbind() => renderer.UnbindShader(this);
 
         public bool IsLoaded => Resource.IsLoaded;
 

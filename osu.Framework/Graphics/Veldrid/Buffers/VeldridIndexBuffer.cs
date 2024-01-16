@@ -22,7 +22,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// </summary>
         public int VertexCapacity { get; }
 
-        public VeldridIndexBuffer(VeldridRenderer renderer, VeldridIndexLayout layout, int verticesCount)
+        public VeldridIndexBuffer(IVeldridRenderer renderer, VeldridIndexLayout layout, int verticesCount)
         {
             Layout = layout;
 

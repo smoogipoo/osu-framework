@@ -3,8 +3,8 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct DrawVertexBatchEvent : IRenderEvent
+    internal readonly record struct SetScissorStateEvent(bool Enabled) : IRenderEvent
     {
-        public RenderEventType Type => RenderEventType.DrawVertexBatch;
+        public RenderEventType Type => RenderEventType.SetScissorState;
     }
 }

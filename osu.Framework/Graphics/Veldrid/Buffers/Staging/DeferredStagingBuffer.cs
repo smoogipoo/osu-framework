@@ -15,13 +15,13 @@ namespace osu.Framework.Graphics.Veldrid.Buffers.Staging
     internal class DeferredStagingBuffer<T> : IStagingBuffer<T>
         where T : unmanaged
     {
-        private readonly VeldridRenderer renderer;
+        private readonly IVeldridRenderer renderer;
         private readonly IMemoryOwner<T> memoryOwner;
 
         private readonly Memory<T> cpuBuffer;
         private readonly DeviceBuffer driverBuffer;
 
-        public DeferredStagingBuffer(VeldridRenderer renderer, uint count)
+        public DeferredStagingBuffer(IVeldridRenderer renderer, uint count)
         {
             this.renderer = renderer;
             Count = count;

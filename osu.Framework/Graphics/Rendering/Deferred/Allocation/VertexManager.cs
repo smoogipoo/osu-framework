@@ -71,46 +71,46 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             // Bind the index buffer. This may be used for more than one draw call below.
             veldridRenderer.BindIndexBuffer(veldridLayout, maxVerticesPerDraw);
-
-            while (count > 0)
-            {
-                int bufferIndex;
-                int indexInBuffer;
-
-                // Jump to the next buffer index if the current draw call can't draw at least one primitive with the remaining data.
-                // move to the next buffer index.
-                if (buffer_size - currentDrawIndex % buffer_size < primitiveByteSize)
-                {
-                    bufferIndex = MathUtils.DivideRoundUp(currentDrawIndex, buffer_size);
-                    indexInBuffer = 0;
-                    currentDrawIndex = bufferIndex * buffer_size;
-                }
-                else
-                {
-                    bufferIndex = currentDrawIndex / buffer_size;
-                    indexInBuffer = currentDrawIndex % buffer_size;
-                }
-
-                // Each draw call can only draw a certain number of vertices. This is the minimum of:
-                // 1. The amount of vertices requested.
-                // 2. The amount of vertices that can be drawn given the index buffer (generally a ushort, so capped to 65535 vertices).
-                // 3. The amount of primitives that can be drawn. Each draw call must form complete primitives.
-                int remainingPrimitives = (buffer_size - currentDrawIndex % buffer_size) / primitiveByteSize;
-                int countToDraw = Math.Min(remainingPrimitives * primitiveSize, Math.Min(count, maxVerticesPerDraw));
-
-                // Bind the vertex buffer.
-                veldridRenderer.Commands.SetVertexBuffer(0, buffers[bufferIndex], (uint)indexInBuffer);
-                veldridRenderer.GetPipeline().ShaderSet.VertexLayouts[0] = VeldridVertexUtils<T>.Layout;
-
-                // Draw the vertices.
-                veldridRenderer.DrawVertices(topology.ToPrimitiveTopology(), 0, countToDraw);
-
-                currentDrawIndex += countToDraw * VeldridVertexUtils<T>.STRIDE;
-                count -= countToDraw;
-
-                FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
-                FrameStatistics.Add(StatisticsCounterType.VerticesDraw, countToDraw);
-            }
+            //
+            // while (count > 0)
+            // {
+            //     int bufferIndex;
+            //     int indexInBuffer;
+            //
+            //     // Jump to the next buffer index if the current draw call can't draw at least one primitive with the remaining data.
+            //     // move to the next buffer index.
+            //     if (buffer_size - currentDrawIndex % buffer_size < primitiveByteSize)
+            //     {
+            //         bufferIndex = MathUtils.DivideRoundUp(currentDrawIndex, buffer_size);
+            //         indexInBuffer = 0;
+            //         currentDrawIndex = bufferIndex * buffer_size;
+            //     }
+            //     else
+            //     {
+            //         bufferIndex = currentDrawIndex / buffer_size;
+            //         indexInBuffer = currentDrawIndex % buffer_size;
+            //     }
+            //
+            //     // Each draw call can only draw a certain number of vertices. This is the minimum of:
+            //     // 1. The amount of vertices requested.
+            //     // 2. The amount of vertices that can be drawn given the index buffer (generally a ushort, so capped to 65535 vertices).
+            //     // 3. The amount of primitives that can be drawn. Each draw call must form complete primitives.
+            //     int remainingPrimitives = (buffer_size - currentDrawIndex % buffer_size) / primitiveByteSize;
+            //     int countToDraw = Math.Min(remainingPrimitives * primitiveSize, Math.Min(count, maxVerticesPerDraw));
+            //
+            //     // Bind the vertex buffer.
+            //     veldridRenderer.Commands.SetVertexBuffer(0, buffers[bufferIndex], (uint)indexInBuffer);
+            //     veldridRenderer.GetPipeline().ShaderSet.VertexLayouts[0] = VeldridVertexUtils<T>.Layout;
+            //
+            //     // Draw the vertices.
+            //     veldridRenderer.DrawVertices(topology.ToPrimitiveTopology(), 0, countToDraw);
+            //
+            //     currentDrawIndex += countToDraw * VeldridVertexUtils<T>.STRIDE;
+            //     count -= countToDraw;
+            //
+            //     FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+            //     FrameStatistics.Add(StatisticsCounterType.VerticesDraw, countToDraw);
+            // }
         }
 
         public void Reset()

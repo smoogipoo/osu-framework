@@ -34,6 +34,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly DeferredRenderer renderer;
         private readonly VertexManager vertexManager;
 
+        private int currentDrawCount;
+
         public DeferredVertexBatch(DeferredRenderer renderer, VertexManager vertexManager, PrimitiveTopology topology, IndexLayout indexLayout)
         {
             this.renderer = renderer;
@@ -74,12 +76,20 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         int IVertexBatch.Draw()
         {
-            renderer.EnqueueEvent(new DrawVertexBatchEvent());
-            return 0;
+            int count = currentDrawCount;
+            currentDrawCount = 0;
+
+            if (count == 0)
+                return 0;
+
+            renderer.EnqueueEvent(new FlushEvent(renderer.Reference(this), count));
+            return count;
         }
 
         void IVertexBatch.ResetCounters()
         {
+            currentPrimitiveSize = 0;
+            currentDrawCount = 0;
         }
 
         void IVertexBatch<TVertex>.Add(TVertex vertex)
@@ -91,6 +101,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 renderer.EnqueueEvent(AddPrimitiveToBatchEvent.Create(renderer, this, current_primitive.AsSpan()[..PrimitiveSize]));
                 currentPrimitiveSize = 0;
             }
+
+            currentDrawCount++;
         }
 
         public void Dispose()

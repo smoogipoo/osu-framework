@@ -3,8 +3,8 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct PopDepthInfoEvent : IRenderEvent
+    internal readonly record struct UnbindTextureEvent(int Unit) : IRenderEvent
     {
-        public RenderEventType Type => RenderEventType.PopDepthInfo;
+        public RenderEventType Type => RenderEventType.BindTexture;
     }
 }

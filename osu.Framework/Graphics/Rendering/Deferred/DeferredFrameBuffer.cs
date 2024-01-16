@@ -1,7 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Textures;
 using osuTK;
 
@@ -27,9 +26,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             set => Resource.Size = value;
         }
 
-        public void Bind() => renderer.EnqueueEvent(new BindFrameBufferEvent(renderer.Reference(this)));
+        public void Bind() => renderer.BindFrameBuffer(this);
 
-        public void Unbind() => renderer.EnqueueEvent(new UnbindFrameBufferEvent(renderer.Reference(this)));
+        public void Unbind() => renderer.UnbindFrameBuffer(this);
 
         public void Dispose()
         {
