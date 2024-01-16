@@ -29,6 +29,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly ResourceAllocator allocator;
         private readonly EventList renderEvents;
         private readonly VertexManager vertexManager;
+        private readonly UniformBufferManager uniformBufferManager;
 
         public RendererResource Reference<T>(T obj)
             where T : class
@@ -73,6 +74,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             allocator = new ResourceAllocator(this);
             renderEvents = new EventList(this);
             vertexManager = new VertexManager(this);
+            uniformBufferManager = new UniformBufferManager(this);
         }
 
         protected override void Initialise(IGraphicsSurface graphicsSurface)
@@ -91,6 +93,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             allocator.Reset();
             renderEvents.Reset();
             vertexManager.Reset();
+            uniformBufferManager.Reset();
 
             veldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
             pipeline.Begin();
@@ -173,7 +176,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => new DeferredVertexBatch<TVertex>(this, vertexManager, PrimitiveTopology.Triangles, IndexLayout.Quad);
 
         protected override IUniformBuffer<TData> CreateUniformBuffer<TData>()
-            => new DeferredUniformBuffer<TData>(this, new VeldridUniformBuffer<TData>(this));
+            => new DeferredUniformBuffer<TData>(this, uniformBufferManager);
 
         protected override IShaderStorageBufferObject<TData> CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize)
             => new VeldridShaderStorageBufferObject<TData>(this, uboSize, ssboSize);
@@ -212,7 +215,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         Textures.Texture IVeldridRenderer.CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT) => CreateTexture(nativeTexture, wrapModeS, wrapModeT);
 
-        void IVeldridRenderer.RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer) => uniformBufferResetList.Add(veldridUniformBuffer);
+        public void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer) => uniformBufferResetList.Add(veldridUniformBuffer);
 
         bool IVeldridRenderer.UseStructuredBuffers => veldridDevice.UseStructuredBuffers;
 

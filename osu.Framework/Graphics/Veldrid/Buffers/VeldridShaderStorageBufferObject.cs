@@ -88,6 +88,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             return renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
         }
 
+        public uint GetOffset() => 0;
+
         public void ResetCounters()
         {
         }

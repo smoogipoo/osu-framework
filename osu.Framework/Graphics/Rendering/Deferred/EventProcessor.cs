@@ -26,10 +26,20 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 switch (reader.CurrentType())
                 {
                     case RenderEventType.AddPrimitiveToBatch:
+                    {
                         AddPrimitiveToBatchEvent e = reader.Current<AddPrimitiveToBatchEvent>();
                         IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
                         batch.WritePrimitive(e.Memory, pipeline.Commands);
                         break;
+                    }
+
+                    case RenderEventType.SetUniformBufferData:
+                    {
+                        SetUniformBufferDataEvent e = reader.Current<SetUniformBufferDataEvent>();
+                        IDeferredUniformBuffer buffer = e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer);
+                        buffer.Write(e.Memory, pipeline.Commands);
+                        break;
+                    }
                 }
             }
 
@@ -125,7 +135,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
                 e.Name.Dereference<string>(deferredRenderer),
-                e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).GetBuffer());
+                e.Buffer.Dereference<IUniformBuffer>(deferredRenderer));
         }
 
         private void processEvent(ClearEvent e) => pipeline.Clear(e.Info);
@@ -144,15 +154,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(SetBlendMaskEvent e) => pipeline.SetBlendMask(e.Mask);
 
-        private void processEvent(SetUniformBufferDataEvent e)
-        {
-            e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).SetDataFromBuffer(e.Data.GetRegion(deferredRenderer));
-        }
+        private void processEvent(SetUniformBufferDataEvent e) => e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).MoveNext();
 
-        private void processEvent(FlushEvent e)
-        {
-            IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
-            batch.Draw(pipeline, e.VertexCount);
-        }
+        private void processEvent(FlushEvent e) => e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer).Draw(pipeline, e.VertexCount);
     }
 }

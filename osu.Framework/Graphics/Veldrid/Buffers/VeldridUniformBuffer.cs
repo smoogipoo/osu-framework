@@ -17,6 +17,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// <param name="layout">The <see cref="ResourceLayout"/> which the buffer should be attached to.</param>
         ResourceSet GetResourceSet(ResourceLayout layout);
 
+        uint GetOffset();
+
         /// <summary>
         /// Resets this <see cref="IVeldridUniformBuffer"/>, bringing it to the initial state.
         /// </summary>
@@ -58,6 +60,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             flushData();
             return currentStorage.GetResourceSet(layout);
         }
+
+        public uint GetOffset() => 0;
 
         /// <summary>
         /// Writes the data of this UBO to the underlying storage.

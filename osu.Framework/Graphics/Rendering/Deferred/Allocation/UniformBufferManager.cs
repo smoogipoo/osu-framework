@@ -16,7 +16,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
         private int currentBuffer;
         private int currentWriteIndex;
-        private int currentDrawIndex;
 
         public UniformBufferManager(DeferredRenderer renderer)
         {
@@ -44,8 +43,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return writeIndex;
         }
 
+        public DeviceBuffer GetBuffer(int index) => buffers[index / buffer_size];
+
+        public uint GetOffset(int index) => (uint)(index % buffer_size);
+
         public void Reset()
         {
+            currentBuffer = 0;
+            currentWriteIndex = 0;
         }
     }
 }
