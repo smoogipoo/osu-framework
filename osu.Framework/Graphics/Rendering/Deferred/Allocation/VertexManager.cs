@@ -100,9 +100,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
                 currentDrawIndex += countToDraw * VeldridVertexUtils<T>.STRIDE;
                 count -= countToDraw;
-
-                FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
-                FrameStatistics.Add(StatisticsCounterType.VerticesDraw, countToDraw);
             }
         }
 

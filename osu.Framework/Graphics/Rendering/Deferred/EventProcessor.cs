@@ -5,7 +5,6 @@ using System;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Textures;
-using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
@@ -163,7 +162,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
             batch.Draw(pipeline, e.VertexCount);
-            FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
         }
     }
 }
