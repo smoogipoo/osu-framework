@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Statistics;
 using Veldrid;
 
@@ -13,14 +13,14 @@ namespace osu.Framework.Graphics.Veldrid
     internal abstract class VeldridStagingResourcePool<T>
         where T : class, DeviceResource, IDisposable
     {
-        protected readonly VeldridRenderPipeline Pipeline;
+        protected readonly SimplePipeline Pipeline;
 
         private readonly List<PooledUsage> available = new List<PooledUsage>();
         private readonly List<PooledUsage> used = new List<PooledUsage>();
 
         private readonly GlobalStatistic<ResourcePoolUsageStatistic> usageStat;
 
-        protected VeldridStagingResourcePool(VeldridRenderPipeline pipeline, string name)
+        protected VeldridStagingResourcePool(SimplePipeline pipeline, string name)
         {
             Pipeline = pipeline;
 

@@ -4,16 +4,19 @@
 using System;
 using System.Collections.Generic;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.Graphics.Veldrid;
+using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Shaders;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Statistics;
 using Veldrid;
 
-namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
+namespace osu.Framework.Graphics.Veldrid.Pipelines
 {
-    internal class VeldridDrawPipeline : VeldridRenderPipeline
+    /// <summary>
+    /// A pipeline that facilitates drawing.
+    /// </summary>
+    internal class GraphicsPipeline : SimplePipeline
     {
         private static readonly GlobalStatistic<int> stat_graphics_pipeline_created = GlobalStatistics.Get<int>(nameof(VeldridRenderer), "Total pipelines created");
 
@@ -32,7 +35,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
         private VeldridShader? currentShader;
         private VeldridIndexBuffer? currentIndexBuffer;
 
-        public VeldridDrawPipeline(IVeldridDevice device)
+        public GraphicsPipeline(VeldridDevice device)
             : base(device)
         {
             pipelineDesc.Outputs = Device.SwapchainFramebuffer.OutputDescription;

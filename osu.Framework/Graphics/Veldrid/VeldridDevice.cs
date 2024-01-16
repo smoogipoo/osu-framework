@@ -7,8 +7,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using osu.Framework.Development;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines;
-using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
 using SixLabors.ImageSharp;
@@ -18,9 +16,9 @@ using Veldrid;
 using Veldrid.OpenGL;
 using Veldrid.OpenGLBinding;
 
-namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid
+namespace osu.Framework.Graphics.Veldrid
 {
-    internal class VeldridDevice : IVeldridDevice
+    internal class VeldridDevice
     {
         public GraphicsDevice Device { get; }
 
@@ -51,7 +49,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid
         public int MaxTextureSize { get; }
 
         private readonly IGraphicsSurface graphicsSurface;
-        private readonly VeldridDevicePipeline devicePipeline;
+
+        private Vector2I currentWindowSize;
 
         public VeldridDevice(IGraphicsSurface graphicsSurface)
         {
@@ -168,13 +167,20 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid
             Logger.Log($"{nameof(UseStructuredBuffers)}: {UseStructuredBuffers}");
 
             MaxTextureSize = maxTextureSize;
-
-            devicePipeline = new VeldridDevicePipeline(this);
         }
 
-        public void BeginFrame(Vector2I windowSize) => devicePipeline.Begin(windowSize);
+        public void BeginFrame(Vector2I windowSize)
+        {
+            if (windowSize != currentWindowSize)
+            {
+                Device.ResizeMainWindow((uint)windowSize.X, (uint)windowSize.Y);
+                currentWindowSize = windowSize;
+            }
+        }
 
-        public void FinishFrame() => devicePipeline.End();
+        public void FinishFrame()
+        {
+        }
 
         public void SwapBuffers() => Device.SwapBuffers();
 

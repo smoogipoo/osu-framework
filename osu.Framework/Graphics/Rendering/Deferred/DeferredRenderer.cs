@@ -7,12 +7,11 @@ using System.Linq;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
-using osu.Framework.Graphics.Rendering.Deferred.Veldrid;
-using osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Shaders;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Platform;
@@ -67,7 +66,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private EventProcessor processor = null!;
         private VeldridDevice veldridDevice = null!;
-        private VeldridDrawPipeline pipeline = null!;
+        private GraphicsPipeline pipeline = null!;
 
         public DeferredRenderer()
         {
@@ -79,7 +78,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             veldridDevice = new VeldridDevice(graphicsSurface);
-            pipeline = new VeldridDrawPipeline(veldridDevice);
+            pipeline = new GraphicsPipeline(veldridDevice);
             processor = new EventProcessor(this, pipeline);
         }
 

@@ -3,10 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Vertices;
 using osu.Framework.Platform;
 using osu.Framework.Statistics;
@@ -52,7 +52,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);
         }
 
-        public void Draw<T>(VeldridDrawPipeline pipeline, int count, PrimitiveTopology topology, IndexLayout indexLayout, int primitiveSize)
+        public void Draw<T>(GraphicsPipeline pipeline, int count, PrimitiveTopology topology, IndexLayout indexLayout, int primitiveSize)
             where T : unmanaged, IEquatable<T>, IVertex
         {
             int primitiveByteSize = primitiveSize * VeldridVertexUtils<T>.STRIDE;

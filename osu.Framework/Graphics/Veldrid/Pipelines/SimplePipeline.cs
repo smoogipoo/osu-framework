@@ -5,13 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Platform;
 using Veldrid;
 
-namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
+namespace osu.Framework.Graphics.Veldrid.Pipelines
 {
-    internal class VeldridRenderPipeline : IVeldridPipeline
+    /// <summary>
+    /// A non-graphical pipeline that handles basic tasks like uploading textures.
+    /// </summary>
+    internal class SimplePipeline
     {
         public ulong LatestCompletedFrameIndex { get; private set; }
 
@@ -35,9 +37,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
         private readonly Queue<Fence> perFrameFencePool = new Queue<Fence>();
 
         private readonly VeldridStagingTexturePool stagingTexturePool;
-        private readonly IVeldridDevice device;
+        private readonly VeldridDevice device;
 
-        public VeldridRenderPipeline(IVeldridDevice device)
+        public SimplePipeline(VeldridDevice device)
         {
             this.device = device;
 
@@ -45,6 +47,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             Commands = device.Factory.CreateCommandList();
         }
 
+        /// <summary>
+        /// Begins the pipeline.
+        /// </summary>
         public virtual void Begin()
         {
             updateLastCompletedFrameIndex();
@@ -54,6 +59,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines
             stagingTexturePool.NewFrame();
         }
 
+        /// <summary>
+        /// Finishes the pipeline and submits it for processing by the device.
+        /// </summary>
         public virtual void End()
         {
             // This is returned via the end-of-lifetime tracking in `pendingFrameFences`.

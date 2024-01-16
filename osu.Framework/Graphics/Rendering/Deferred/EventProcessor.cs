@@ -3,7 +3,7 @@
 
 using System;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
-using osu.Framework.Graphics.Rendering.Deferred.Veldrid.Pipelines;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Statistics;
 
@@ -12,9 +12,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal class EventProcessor
     {
         private readonly DeferredRenderer deferredRenderer;
-        private readonly VeldridDrawPipeline pipeline;
+        private readonly GraphicsPipeline pipeline;
 
-        public EventProcessor(DeferredRenderer deferredRenderer, VeldridDrawPipeline pipeline)
+        public EventProcessor(DeferredRenderer deferredRenderer, GraphicsPipeline pipeline)
         {
             this.deferredRenderer = deferredRenderer;
             this.pipeline = pipeline;
