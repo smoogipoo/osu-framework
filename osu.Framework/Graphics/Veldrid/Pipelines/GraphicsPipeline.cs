@@ -22,7 +22,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
 
         private readonly Dictionary<GraphicsPipelineDescription, Pipeline> pipelineCache = new Dictionary<GraphicsPipelineDescription, Pipeline>();
         private readonly Dictionary<int, VeldridTextureResources> attachedTextures = new Dictionary<int, VeldridTextureResources>();
-        private readonly Dictionary<string, IVeldridUniformBuffer> attachedUniformBuffers = new Dictionary<string, IVeldridUniformBuffer>();
+        private readonly Dictionary<string, AttachedUniformBuffer> attachedUniformBuffers = new Dictionary<string, AttachedUniformBuffer>();
 
         private GraphicsPipelineDescription pipelineDesc = new GraphicsPipelineDescription
         {
@@ -147,7 +147,10 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
                 attachedTextures[unit++] = resources[i];
         }
 
-        public void AttachUniformBuffer(string name, IVeldridUniformBuffer buffer) => attachedUniformBuffers[name] = buffer;
+        public void AttachUniformBuffer(string name, IVeldridUniformBuffer buffer, uint offsetInBuffer = 0)
+        {
+            attachedUniformBuffers[name] = new AttachedUniformBuffer(buffer, offsetInBuffer);
+        }
 
         public void DrawVertices(global::Veldrid.PrimitiveTopology topology, int vertexStart, int verticesCount)
         {
@@ -194,13 +197,14 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             }
 
             // Activate uniform buffer resources.
-            foreach (var (name, buffer) in attachedUniformBuffers)
+            foreach (var (name, attached) in attachedUniformBuffers)
             {
                 var layout = currentShader.GetUniformBufferLayout(name);
                 if (layout == null)
                     continue;
 
-                Commands.SetGraphicsResourceSet((uint)layout.Set, buffer.GetResourceSet(layout.Layout));
+                uint offsetInBuffer = attached.OffsetInBuffer;
+                Commands.SetGraphicsResourceSet((uint)layout.Set, attached.Buffer.GetResourceSet(layout.Layout), 1, ref offsetInBuffer);
             }
 
             int indexStart = currentIndexBuffer.TranslateToIndex(vertexStart);
@@ -221,5 +225,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
 
             return instance;
         }
+
+        private readonly record struct AttachedUniformBuffer(IVeldridUniformBuffer Buffer, uint OffsetInBuffer);
     }
 }
