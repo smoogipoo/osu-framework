@@ -12,11 +12,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredVertexBatch
     {
-        PrimitiveTopology Topology { get; }
-        IndexLayout IndexLayout { get; }
-
-        int PrimitiveSize { get; }
-
         void WritePrimitive(RendererStagingMemoryBlock primitive, CommandList commandList);
         void Draw(GraphicsPipeline pipeline, int count);
     }
@@ -34,6 +29,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly DeferredRenderer renderer;
         private readonly VertexManager vertexManager;
 
+        private readonly PrimitiveTopology topology;
+        private readonly IndexLayout indexLayout;
+        private readonly int primitiveSize;
+
         private int currentDrawCount;
 
         public DeferredVertexBatch(DeferredRenderer renderer, VertexManager vertexManager, PrimitiveTopology topology, IndexLayout indexLayout)
@@ -41,12 +40,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             this.renderer = renderer;
             this.vertexManager = vertexManager;
 
-            Topology = topology;
-            IndexLayout = indexLayout;
+            this.topology = topology;
+            this.indexLayout = indexLayout;
 
-            if (IndexLayout == IndexLayout.Linear)
+            if (this.indexLayout == IndexLayout.Linear)
             {
-                PrimitiveSize = Topology switch
+                primitiveSize = this.topology switch
                 {
                     PrimitiveTopology.Points => 1,
                     PrimitiveTopology.Lines => 2,
@@ -57,20 +56,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 };
             }
             else
-                PrimitiveSize = 4;
+                primitiveSize = 4;
 
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public PrimitiveTopology Topology { get; }
-
-        public IndexLayout IndexLayout { get; }
-
-        public int PrimitiveSize { get; }
-
         public void WritePrimitive(RendererStagingMemoryBlock primitive, CommandList commandList) => vertexManager.Commit(primitive, commandList);
 
-        public void Draw(GraphicsPipeline pipeline, int count) => vertexManager.Draw<TVertex>(pipeline, count, Topology, IndexLayout, PrimitiveSize);
+        public void Draw(GraphicsPipeline pipeline, int count) => vertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
 
         int IVertexBatch.Size => int.MaxValue;
 
@@ -82,7 +75,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             if (count == 0)
                 return 0;
 
-            renderer.DrawVertices(Topology, 0, count);
+            renderer.DrawVertices(topology, 0, count);
             renderer.EnqueueEvent(new FlushEvent(renderer.Reference(this), count));
             return count;
         }
@@ -99,9 +92,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             current_primitive[currentPrimitiveSize] = vertex;
 
-            if (++currentPrimitiveSize == PrimitiveSize)
+            if (++currentPrimitiveSize == primitiveSize)
             {
-                renderer.EnqueueEvent(AddPrimitiveToBatchEvent.Create(renderer, this, current_primitive.AsSpan()[..PrimitiveSize]));
+                renderer.EnqueueEvent(AddPrimitiveToBatchEvent.Create(renderer, this, current_primitive.AsSpan()[..primitiveSize]));
                 currentPrimitiveSize = 0;
             }
 

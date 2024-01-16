@@ -13,7 +13,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal interface IDeferredUniformBuffer
     {
         void Write(RendererStagingMemoryBlock memory, CommandList commandList);
-
         void MoveNext();
     }
 
