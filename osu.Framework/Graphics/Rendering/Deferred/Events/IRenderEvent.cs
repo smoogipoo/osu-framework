@@ -11,10 +11,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
     internal enum RenderEventType : byte
     {
         AddPrimitiveToBatch,
-        BindFrameBuffer,
-        UnbindFrameBuffer,
+        SetFrameBuffer,
+        UnsetFrameBuffer,
         SetShader,
-        BindTexture,
+        SetTexture,
         BindUniformBlock,
         Clear,
         SetDepthInfo,

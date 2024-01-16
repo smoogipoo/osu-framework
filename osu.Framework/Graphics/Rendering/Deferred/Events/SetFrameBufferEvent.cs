@@ -5,8 +5,8 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct UnbindFrameBufferEvent(RendererResource FrameBuffer) : IRenderEvent
+    internal readonly record struct SetFrameBufferEvent(RendererResource FrameBuffer) : IRenderEvent
     {
-        public RenderEventType Type => RenderEventType.UnbindFrameBuffer;
+        public RenderEventType Type => RenderEventType.SetFrameBuffer;
     }
 }

@@ -116,16 +116,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             if (texture == null)
                 return false;
 
-            EnqueueEvent(new BindTextureEvent(Reference(texture), unit));
+            EnqueueEvent(new SetTextureEvent(Reference(texture), unit));
             return true;
         }
 
         protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
         {
             if (frameBuffer == null)
-                EnqueueEvent(new UnbindFrameBufferEvent());
+                EnqueueEvent(new UnsetFrameBufferEvent());
             else
-                EnqueueEvent(new BindFrameBufferEvent(Reference(frameBuffer)));
+                EnqueueEvent(new SetFrameBufferEvent(Reference(frameBuffer)));
         }
 
         public override void DrawVerticesImplementation(PrimitiveTopology type, int vertexStart, int verticesCount)

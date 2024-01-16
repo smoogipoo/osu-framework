@@ -53,20 +53,20 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<AddPrimitiveToBatchEvent>());
                         break;
 
-                    case RenderEventType.BindFrameBuffer:
-                        processEvent(reader.Current<BindFrameBufferEvent>());
+                    case RenderEventType.SetFrameBuffer:
+                        processEvent(reader.Current<SetFrameBufferEvent>());
                         break;
 
-                    case RenderEventType.UnbindFrameBuffer:
-                        processEvent(reader.Current<UnbindFrameBufferEvent>());
+                    case RenderEventType.UnsetFrameBuffer:
+                        processEvent(reader.Current<UnsetFrameBufferEvent>());
                         break;
 
                     case RenderEventType.SetShader:
                         processEvent(reader.Current<SetShaderEvent>());
                         break;
 
-                    case RenderEventType.BindTexture:
-                        processEvent(reader.Current<BindTextureEvent>());
+                    case RenderEventType.SetTexture:
+                        processEvent(reader.Current<SetTextureEvent>());
                         break;
 
                     case RenderEventType.BindUniformBlock:
@@ -123,13 +123,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
         }
 
-        private void processEvent(BindFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource);
+        private void processEvent(SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource);
 
-        private void processEvent(UnbindFrameBufferEvent e) => pipeline.SetFrameBuffer(null);
+        private void processEvent(UnsetFrameBufferEvent e) => pipeline.SetFrameBuffer(null);
 
         private void processEvent(SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
 
-        private void processEvent(BindTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<VeldridTexture>(deferredRenderer));
+        private void processEvent(SetTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<VeldridTexture>(deferredRenderer));
 
         private void processEvent(BindUniformBlockEvent e)
         {
