@@ -40,6 +40,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             set
             {
                 data = value;
+
                 renderer.EnqueueEvent(SetUniformBufferDataEvent.Create(renderer, this, value));
                 renderer.RegisterUniformBufferForReset(this);
             }
