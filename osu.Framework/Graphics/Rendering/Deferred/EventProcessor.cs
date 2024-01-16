@@ -4,7 +4,6 @@
 using System;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
-using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Statistics;
 using Veldrid;
@@ -112,10 +111,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<PopProjectionMatrixEvent>());
                         break;
 
-                    case RenderEventType.PopQuadBatch:
-                        processEvent(reader.Current<PopQuadBatchEvent>());
-                        break;
-
                     case RenderEventType.PopScissor:
                         processEvent(reader.Current<PopScissorEvent>());
                         break;
@@ -146,10 +141,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
                     case RenderEventType.PushProjectionMatrix:
                         processEvent(reader.Current<PushProjectionMatrixEvent>());
-                        break;
-
-                    case RenderEventType.PushQuadBatch:
-                        processEvent(reader.Current<PushQuadBatchEvent>());
                         break;
 
                     case RenderEventType.PushScissor:
@@ -275,18 +266,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private void processEvent(PopProjectionMatrixEvent e)
         {
             baseRenderer.PopProjectionMatrix();
-        }
-
-        private void processEvent(PushQuadBatchEvent e)
-        {
-            // Todo: This method is only used in recursion.
-            baseRenderer.PushQuadBatch(e.VertexBatch.Dereference<IVertexBatch<TexturedVertex2D>>(deferredRenderer));
-        }
-
-        private void processEvent(PopQuadBatchEvent e)
-        {
-            // Todo: This method is only used in recursion.
-            baseRenderer.PopQuadBatch();
         }
 
         private void processEvent(PushScissorEvent e) => scissorStack.Push(e.Scissor);

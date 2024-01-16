@@ -145,7 +145,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             processor = new EventProcessor(this, baseRenderer);
             vertexManager = new VertexManager(this);
 
-            DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(100, 1000);
+            DefaultQuadBatch = ((IRenderer)this).CreateQuadBatch<TexturedVertex2D>(1, 1);
         }
 
         public void Initialise(IGraphicsSurface graphicsSurface)
@@ -343,9 +343,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             // Todo: Fine to not implement for now.
         }
 
-        void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch) => EnqueueEvent(new PushQuadBatchEvent(Reference(quadBatch)));
+        void IRenderer.PushQuadBatch(IVertexBatch<TexturedVertex2D> quadBatch)
+        {
+        }
 
-        void IRenderer.PopQuadBatch() => EnqueueEvent(new PopQuadBatchEvent());
+        void IRenderer.PopQuadBatch()
+        {
+        }
 
         event Action<Texture>? IRenderer.TextureCreated
         {
