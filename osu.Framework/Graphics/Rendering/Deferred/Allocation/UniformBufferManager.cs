@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using osu.Framework.Platform;
+using osu.Framework.Utils;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
@@ -38,7 +39,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             int writeIndex = currentWriteIndex;
             memory.WriteTo(renderer, buffers[currentBuffer], writeIndex, commandList);
-            currentWriteIndex += memory.Length;
+
+            uint alignment = renderer.Device.UniformBufferMinOffsetAlignment;
+            currentWriteIndex = MathUtils.DivideRoundUp(currentWriteIndex + memory.Length, (int)alignment) * (int)alignment;
 
             return writeIndex;
         }
