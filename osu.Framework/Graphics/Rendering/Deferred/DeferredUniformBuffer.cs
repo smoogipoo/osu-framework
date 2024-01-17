@@ -13,7 +13,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredUniformBuffer
     {
-        void Write(RendererStagingMemoryBlock memory, CommandList commandList);
+        void Write(RendererMemoryBlock memory, CommandList commandList);
         void MoveNext();
     }
 
@@ -55,7 +55,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        public void Write(RendererStagingMemoryBlock memory, CommandList commandList)
+        public void Write(RendererMemoryBlock memory, CommandList commandList)
             => dataOffsets.Add(uniformBufferManager.Commit(memory, commandList));
 
         public void MoveNext()

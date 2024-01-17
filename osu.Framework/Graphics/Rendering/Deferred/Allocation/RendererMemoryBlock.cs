@@ -2,20 +2,20 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using osu.Framework.Development;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal readonly record struct RendererMemoryBlock(int BufferId, int Index, int Length)
     {
-        public Span<byte> GetRegion(DeferredRenderer renderer) => renderer.GetRegion(this);
-    }
+        public Span<byte> GetRegion(DeferredRenderer renderer)
+            => renderer.GetRegion(this);
 
-    internal readonly record struct RendererStagingMemoryBlock(int BufferId, int Index, int Length, bool IsTemporary)
-    {
         public void WriteTo(DeferredRenderer renderer, DeviceBuffer target, int offsetInTarget, CommandList commandList)
         {
-            renderer.WriteRegionToBuffer(this, target, offsetInTarget, commandList);
+            ThreadSafety.EnsureDrawThread();
+            renderer.Device.UpdateBuffer(target, (uint)offsetInTarget, GetRegion(renderer));
         }
     }
 }

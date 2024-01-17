@@ -6,14 +6,14 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct SetUniformBufferDataEvent(RendererResource Buffer, RendererStagingMemoryBlock Memory) : IRenderEvent
+    internal readonly record struct SetUniformBufferDataEvent(RendererResource Buffer, RendererMemoryBlock Memory) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.SetUniformBufferData;
 
         public static SetUniformBufferDataEvent Create<T>(DeferredRenderer renderer, IDeferredUniformBuffer uniformBuffer, T data)
             where T : unmanaged, IEquatable<T>
         {
-            return new SetUniformBufferDataEvent(renderer.Reference(uniformBuffer), renderer.AllocateStagingObject(data));
+            return new SetUniformBufferDataEvent(renderer.Reference(uniformBuffer), renderer.AllocateObject(data));
         }
     }
 }

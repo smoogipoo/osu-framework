@@ -32,7 +32,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             this.renderer = renderer;
         }
 
-        public void Commit(RendererStagingMemoryBlock primitive, CommandList commandList)
+        public void Commit(RendererMemoryBlock primitive, CommandList commandList)
         {
             if (currentWriteIndex + primitive.Length > buffer_size)
             {

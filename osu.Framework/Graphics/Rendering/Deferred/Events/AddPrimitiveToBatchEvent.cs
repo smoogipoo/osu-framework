@@ -7,14 +7,14 @@ using osu.Framework.Graphics.Rendering.Vertices;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct AddPrimitiveToBatchEvent(RendererResource VertexBatch, RendererStagingMemoryBlock Memory) : IRenderEvent
+    internal readonly record struct AddPrimitiveToBatchEvent(RendererResource VertexBatch, RendererMemoryBlock Memory) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.AddPrimitiveToBatch;
 
         public static AddPrimitiveToBatchEvent Create<T>(DeferredRenderer renderer, DeferredVertexBatch<T> batch, ReadOnlySpan<T> vertices)
             where T : unmanaged, IVertex, IEquatable<T>
         {
-            return new AddPrimitiveToBatchEvent(renderer.Reference(batch), renderer.AllocateStagingRegion(vertices));
+            return new AddPrimitiveToBatchEvent(renderer.Reference(batch), renderer.AllocateRegion(vertices));
         }
     }
 }

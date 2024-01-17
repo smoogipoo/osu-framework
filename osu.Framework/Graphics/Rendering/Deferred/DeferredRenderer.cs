@@ -42,22 +42,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             where T : unmanaged
             => allocator.AllocateObject(data);
 
+        public RendererMemoryBlock AllocateRegion<T>(ReadOnlySpan<T> data)
+            where T : unmanaged
+            => allocator.AllocateRegion(data);
+
         public RendererMemoryBlock AllocateRegion(int length)
             => allocator.AllocateRegion(length);
 
         public Span<byte> GetRegion(RendererMemoryBlock block)
             => allocator.GetRegion(block);
-
-        public RendererStagingMemoryBlock AllocateStagingObject<T>(T data)
-            where T : unmanaged
-            => allocator.AllocateStagingObject(data);
-
-        public RendererStagingMemoryBlock AllocateStagingRegion<T>(ReadOnlySpan<T> data)
-            where T : unmanaged
-            => allocator.AllocateStagingRegion(data);
-
-        public void WriteRegionToBuffer(RendererStagingMemoryBlock block, DeviceBuffer target, int offsetInTarget, CommandList commandList)
-            => allocator.WriteRegionToBuffer(block, target, offsetInTarget, commandList);
 
         public void EnqueueEvent<T>(in T @event)
             where T : unmanaged, IRenderEvent
@@ -71,7 +64,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public DeferredRenderer()
         {
-            allocator = new ResourceAllocator(this);
+            allocator = new ResourceAllocator();
             renderEvents = new EventList(this);
             vertexManager = new VertexManager(this);
             uniformBufferManager = new UniformBufferManager(this);

@@ -8,30 +8,16 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
-using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal class ResourceAllocator
     {
         private const int min_buffer_size = 1024 * 1024; // 1MB
-        private const int staging_buffer_size = 4 * 1024 * 1024; // 4MB
-
-        private readonly DeferredRenderer renderer;
 
         private readonly Dictionary<object, RendererResource> resourceReferences = new Dictionary<object, RendererResource>();
         private readonly List<object> resources = new List<object>();
-
         private readonly List<MemoryBuffer> memoryBuffers = new List<MemoryBuffer>();
-
-        private readonly List<StagingMemoryBuffer> stagingMemoryBuffers = new List<StagingMemoryBuffer>();
-        private readonly List<StagingMemoryBuffer> temporaryStagingBuffers = new List<StagingMemoryBuffer>();
-        private int currentStagingBuffer;
-
-        public ResourceAllocator(DeferredRenderer renderer)
-        {
-            this.renderer = renderer;
-        }
 
         public void Reset()
         {
@@ -40,18 +26,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             for (int i = 0; i < memoryBuffers.Count; i++)
                 memoryBuffers[i].Dispose();
 
-            for (int i = 0; i < stagingMemoryBuffers.Count; i++)
-                stagingMemoryBuffers[i].Reset();
-
-            for (int i = 0; i < temporaryStagingBuffers.Count; i++)
-                temporaryStagingBuffers[i].Dispose();
-
             resourceReferences.Clear();
             resources.Clear();
             memoryBuffers.Clear();
-            temporaryStagingBuffers.Clear();
-
-            currentStagingBuffer = 0;
         }
 
         public RendererResource Reference<T>(T obj)
@@ -81,6 +58,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return block;
         }
 
+        public RendererMemoryBlock AllocateRegion<T>(ReadOnlySpan<T> data)
+            where T : unmanaged
+        {
+            ThreadSafety.EnsureDrawThread();
+
+            ReadOnlySpan<byte> byteData = MemoryMarshal.Cast<T, byte>(data);
+            RendererMemoryBlock region = AllocateRegion(byteData.Length);
+            byteData.CopyTo(GetRegion(region));
+
+            return region;
+        }
+
         public RendererMemoryBlock AllocateRegion(int length)
         {
             ThreadSafety.EnsureDrawThread();
@@ -95,53 +84,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         {
             ThreadSafety.EnsureDrawThread();
             return memoryBuffers[block.BufferId].GetBuffer(block);
-        }
-
-        public RendererStagingMemoryBlock AllocateStagingObject<T>(T data)
-            where T : unmanaged
-        {
-            return AllocateStagingRegion(MemoryMarshal.CreateReadOnlySpan(ref data, 1));
-        }
-
-        public RendererStagingMemoryBlock AllocateStagingRegion<T>(ReadOnlySpan<T> data)
-            where T : unmanaged
-        {
-            ThreadSafety.EnsureDrawThread();
-
-            ReadOnlySpan<byte> dataBytes = MemoryMarshal.Cast<T, byte>(data);
-
-            if (dataBytes.Length > staging_buffer_size)
-            {
-                temporaryStagingBuffers.Add(new StagingMemoryBuffer(renderer, temporaryStagingBuffers.Count, dataBytes.Length, true));
-                return temporaryStagingBuffers[^1].Write(dataBytes);
-            }
-
-            if (stagingMemoryBuffers.Count == 0)
-                addStagingBuffer();
-
-            if (stagingMemoryBuffers[currentStagingBuffer].Remaining < dataBytes.Length)
-                currentStagingBuffer++;
-
-            if (currentStagingBuffer == stagingMemoryBuffers.Count)
-                addStagingBuffer();
-
-            return stagingMemoryBuffers[currentStagingBuffer].Write(dataBytes);
-        }
-
-        private void addStagingBuffer() => stagingMemoryBuffers.Add(new StagingMemoryBuffer(renderer, stagingMemoryBuffers.Count, staging_buffer_size, false));
-
-        public void WriteRegionToBuffer(RendererStagingMemoryBlock block, DeviceBuffer target, int offsetInTarget, CommandList commandList)
-        {
-            ThreadSafety.EnsureDrawThread();
-
-            commandList.CopyBuffer(
-                block.IsTemporary
-                    ? temporaryStagingBuffers[block.BufferId].GetBuffer()
-                    : stagingMemoryBuffers[block.BufferId].GetBuffer(),
-                (uint)block.Index,
-                target,
-                (uint)offsetInTarget,
-                (uint)block.Length);
         }
 
         private class MemoryBuffer : IDisposable
@@ -177,50 +119,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             public void Dispose()
             {
                 ArrayPool<byte>.Shared.Return(buffer);
-            }
-        }
-
-        private class StagingMemoryBuffer : IDisposable
-        {
-            public readonly int Id;
-            public readonly bool IsTemporary;
-            public int Size => (int)buffer.SizeInBytes;
-            public int Remaining { get; private set; }
-
-            private readonly DeferredRenderer renderer;
-            private readonly DeviceBuffer buffer;
-
-            public StagingMemoryBuffer(DeferredRenderer renderer, int id, int minSize, bool isTemporary)
-            {
-                this.renderer = renderer;
-                Id = id;
-                IsTemporary = isTemporary;
-                buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)minSize, BufferUsage.Staging));
-                Remaining = Size;
-            }
-
-            public void Reset()
-            {
-                Remaining = Size;
-            }
-
-            public RendererStagingMemoryBlock Write(ReadOnlySpan<byte> data)
-            {
-                Debug.Assert(data.Length <= Remaining);
-
-                int start = Size - Remaining;
-                Remaining -= data.Length;
-
-                renderer.Device.UpdateBuffer(buffer, (uint)start, data);
-
-                return new RendererStagingMemoryBlock(Id, start, data.Length, IsTemporary);
-            }
-
-            public DeviceBuffer GetBuffer() => buffer;
-
-            public void Dispose()
-            {
-                buffer.Dispose();
             }
         }
     }
