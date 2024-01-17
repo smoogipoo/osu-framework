@@ -33,7 +33,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             if (currentBuffer == buffers.Count)
             {
-                buffers.Add(renderer.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.UniformBuffer)));
+                buffers.Add(renderer.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.UniformBuffer | BufferUsage.Dynamic)));
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 

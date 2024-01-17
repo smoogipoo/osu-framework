@@ -42,7 +42,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             if (currentBuffer == buffers.Count)
             {
-                buffers.Add(renderer.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.VertexBuffer)));
+                buffers.Add(renderer.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.VertexBuffer | BufferUsage.Dynamic)));
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
