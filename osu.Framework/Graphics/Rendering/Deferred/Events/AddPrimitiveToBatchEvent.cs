@@ -7,7 +7,7 @@ using osu.Framework.Graphics.Rendering.Vertices;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct AddPrimitiveToBatchEvent(RendererResource VertexBatch, RendererMemoryBlock Memory) : IRenderEvent
+    internal readonly record struct AddPrimitiveToBatchEvent(ResourceReference VertexBatch, MemoryReference Memory) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.AddPrimitiveToBatch;
 

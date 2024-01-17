@@ -31,26 +31,26 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly VertexManager vertexManager;
         private readonly UniformBufferManager uniformBufferManager;
 
-        public RendererResource Reference<T>(T obj)
+        public ResourceReference Reference<T>(T obj)
             where T : class
             => allocator.Reference(obj);
 
-        public object Dereference(RendererResource resource)
-            => allocator.Dereference(resource);
+        public object Dereference(ResourceReference reference)
+            => allocator.Dereference(reference);
 
-        public RendererMemoryBlock AllocateObject<T>(T data)
+        public MemoryReference AllocateObject<T>(T data)
             where T : unmanaged
             => allocator.AllocateObject(data);
 
-        public RendererMemoryBlock AllocateRegion<T>(ReadOnlySpan<T> data)
+        public MemoryReference AllocateRegion<T>(ReadOnlySpan<T> data)
             where T : unmanaged
             => allocator.AllocateRegion(data);
 
-        public RendererMemoryBlock AllocateRegion(int length)
+        public MemoryReference AllocateRegion(int length)
             => allocator.AllocateRegion(length);
 
-        public Span<byte> GetRegion(RendererMemoryBlock block)
-            => allocator.GetRegion(block);
+        public Span<byte> GetRegion(MemoryReference reference)
+            => allocator.GetRegion(reference);
 
         public void EnqueueEvent<T>(in T @event)
             where T : unmanaged, IRenderEvent

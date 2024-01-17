@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             this.renderer = renderer;
         }
 
-        public int Commit(RendererMemoryBlock memory, CommandList commandList)
+        public int Write(MemoryReference memory)
         {
             if (currentWriteIndex + memory.Length > buffer_size)
             {
@@ -38,7 +38,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             }
 
             int writeIndex = currentWriteIndex;
-            memory.WriteTo(renderer, buffers[currentBuffer], writeIndex, commandList);
+            memory.WriteTo(renderer, buffers[currentBuffer], writeIndex);
 
             uint alignment = renderer.Device.UniformBufferMinOffsetAlignment;
             currentWriteIndex = MathUtils.DivideRoundUp(currentWriteIndex + memory.Length, (int)alignment) * (int)alignment;

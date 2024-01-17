@@ -7,12 +7,12 @@ using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
-    internal readonly record struct RendererMemoryBlock(int BufferId, int Index, int Length)
+    internal readonly record struct MemoryReference(int BufferId, int Index, int Length)
     {
         public Span<byte> GetRegion(DeferredRenderer renderer)
             => renderer.GetRegion(this);
 
-        public void WriteTo(DeferredRenderer renderer, DeviceBuffer target, int offsetInTarget, CommandList commandList)
+        public void WriteTo(DeferredRenderer renderer, DeviceBuffer target, int offsetInTarget)
         {
             ThreadSafety.EnsureDrawThread();
             renderer.Device.UpdateBuffer(target, (uint)offsetInTarget, GetRegion(renderer));

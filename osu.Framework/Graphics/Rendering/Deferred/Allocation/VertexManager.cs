@@ -32,7 +32,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             this.renderer = renderer;
         }
 
-        public void Commit(RendererMemoryBlock primitive, CommandList commandList)
+        public void Write(MemoryReference primitive)
         {
             if (currentWriteIndex + primitive.Length > buffer_size)
             {
@@ -46,7 +46,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
-            primitive.WriteTo(renderer, buffers[currentBuffer], currentWriteIndex, commandList);
+            primitive.WriteTo(renderer, buffers[currentBuffer], currentWriteIndex);
             currentWriteIndex += primitive.Length;
 
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);

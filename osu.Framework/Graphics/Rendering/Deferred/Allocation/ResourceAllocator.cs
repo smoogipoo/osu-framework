@@ -15,7 +15,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
     {
         private const int min_buffer_size = 1024 * 1024; // 1MB
 
-        private readonly Dictionary<object, RendererResource> resourceReferences = new Dictionary<object, RendererResource>();
+        private readonly Dictionary<object, ResourceReference> resourceReferences = new Dictionary<object, ResourceReference>();
         private readonly List<object> resources = new List<object>();
         private readonly List<MemoryBuffer> memoryBuffers = new List<MemoryBuffer>();
 
@@ -31,46 +31,46 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             memoryBuffers.Clear();
         }
 
-        public RendererResource Reference<T>(T obj)
+        public ResourceReference Reference<T>(T obj)
             where T : class
         {
             ThreadSafety.EnsureDrawThread();
 
-            if (resourceReferences.TryGetValue(obj, out RendererResource existing))
+            if (resourceReferences.TryGetValue(obj, out ResourceReference existing))
                 return existing;
 
             resources.Add(obj);
 
-            return resourceReferences[obj] = new RendererResource(resources.Count - 1);
+            return resourceReferences[obj] = new ResourceReference(resources.Count - 1);
         }
 
-        public object Dereference(RendererResource resource)
+        public object Dereference(ResourceReference reference)
         {
             ThreadSafety.EnsureDrawThread();
-            return resources[resource.Id];
+            return resources[reference.Id];
         }
 
-        public RendererMemoryBlock AllocateObject<T>(T data)
+        public MemoryReference AllocateObject<T>(T data)
             where T : unmanaged
         {
-            RendererMemoryBlock block = AllocateRegion(Unsafe.SizeOf<T>());
-            MemoryMarshal.Write(GetRegion(block), ref data);
-            return block;
+            MemoryReference reference = AllocateRegion(Unsafe.SizeOf<T>());
+            MemoryMarshal.Write(GetRegion(reference), ref data);
+            return reference;
         }
 
-        public RendererMemoryBlock AllocateRegion<T>(ReadOnlySpan<T> data)
+        public MemoryReference AllocateRegion<T>(ReadOnlySpan<T> data)
             where T : unmanaged
         {
             ThreadSafety.EnsureDrawThread();
 
             ReadOnlySpan<byte> byteData = MemoryMarshal.Cast<T, byte>(data);
-            RendererMemoryBlock region = AllocateRegion(byteData.Length);
+            MemoryReference region = AllocateRegion(byteData.Length);
             byteData.CopyTo(GetRegion(region));
 
             return region;
         }
 
-        public RendererMemoryBlock AllocateRegion(int length)
+        public MemoryReference AllocateRegion(int length)
         {
             ThreadSafety.EnsureDrawThread();
 
@@ -80,10 +80,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             return memoryBuffers[^1].Reserve(length);
         }
 
-        public Span<byte> GetRegion(RendererMemoryBlock block)
+        public Span<byte> GetRegion(MemoryReference reference)
         {
             ThreadSafety.EnsureDrawThread();
-            return memoryBuffers[block.BufferId].GetBuffer(block);
+            return memoryBuffers[reference.BufferId].GetBuffer(reference);
         }
 
         private class MemoryBuffer : IDisposable
@@ -101,19 +101,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 Remaining = Size;
             }
 
-            public RendererMemoryBlock Reserve(int length)
+            public MemoryReference Reserve(int length)
             {
                 Debug.Assert(length <= Remaining);
 
                 int start = Size - Remaining;
                 Remaining -= length;
-                return new RendererMemoryBlock(Id, start, length);
+                return new MemoryReference(Id, start, length);
             }
 
-            public Span<byte> GetBuffer(RendererMemoryBlock block)
+            public Span<byte> GetBuffer(MemoryReference reference)
             {
-                Debug.Assert(block.BufferId == Id);
-                return buffer.AsSpan().Slice(block.Index, block.Length);
+                Debug.Assert(reference.BufferId == Id);
+                return buffer.AsSpan().Slice(reference.Index, reference.Length);
             }
 
             public void Dispose()

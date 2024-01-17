@@ -13,7 +13,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal class EventList
     {
         private readonly DeferredRenderer renderer;
-        private readonly List<RendererMemoryBlock> events = new List<RendererMemoryBlock>();
+        private readonly List<MemoryReference> events = new List<MemoryReference>();
 
         public EventList(DeferredRenderer renderer)
         {
@@ -30,13 +30,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             int requiredSize = Unsafe.SizeOf<T>() + 1;
 
-            RendererMemoryBlock block = renderer.AllocateRegion(requiredSize);
-            Span<byte> buffer = renderer.GetRegion(block);
+            MemoryReference reference = renderer.AllocateRegion(requiredSize);
+            Span<byte> buffer = renderer.GetRegion(reference);
 
             buffer[0] = (byte)renderEvent.Type;
             MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(in renderEvent));
 
-            events.Add(block);
+            events.Add(reference);
         }
 
         public EventListReader CreateReader() => new EventListReader(renderer, events);

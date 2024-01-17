@@ -6,7 +6,7 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct SetUniformBufferDataEvent(RendererResource Buffer, RendererMemoryBlock Memory) : IRenderEvent
+    internal readonly record struct SetUniformBufferDataEvent(ResourceReference Buffer, MemoryReference Memory) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.SetUniformBufferData;
 

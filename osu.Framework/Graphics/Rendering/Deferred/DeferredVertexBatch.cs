@@ -12,7 +12,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredVertexBatch
     {
-        void WritePrimitive(RendererMemoryBlock primitive, CommandList commandList);
+        void Write(MemoryReference primitive);
         void Draw(GraphicsPipeline pipeline, int count);
     }
 
@@ -61,7 +61,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public void WritePrimitive(RendererMemoryBlock primitive, CommandList commandList) => vertexManager.Commit(primitive, commandList);
+        public void Write(MemoryReference primitive) => vertexManager.Write(primitive);
 
         public void Draw(GraphicsPipeline pipeline, int count) => vertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
 

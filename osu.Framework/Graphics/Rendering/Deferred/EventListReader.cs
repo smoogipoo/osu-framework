@@ -12,12 +12,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal ref struct EventListReader
     {
         private readonly DeferredRenderer renderer;
-        private readonly List<RendererMemoryBlock> events = new List<RendererMemoryBlock>();
+        private readonly List<MemoryReference> events = new List<MemoryReference>();
 
         private int eventIndex;
         private Span<byte> eventData = Span<byte>.Empty;
 
-        public EventListReader(DeferredRenderer renderer, List<RendererMemoryBlock> events)
+        public EventListReader(DeferredRenderer renderer, List<MemoryReference> events)
         {
             this.renderer = renderer;
             this.events = events;

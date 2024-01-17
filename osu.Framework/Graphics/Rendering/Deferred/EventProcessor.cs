@@ -29,7 +29,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     {
                         AddPrimitiveToBatchEvent e = reader.Current<AddPrimitiveToBatchEvent>();
                         IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
-                        batch.WritePrimitive(e.Memory, pipeline.Commands);
+                        batch.Write(e.Memory);
                         break;
                     }
 
@@ -37,7 +37,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     {
                         SetUniformBufferDataEvent e = reader.Current<SetUniformBufferDataEvent>();
                         IDeferredUniformBuffer buffer = e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer);
-                        buffer.Write(e.Memory, pipeline.Commands);
+                        buffer.Write(e.Memory);
                         break;
                     }
                 }

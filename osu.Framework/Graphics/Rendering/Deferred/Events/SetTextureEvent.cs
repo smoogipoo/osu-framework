@@ -5,7 +5,7 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct SetTextureEvent(RendererResource Texture, int Unit) : IRenderEvent
+    internal readonly record struct SetTextureEvent(ResourceReference Texture, int Unit) : IRenderEvent
     {
         public RenderEventType Type => RenderEventType.SetTexture;
     }

@@ -3,7 +3,7 @@
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
-    internal readonly record struct RendererResource(int Id)
+    internal readonly record struct ResourceReference(int Id)
     {
         public T Dereference<T>(DeferredRenderer renderer) => (T)renderer.Dereference(this);
     }
