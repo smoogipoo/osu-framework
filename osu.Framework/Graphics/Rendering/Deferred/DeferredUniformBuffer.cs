@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Statistics;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
@@ -24,7 +25,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private readonly List<int> dataOffsets = new List<int>();
         private int currentOffsetIndex = -1;
-        private TData data;
+        private TData? data;
 
         private readonly Dictionary<DeviceBuffer, ResourceSet> resourceSets = new Dictionary<DeviceBuffer, ResourceSet>();
 
@@ -36,19 +37,29 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         TData IUniformBuffer<TData>.Data
         {
-            get => data;
+            get => data ?? default;
             set
             {
+                if (data is TData existing && value.Equals(existing))
+                {
+                    FrameStatistics.Increment(StatisticsCounterType.UniformDup);
+                    return;
+                }
+
                 data = value;
 
                 renderer.EnqueueEvent(SetUniformBufferDataEvent.Create(renderer, this, value));
                 renderer.RegisterUniformBufferForReset(this);
+
+                FrameStatistics.Increment(StatisticsCounterType.UniformUpl);
             }
         }
 
-        public void Write(RendererStagingMemoryBlock memory, CommandList commandList) => dataOffsets.Add(uniformBufferManager.Commit(memory, commandList));
+        public void Write(RendererStagingMemoryBlock memory, CommandList commandList)
+            => dataOffsets.Add(uniformBufferManager.Commit(memory, commandList));
 
-        public void MoveNext() => currentOffsetIndex++;
+        public void MoveNext()
+            => currentOffsetIndex++;
 
         ResourceSet IVeldridUniformBuffer.GetResourceSet(ResourceLayout layout)
         {
@@ -60,12 +71,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             return resourceSets[buffer] = renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
         }
 
-        uint IVeldridUniformBuffer.GetOffset() => uniformBufferManager.GetOffset(dataOffsets[currentOffsetIndex]);
+        uint IVeldridUniformBuffer.GetOffset()
+            => uniformBufferManager.GetOffset(dataOffsets[currentOffsetIndex]);
 
         void IVeldridUniformBuffer.ResetCounters()
         {
             dataOffsets.Clear();
             currentOffsetIndex = -1;
+            data = null;
         }
 
         public void Dispose()
