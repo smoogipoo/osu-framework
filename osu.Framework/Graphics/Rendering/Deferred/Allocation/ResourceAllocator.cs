@@ -75,7 +75,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             ThreadSafety.EnsureDrawThread();
 
             if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < length)
-                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size, length)));
+                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size * (1 << memoryBuffers.Count), length)));
 
             return memoryBuffers[^1].Reserve(length);
         }
