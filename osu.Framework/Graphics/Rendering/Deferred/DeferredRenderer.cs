@@ -172,7 +172,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => new DeferredUniformBuffer<TData>(this, uniformBufferManager);
 
         protected override IShaderStorageBufferObject<TData> CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize)
-            => new VeldridShaderStorageBufferObject<TData>(this, uboSize, ssboSize);
+            => new DeferredShaderStorageBufferObject<TData>(this, ssboSize);
 
         void IVeldridRenderer.BindShader(VeldridShader shader) => BindShader(shader);
 
@@ -208,7 +208,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer) => uniformBufferResetList.Add(veldridUniformBuffer);
 
-        bool IVeldridRenderer.UseStructuredBuffers => veldridDevice.UseStructuredBuffers;
+        public bool UseStructuredBuffers => veldridDevice.UseStructuredBuffers;
 
         GraphicsSurfaceType IVeldridRenderer.SurfaceType => veldridDevice.SurfaceType;
 

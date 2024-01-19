@@ -40,6 +40,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         buffer.Write(e.Memory);
                         break;
                     }
+
+                    case RenderEventType.SetShaderStorageBufferObjectData:
+                    {
+                        SetShaderStorageBufferObjectDataEvent e = reader.Current<SetShaderStorageBufferObjectDataEvent>();
+                        IDeferredShaderStorageBufferObject buffer = e.Buffer.Dereference<IDeferredShaderStorageBufferObject>(deferredRenderer);
+                        buffer.Write(e.Index, e.Memory);
+                        break;
+                    }
                 }
             }
 
@@ -107,6 +115,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
                     case RenderEventType.SetUniformBufferData:
                         processEvent(reader.Current<SetUniformBufferDataEvent>());
+                        break;
+
+                    case RenderEventType.SetShaderStorageBufferObjectData:
                         break;
 
                     case RenderEventType.Flush:
