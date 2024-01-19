@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly DeferredRenderer renderer;
         private readonly UniformBufferManager uniformBufferManager;
 
-        private readonly List<int> dataOffsets = new List<int>();
+        private readonly List<UniformBufferReference> dataOffsets = new List<UniformBufferReference>();
         private int currentOffsetIndex = -1;
         private TData? data;
 

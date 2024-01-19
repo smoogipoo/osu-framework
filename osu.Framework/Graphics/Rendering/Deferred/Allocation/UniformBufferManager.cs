@@ -23,7 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             this.renderer = renderer;
         }
 
-        public int Write(MemoryReference memory)
+        public UniformBufferReference Write(MemoryReference memory)
         {
             if (currentWriteIndex + memory.Length > buffer_size)
             {
@@ -43,12 +43,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             uint alignment = renderer.Device.UniformBufferMinOffsetAlignment;
             currentWriteIndex = MathUtils.DivideRoundUp(currentWriteIndex + memory.Length, (int)alignment) * (int)alignment;
 
-            return writeIndex;
+            return new UniformBufferReference(currentBuffer, writeIndex);
         }
 
-        public DeviceBuffer GetBuffer(int index) => buffers[index / buffer_size];
+        public DeviceBuffer GetBuffer(UniformBufferReference reference) => buffers[reference.BufferId];
 
-        public uint GetOffset(int index) => (uint)(index % buffer_size);
+        public uint GetOffset(UniformBufferReference reference) => (uint)reference.Index;
 
         public void Reset()
         {
@@ -56,4 +56,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             currentWriteIndex = 0;
         }
     }
+
+    public readonly record struct UniformBufferReference(int BufferId, int Index);
 }
