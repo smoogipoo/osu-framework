@@ -11,31 +11,30 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal ref struct EventListReader
     {
-        private readonly DeferredRenderer renderer;
+        private readonly ResourceAllocator allocator;
         private readonly List<MemoryReference> events = new List<MemoryReference>();
 
         private int eventIndex;
         private Span<byte> eventData = Span<byte>.Empty;
 
-        public EventListReader(DeferredRenderer renderer, List<MemoryReference> events)
+        public EventListReader(ResourceAllocator allocator, List<MemoryReference> events)
         {
-            this.renderer = renderer;
+            this.allocator = allocator;
             this.events = events;
-
-            eventIndex = -1;
+            eventIndex = 0;
         }
 
         public bool Next()
         {
-            if (eventIndex == events.Count - 1)
+            if (eventIndex < events.Count)
             {
-                eventData = Span<byte>.Empty;
-                return false;
+                eventData = allocator.GetRegion(events[eventIndex]);
+                eventIndex++;
+                return true;
             }
 
-            eventIndex++;
-            eventData = events[eventIndex].GetRegion(renderer);
-            return true;
+            eventData = Span<byte>.Empty;
+            return false;
         }
 
         public RenderEventType CurrentType()
@@ -47,7 +46,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void Reset()
         {
-            eventIndex = -1;
+            eventIndex = 0;
             eventData = Span<byte>.Empty;
         }
     }

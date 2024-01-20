@@ -65,7 +65,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public DeferredRenderer()
         {
             allocator = new ResourceAllocator();
-            renderEvents = new EventList(this);
+            renderEvents = new EventList(allocator);
             vertexManager = new VertexManager(this);
             uniformBufferManager = new UniformBufferManager(this);
         }

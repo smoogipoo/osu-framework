@@ -12,12 +12,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class EventList
     {
-        private readonly DeferredRenderer renderer;
+        private readonly ResourceAllocator allocator;
         private readonly List<MemoryReference> events = new List<MemoryReference>();
 
-        public EventList(DeferredRenderer renderer)
+        public EventList(ResourceAllocator allocator)
         {
-            this.renderer = renderer;
+            this.allocator = allocator;
         }
 
         public void Reset()
@@ -30,8 +30,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             int requiredSize = Unsafe.SizeOf<T>() + 1;
 
-            MemoryReference reference = renderer.AllocateRegion(requiredSize);
-            Span<byte> buffer = renderer.GetRegion(reference);
+            MemoryReference reference = allocator.AllocateRegion(requiredSize);
+            Span<byte> buffer = allocator.GetRegion(reference);
 
             buffer[0] = (byte)renderEvent.Type;
             MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(in renderEvent));
@@ -39,6 +39,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             events.Add(reference);
         }
 
-        public EventListReader CreateReader() => new EventListReader(renderer, events);
+        public EventListReader CreateReader() => new EventListReader(allocator, events);
     }
 }
