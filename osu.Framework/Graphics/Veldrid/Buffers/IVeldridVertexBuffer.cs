@@ -4,7 +4,6 @@
 using System;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
-using osu.Framework.Graphics.Veldrid.Vertices;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Veldrid.Buffers

@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Textures;
@@ -12,11 +13,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     {
         private readonly DeferredRenderer deferredRenderer;
         private readonly GraphicsPipeline pipeline;
+        private readonly VertexManager vertexManager;
+        private readonly UniformBufferManager uniformBufferManager;
 
-        public EventProcessor(DeferredRenderer deferredRenderer, GraphicsPipeline pipeline)
+        public EventProcessor(DeferredRenderer deferredRenderer, GraphicsPipeline pipeline, VertexManager vertexManager, UniformBufferManager uniformBufferManager)
         {
             this.deferredRenderer = deferredRenderer;
             this.pipeline = pipeline;
+            this.vertexManager = vertexManager;
+            this.uniformBufferManager = uniformBufferManager;
         }
 
         public void ProcessEvents(EventListReader reader)
@@ -50,6 +55,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     }
                 }
             }
+
+            vertexManager.Commit();
+            uniformBufferManager.Commit();
 
             reader.Reset();
 

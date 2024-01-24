@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using osu.Framework.Platform;
 using osu.Framework.Utils;
 using Veldrid;
@@ -14,6 +15,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
         private readonly DeferredRenderer renderer;
         private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
+        private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
 
         private int currentBuffer;
         private int currentWriteIndex;
@@ -37,13 +39,24 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
+            if (currentBuffer == mappedBuffers.Count)
+                mappedBuffers.Add(renderer.Device.Map(buffers[currentBuffer], MapMode.Write));
+
             int writeIndex = currentWriteIndex;
-            memory.WriteTo(renderer, buffers[currentBuffer], writeIndex);
+            memory.WriteTo(renderer, mappedBuffers[currentBuffer], writeIndex);
 
             uint alignment = renderer.Device.UniformBufferMinOffsetAlignment;
             currentWriteIndex = MathUtils.DivideRoundUp(currentWriteIndex + memory.Length, (int)alignment) * (int)alignment;
 
             return new UniformBufferReference(currentBuffer, writeIndex);
+        }
+
+        public void Commit()
+        {
+            foreach (var b in mappedBuffers)
+                renderer.Device.Unmap(b.Resource);
+
+            mappedBuffers.Clear();
         }
 
         public DeviceBuffer GetBuffer(UniformBufferReference reference) => buffers[reference.BufferId];
@@ -54,6 +67,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         {
             currentBuffer = 0;
             currentWriteIndex = 0;
+
+            Debug.Assert(mappedBuffers.Count == 0);
         }
     }
 

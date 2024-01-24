@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Rendering;
-using osu.Framework.Graphics.Rendering.Deferred;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Logging;

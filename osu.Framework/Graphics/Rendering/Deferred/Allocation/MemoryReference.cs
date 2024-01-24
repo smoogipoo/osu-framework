@@ -12,6 +12,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public Span<byte> GetRegion(DeferredRenderer renderer)
             => renderer.GetRegion(this);
 
+        public void WriteTo(DeferredRenderer renderer, MappedResource target, int offsetInTarget)
+        {
+            ThreadSafety.EnsureDrawThread();
+
+            unsafe
+            {
+                Span<byte> targetSpan = new Span<byte>(target.Data.ToPointer(), (int)target.SizeInBytes);
+                GetRegion(renderer).CopyTo(targetSpan[offsetInTarget..]);
+            }
+        }
+
         public void WriteTo(DeferredRenderer renderer, DeviceBuffer target, int offsetInTarget)
         {
             ThreadSafety.EnsureDrawThread();

@@ -74,7 +74,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             veldridDevice = new VeldridDevice(graphicsSurface);
             pipeline = new GraphicsPipeline(veldridDevice);
-            processor = new EventProcessor(this, pipeline);
+            processor = new EventProcessor(this, pipeline, vertexManager, uniformBufferManager);
         }
 
         protected internal override void BeginFrame(Vector2 windowSize)

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
@@ -22,6 +23,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private readonly DeferredRenderer renderer;
         private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
         private readonly VeldridIndexBuffer?[] indexBuffers = new VeldridIndexBuffer?[2];
+        private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
 
         private int currentBuffer;
         private int currentWriteIndex;
@@ -46,10 +48,21 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
-            primitive.WriteTo(renderer, buffers[currentBuffer], currentWriteIndex);
+            if (currentBuffer == mappedBuffers.Count)
+                mappedBuffers.Add(renderer.Device.Map(buffers[currentBuffer], MapMode.Write));
+
+            primitive.WriteTo(renderer, mappedBuffers[currentBuffer], currentWriteIndex);
             currentWriteIndex += primitive.Length;
 
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);
+        }
+
+        public void Commit()
+        {
+            foreach (var b in mappedBuffers)
+                renderer.Device.Unmap(b.Resource);
+
+            mappedBuffers.Clear();
         }
 
         public void Draw<T>(GraphicsPipeline pipeline, int count, PrimitiveTopology topology, IndexLayout indexLayout, int primitiveSize)
@@ -108,6 +121,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             currentBuffer = 0;
             currentWriteIndex = 0;
             currentDrawIndex = 0;
+
+            Debug.Assert(mappedBuffers.Count == 0);
         }
     }
 }
