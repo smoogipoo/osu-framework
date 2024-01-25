@@ -11,7 +11,6 @@ using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
-using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Shaders;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Platform;
@@ -60,7 +59,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private EventProcessor processor = null!;
         private VeldridDevice veldridDevice = null!;
-        private GraphicsPipeline pipeline = null!;
 
         public DeferredRenderer()
         {
@@ -73,8 +71,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             veldridDevice = new VeldridDevice(graphicsSurface);
-            pipeline = new GraphicsPipeline(veldridDevice);
-            processor = new EventProcessor(this, pipeline, vertexManager, uniformBufferManager);
+            processor = new EventProcessor(this, veldridDevice.Graphics, vertexManager, uniformBufferManager);
 
             MaxTextureSize = veldridDevice.MaxTextureSize;
         }
@@ -91,7 +88,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             uniformBufferManager.Reset();
 
             veldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
-            pipeline.Begin();
 
             base.BeginFrame(windowSize);
         }
@@ -102,7 +98,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             processor.ProcessEvents(renderEvents.CreateReader());
 
-            pipeline.End();
             veldridDevice.FinishFrame();
         }
 
@@ -180,19 +175,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVeldridRenderer.UnbindShader(VeldridShader shader) => UnbindShader(shader);
 
-        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer) => pipeline.AttachUniformBuffer(blockName, veldridBuffer);
+        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer) => veldridDevice.Graphics.AttachUniformBuffer(blockName, veldridBuffer);
 
         void IVeldridRenderer.UpdateTexture<T>(Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data)
-            => pipeline.UpdateTexture(texture, x, y, width, height, level, data);
+            => veldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data);
 
         void IVeldridRenderer.UpdateTexture(Texture texture, int x, int y, int width, int height, int level, IntPtr data, int rowLengthInBytes)
-            => pipeline.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
+            => veldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
 
-        CommandList IVeldridRenderer.BufferUpdateCommands => pipeline.Commands;
+        CommandList IVeldridRenderer.BufferUpdateCommands => veldridDevice.Graphics.Commands;
 
         void IVeldridRenderer.EnqueueTextureUpload(VeldridTexture texture) => EnqueueTextureUpload(texture);
 
-        void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => pipeline.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
+        void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => veldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
 
         void IVeldridRenderer.BindFrameBuffer(VeldridFrameBuffer frameBuffer) => BindFrameBuffer(frameBuffer);
 
