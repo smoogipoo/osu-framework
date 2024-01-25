@@ -25,7 +25,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private readonly List<UniformBufferReference> dataOffsets = new List<UniformBufferReference>();
         private int currentOffsetIndex = -1;
-        private TData? data;
+        private TData data;
 
         private readonly Dictionary<UniformBufferChunk, ResourceSet> resourceSets = new Dictionary<UniformBufferChunk, ResourceSet>();
 
@@ -37,15 +37,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         TData IUniformBuffer<TData>.Data
         {
-            get => data ?? default;
+            get => data;
             set
             {
-                if (data is TData existing && value.Equals(existing))
-                {
-                    FrameStatistics.Increment(StatisticsCounterType.UniformDup);
-                    return;
-                }
-
                 data = value;
 
                 renderer.EnqueueEvent(SetUniformBufferDataEvent.Create(renderer, this, value));
@@ -84,7 +78,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             dataOffsets.Clear();
             currentOffsetIndex = -1;
-            data = null;
+            data = default;
         }
 
         public void Dispose()

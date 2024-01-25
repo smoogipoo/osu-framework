@@ -137,6 +137,8 @@ namespace osu.Framework.Graphics.Rendering
         private MaskingInfo currentMaskingInfo;
         private int lastActiveTextureUnit;
 
+        private bool globalUniformsChanged;
+
         private static readonly GlobalStatistic<int>[] flush_source_statistics;
 
         static Renderer()
@@ -210,6 +212,8 @@ namespace osu.Framework.Graphics.Rendering
                     break;
                 }
             }
+
+            globalUniformsChanged = true;
 
             currentActiveBatch = null;
             CurrentBlendingParameters = new BlendingParameters();
@@ -597,6 +601,7 @@ namespace osu.Framework.Graphics.Rendering
             FlushCurrentBatch(FlushBatchSource.SetProjection);
 
             ProjectionMatrix = matrix;
+            globalUniformsChanged = true;
         }
 
         #endregion
@@ -646,6 +651,7 @@ namespace osu.Framework.Graphics.Rendering
 
             currentMaskingInfo = maskingInfo;
             IsMaskingActive = maskingStack.Count > 1;
+            globalUniformsChanged = true;
         }
 
         #endregion
@@ -816,10 +822,16 @@ namespace osu.Framework.Graphics.Rendering
                 return false;
 
             if (wrapModeS != CurrentWrapModeS)
+            {
                 CurrentWrapModeS = wrapModeS;
+                globalUniformsChanged = true;
+            }
 
             if (wrapModeT != CurrentWrapModeT)
+            {
                 CurrentWrapModeT = wrapModeT;
+                globalUniformsChanged = true;
+            }
 
             lastBoundTexture[unit] = texture;
             lastBoundTextureIsAtlas[unit] = false;
@@ -896,6 +908,7 @@ namespace osu.Framework.Graphics.Rendering
             SetFrameBufferImplementation(frameBuffer);
 
             FrameBuffer = frameBuffer;
+            globalUniformsChanged = true;
         }
 
         /// <summary>
@@ -911,56 +924,61 @@ namespace osu.Framework.Graphics.Rendering
             if (Shader == null)
                 throw new InvalidOperationException("No shader bound.");
 
-            globalUniformBuffer!.Data = new GlobalUniformData
+            if (globalUniformsChanged)
             {
-                BackbufferDraw = UsingBackbuffer,
-                IsDepthRangeZeroToOne = IsDepthRangeZeroToOne,
-                IsClipSpaceYInverted = IsClipSpaceYInverted,
-                IsUvOriginTopLeft = IsUvOriginTopLeft,
-                ProjMatrix = ProjectionMatrix,
-                ToMaskingSpace = currentMaskingInfo.ToMaskingSpace,
-                IsMasking = IsMaskingActive,
-                CornerRadius = currentMaskingInfo.CornerRadius,
-                CornerExponent = currentMaskingInfo.CornerExponent,
-                MaskingRect = new Vector4(
-                    currentMaskingInfo.MaskingRect.Left,
-                    currentMaskingInfo.MaskingRect.Top,
-                    currentMaskingInfo.MaskingRect.Right,
-                    currentMaskingInfo.MaskingRect.Bottom),
-                BorderThickness = currentMaskingInfo.BorderThickness / currentMaskingInfo.BlendRange,
-                BorderColour = currentMaskingInfo.BorderThickness > 0
-                    ? new Matrix4(
-                        // TopLeft
-                        currentMaskingInfo.BorderColour.TopLeft.SRGB.R,
-                        currentMaskingInfo.BorderColour.TopLeft.SRGB.G,
-                        currentMaskingInfo.BorderColour.TopLeft.SRGB.B,
-                        currentMaskingInfo.BorderColour.TopLeft.SRGB.A,
-                        // BottomLeft
-                        currentMaskingInfo.BorderColour.BottomLeft.SRGB.R,
-                        currentMaskingInfo.BorderColour.BottomLeft.SRGB.G,
-                        currentMaskingInfo.BorderColour.BottomLeft.SRGB.B,
-                        currentMaskingInfo.BorderColour.BottomLeft.SRGB.A,
-                        // TopRight
-                        currentMaskingInfo.BorderColour.TopRight.SRGB.R,
-                        currentMaskingInfo.BorderColour.TopRight.SRGB.G,
-                        currentMaskingInfo.BorderColour.TopRight.SRGB.B,
-                        currentMaskingInfo.BorderColour.TopRight.SRGB.A,
-                        // BottomRight
-                        currentMaskingInfo.BorderColour.BottomRight.SRGB.R,
-                        currentMaskingInfo.BorderColour.BottomRight.SRGB.G,
-                        currentMaskingInfo.BorderColour.BottomRight.SRGB.B,
-                        currentMaskingInfo.BorderColour.BottomRight.SRGB.A)
-                    : globalUniformBuffer.Data.BorderColour,
-                MaskingBlendRange = currentMaskingInfo.BlendRange,
-                AlphaExponent = currentMaskingInfo.AlphaExponent,
-                EdgeOffset = currentMaskingInfo.EdgeOffset,
-                DiscardInner = currentMaskingInfo.Hollow,
-                InnerCornerRadius = currentMaskingInfo.Hollow
-                    ? currentMaskingInfo.HollowCornerRadius
-                    : globalUniformBuffer.Data.InnerCornerRadius,
-                WrapModeS = (int)CurrentWrapModeS,
-                WrapModeT = (int)CurrentWrapModeT
-            };
+                globalUniformBuffer!.Data = new GlobalUniformData
+                {
+                    BackbufferDraw = UsingBackbuffer,
+                    IsDepthRangeZeroToOne = IsDepthRangeZeroToOne,
+                    IsClipSpaceYInverted = IsClipSpaceYInverted,
+                    IsUvOriginTopLeft = IsUvOriginTopLeft,
+                    ProjMatrix = ProjectionMatrix,
+                    ToMaskingSpace = currentMaskingInfo.ToMaskingSpace,
+                    IsMasking = IsMaskingActive,
+                    CornerRadius = currentMaskingInfo.CornerRadius,
+                    CornerExponent = currentMaskingInfo.CornerExponent,
+                    MaskingRect = new Vector4(
+                        currentMaskingInfo.MaskingRect.Left,
+                        currentMaskingInfo.MaskingRect.Top,
+                        currentMaskingInfo.MaskingRect.Right,
+                        currentMaskingInfo.MaskingRect.Bottom),
+                    BorderThickness = currentMaskingInfo.BorderThickness / currentMaskingInfo.BlendRange,
+                    BorderColour = currentMaskingInfo.BorderThickness > 0
+                        ? new Matrix4(
+                            // TopLeft
+                            currentMaskingInfo.BorderColour.TopLeft.SRGB.R,
+                            currentMaskingInfo.BorderColour.TopLeft.SRGB.G,
+                            currentMaskingInfo.BorderColour.TopLeft.SRGB.B,
+                            currentMaskingInfo.BorderColour.TopLeft.SRGB.A,
+                            // BottomLeft
+                            currentMaskingInfo.BorderColour.BottomLeft.SRGB.R,
+                            currentMaskingInfo.BorderColour.BottomLeft.SRGB.G,
+                            currentMaskingInfo.BorderColour.BottomLeft.SRGB.B,
+                            currentMaskingInfo.BorderColour.BottomLeft.SRGB.A,
+                            // TopRight
+                            currentMaskingInfo.BorderColour.TopRight.SRGB.R,
+                            currentMaskingInfo.BorderColour.TopRight.SRGB.G,
+                            currentMaskingInfo.BorderColour.TopRight.SRGB.B,
+                            currentMaskingInfo.BorderColour.TopRight.SRGB.A,
+                            // BottomRight
+                            currentMaskingInfo.BorderColour.BottomRight.SRGB.R,
+                            currentMaskingInfo.BorderColour.BottomRight.SRGB.G,
+                            currentMaskingInfo.BorderColour.BottomRight.SRGB.B,
+                            currentMaskingInfo.BorderColour.BottomRight.SRGB.A)
+                        : globalUniformBuffer.Data.BorderColour,
+                    MaskingBlendRange = currentMaskingInfo.BlendRange,
+                    AlphaExponent = currentMaskingInfo.AlphaExponent,
+                    EdgeOffset = currentMaskingInfo.EdgeOffset,
+                    DiscardInner = currentMaskingInfo.Hollow,
+                    InnerCornerRadius = currentMaskingInfo.Hollow
+                        ? currentMaskingInfo.HollowCornerRadius
+                        : globalUniformBuffer.Data.InnerCornerRadius,
+                    WrapModeS = (int)CurrentWrapModeS,
+                    WrapModeT = (int)CurrentWrapModeT
+                };
+
+                globalUniformsChanged = false;
+            }
 
             Shader.BindUniformBlock("g_GlobalUniforms", globalUniformBuffer!);
 
