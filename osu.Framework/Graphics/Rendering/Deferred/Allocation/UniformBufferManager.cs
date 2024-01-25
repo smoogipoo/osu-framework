@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using osu.Framework.Platform;
@@ -12,6 +13,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
     internal class UniformBufferManager
     {
         private const int buffer_size = 1024 * 1024; // 1MB per UBO (these are pretty small).
+
+        /// <summary>
+        /// The UBO is split and bound in 65K chunks, which is the maximum supported by D3D11.
+        /// </summary>
+        private const int buffer_chunk_size = 65536;
 
         private readonly DeferredRenderer renderer;
         private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
@@ -42,13 +48,20 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             if (currentBuffer == mappedBuffers.Count)
                 mappedBuffers.Add(renderer.Device.Map(buffers[currentBuffer], MapMode.Write));
 
+            memory.WriteTo(renderer, mappedBuffers[currentBuffer], currentWriteIndex);
+
+            int alignment = (int)renderer.Device.UniformBufferMinOffsetAlignment;
+            int alignedLength = MathUtils.DivideRoundUp(memory.Length, alignment) * alignment;
+
             int writeIndex = currentWriteIndex;
-            memory.WriteTo(renderer, mappedBuffers[currentBuffer], writeIndex);
+            currentWriteIndex += alignedLength;
 
-            uint alignment = renderer.Device.UniformBufferMinOffsetAlignment;
-            currentWriteIndex = MathUtils.DivideRoundUp(currentWriteIndex + memory.Length, (int)alignment) * (int)alignment;
-
-            return new UniformBufferReference(currentBuffer, writeIndex);
+            return new UniformBufferReference(
+                new UniformBufferChunk(
+                    currentBuffer,
+                    writeIndex / buffer_chunk_size * buffer_chunk_size,
+                    Math.Min(buffer_chunk_size, buffer_size - writeIndex)),
+                writeIndex % buffer_chunk_size);
         }
 
         public void Commit()
@@ -59,9 +72,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             mappedBuffers.Clear();
         }
 
-        public DeviceBuffer GetBuffer(UniformBufferReference reference) => buffers[reference.BufferId];
-
-        public uint GetOffset(UniformBufferReference reference) => (uint)reference.Index;
+        public DeviceBuffer GetBuffer(UniformBufferReference reference) => buffers[reference.Chunk.BufferId];
 
         public void Reset()
         {
@@ -72,5 +83,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         }
     }
 
-    public readonly record struct UniformBufferReference(int BufferId, int Index);
+    public readonly record struct UniformBufferChunk(int BufferId, int Offset, int Size);
+
+    public readonly record struct UniformBufferReference(UniformBufferChunk Chunk, int OffsetInChunk);
 }

@@ -27,7 +27,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private int currentOffsetIndex = -1;
         private TData? data;
 
-        private readonly Dictionary<DeviceBuffer, ResourceSet> resourceSets = new Dictionary<DeviceBuffer, ResourceSet>();
+        private readonly Dictionary<UniformBufferChunk, ResourceSet> resourceSets = new Dictionary<UniformBufferChunk, ResourceSet>();
 
         public DeferredUniformBuffer(DeferredRenderer renderer, UniformBufferManager uniformBufferManager)
         {
@@ -63,16 +63,22 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         ResourceSet IVeldridUniformBuffer.GetResourceSet(ResourceLayout layout)
         {
-            DeviceBuffer buffer = uniformBufferManager.GetBuffer(dataOffsets[currentOffsetIndex]);
+            UniformBufferReference reference = dataOffsets[currentOffsetIndex];
+            UniformBufferChunk chunk = reference.Chunk;
 
-            if (resourceSets.TryGetValue(buffer, out ResourceSet? existing))
+            if (resourceSets.TryGetValue(chunk, out ResourceSet? existing))
                 return existing;
 
-            return resourceSets[buffer] = renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+            return resourceSets[chunk] = renderer.Factory.CreateResourceSet(
+                new ResourceSetDescription(
+                    layout,
+                    new DeviceBufferRange(
+                        uniformBufferManager.GetBuffer(reference),
+                        (uint)chunk.Offset,
+                        (uint)chunk.Size)));
         }
 
-        uint IVeldridUniformBuffer.GetOffset()
-            => uniformBufferManager.GetOffset(dataOffsets[currentOffsetIndex]);
+        uint IVeldridUniformBuffer.GetOffset() => (uint)dataOffsets[currentOffsetIndex].OffsetInChunk;
 
         void IVeldridUniformBuffer.ResetCounters()
         {
