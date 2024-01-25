@@ -66,70 +66,70 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 switch (reader.CurrentType())
                 {
                     case RenderEventType.AddPrimitiveToBatch:
-                        processEvent(ref reader.Current<AddPrimitiveToBatchEvent>());
+                        processEvent(reader.Current<AddPrimitiveToBatchEvent>());
                         break;
 
                     case RenderEventType.SetFrameBuffer:
-                        processEvent(ref reader.Current<SetFrameBufferEvent>());
+                        processEvent(reader.Current<SetFrameBufferEvent>());
                         break;
 
                     case RenderEventType.UnsetFrameBuffer:
-                        processEvent(ref reader.Current<UnsetFrameBufferEvent>());
+                        processEvent(reader.Current<UnsetFrameBufferEvent>());
                         break;
 
                     case RenderEventType.SetShader:
-                        processEvent(ref reader.Current<SetShaderEvent>());
+                        processEvent(reader.Current<SetShaderEvent>());
                         break;
 
                     case RenderEventType.SetTexture:
-                        processEvent(ref reader.Current<SetTextureEvent>());
+                        processEvent(reader.Current<SetTextureEvent>());
                         break;
 
                     case RenderEventType.BindUniformBlock:
-                        processEvent(ref reader.Current<BindUniformBlockEvent>());
+                        processEvent(reader.Current<BindUniformBlockEvent>());
                         break;
 
                     case RenderEventType.Clear:
-                        processEvent(ref reader.Current<ClearEvent>());
+                        processEvent(reader.Current<ClearEvent>());
                         break;
 
                     case RenderEventType.SetDepthInfo:
-                        processEvent(ref reader.Current<SetDepthInfoEvent>());
+                        processEvent(reader.Current<SetDepthInfoEvent>());
                         break;
 
                     case RenderEventType.SetScissor:
-                        processEvent(ref reader.Current<SetScissorEvent>());
+                        processEvent(reader.Current<SetScissorEvent>());
                         break;
 
                     case RenderEventType.SetScissorState:
-                        processEvent(ref reader.Current<SetScissorStateEvent>());
+                        processEvent(reader.Current<SetScissorStateEvent>());
                         break;
 
                     case RenderEventType.SetStencilInfo:
-                        processEvent(ref reader.Current<SetStencilInfoEvent>());
+                        processEvent(reader.Current<SetStencilInfoEvent>());
                         break;
 
                     case RenderEventType.SetViewport:
-                        processEvent(ref reader.Current<SetViewportEvent>());
+                        processEvent(reader.Current<SetViewportEvent>());
                         break;
 
                     case RenderEventType.SetBlend:
-                        processEvent(ref reader.Current<SetBlendEvent>());
+                        processEvent(reader.Current<SetBlendEvent>());
                         break;
 
                     case RenderEventType.SetBlendMask:
-                        processEvent(ref reader.Current<SetBlendMaskEvent>());
+                        processEvent(reader.Current<SetBlendMaskEvent>());
                         break;
 
                     case RenderEventType.SetUniformBufferData:
-                        processEvent(ref reader.Current<SetUniformBufferDataEvent>());
+                        processEvent(reader.Current<SetUniformBufferDataEvent>());
                         break;
 
                     case RenderEventType.SetShaderStorageBufferObjectData:
                         break;
 
                     case RenderEventType.Flush:
-                        processEvent(ref reader.Current<FlushEvent>());
+                        processEvent(reader.Current<FlushEvent>());
                         break;
 
                     default:
@@ -138,43 +138,43 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        private void processEvent(ref AddPrimitiveToBatchEvent e)
+        private void processEvent(in AddPrimitiveToBatchEvent e)
         {
         }
 
-        private void processEvent(ref SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource);
+        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource);
 
-        private void processEvent(ref UnsetFrameBufferEvent e) => pipeline.SetFrameBuffer(null);
+        private void processEvent(in UnsetFrameBufferEvent e) => pipeline.SetFrameBuffer(null);
 
-        private void processEvent(ref SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
+        private void processEvent(in SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
 
-        private void processEvent(ref SetTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<VeldridTexture>(deferredRenderer));
+        private void processEvent(in SetTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<VeldridTexture>(deferredRenderer));
 
-        private void processEvent(ref BindUniformBlockEvent e)
+        private void processEvent(in BindUniformBlockEvent e)
         {
             e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
                 e.Name.Dereference<string>(deferredRenderer),
                 e.Buffer.Dereference<IUniformBuffer>(deferredRenderer));
         }
 
-        private void processEvent(ref ClearEvent e) => pipeline.Clear(e.Info);
+        private void processEvent(in ClearEvent e) => pipeline.Clear(e.Info);
 
-        private void processEvent(ref SetDepthInfoEvent e) => pipeline.SetDepthInfo(e.Info);
+        private void processEvent(in SetDepthInfoEvent e) => pipeline.SetDepthInfo(e.Info);
 
-        private void processEvent(ref SetScissorEvent e) => pipeline.SetScissor(e.Scissor);
+        private void processEvent(in SetScissorEvent e) => pipeline.SetScissor(e.Scissor);
 
-        private void processEvent(ref SetScissorStateEvent e) => pipeline.SetScissorState(e.Enabled);
+        private void processEvent(in SetScissorStateEvent e) => pipeline.SetScissorState(e.Enabled);
 
-        private void processEvent(ref SetStencilInfoEvent e) => pipeline.SetStencilInfo(e.Info);
+        private void processEvent(in SetStencilInfoEvent e) => pipeline.SetStencilInfo(e.Info);
 
-        private void processEvent(ref SetViewportEvent e) => pipeline.SetViewport(e.Viewport);
+        private void processEvent(in SetViewportEvent e) => pipeline.SetViewport(e.Viewport);
 
-        private void processEvent(ref SetBlendEvent e) => pipeline.SetBlend(e.Parameters);
+        private void processEvent(in SetBlendEvent e) => pipeline.SetBlend(e.Parameters);
 
-        private void processEvent(ref SetBlendMaskEvent e) => pipeline.SetBlendMask(e.Mask);
+        private void processEvent(in SetBlendMaskEvent e) => pipeline.SetBlendMask(e.Mask);
 
-        private void processEvent(ref SetUniformBufferDataEvent e) => e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).MoveNext();
+        private void processEvent(in SetUniformBufferDataEvent e) => e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).MoveNext();
 
-        private void processEvent(ref FlushEvent e) => e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer).Draw(pipeline, e.VertexCount);
+        private void processEvent(in FlushEvent e) => e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer).Draw(pipeline, e.VertexCount);
     }
 }

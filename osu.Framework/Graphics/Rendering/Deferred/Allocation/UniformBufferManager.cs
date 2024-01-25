@@ -31,7 +31,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             this.renderer = renderer;
         }
 
-        public UniformBufferReference Write(MemoryReference memory)
+        public UniformBufferReference Write(in MemoryReference memory)
         {
             if (currentWriteIndex + memory.Length > buffer_size)
             {
@@ -82,7 +82,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             mappedBuffers.Clear();
         }
 
-        public DeviceBuffer GetBuffer(UniformBufferReference reference) => buffers[reference.Chunk.BufferId];
+        public DeviceBuffer GetBuffer(in UniformBufferReference reference) => buffers[reference.Chunk.BufferId];
 
         public void Reset()
         {

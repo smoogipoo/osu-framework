@@ -34,7 +34,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             Span<byte> buffer = allocator.GetRegion(reference);
 
             buffer[0] = (byte)renderEvent.Type;
-            MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(in renderEvent));
+            MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(renderEvent));
 
             events.Add(reference);
         }

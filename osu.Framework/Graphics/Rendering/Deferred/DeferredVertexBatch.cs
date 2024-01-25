@@ -11,7 +11,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredVertexBatch
     {
-        void Write(MemoryReference primitive);
+        void Write(in MemoryReference primitive);
         void Draw(GraphicsPipeline pipeline, int count);
     }
 
@@ -60,7 +60,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public void Write(MemoryReference primitive) => vertexManager.Write(primitive);
+        public void Write(in MemoryReference primitive) => vertexManager.Write(primitive);
 
         public void Draw(GraphicsPipeline pipeline, int count) => vertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
 

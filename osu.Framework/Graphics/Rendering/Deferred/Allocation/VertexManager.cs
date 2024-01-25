@@ -34,7 +34,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             this.renderer = renderer;
         }
 
-        public void Write(MemoryReference primitive)
+        public void Write(in MemoryReference primitive)
         {
             if (currentWriteIndex + primitive.Length > buffer_size)
             {
