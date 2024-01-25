@@ -56,12 +56,22 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             int writeIndex = currentWriteIndex;
             currentWriteIndex += alignedLength;
 
+            if (renderer.Device.Features.BufferRangeBinding)
+            {
+                return new UniformBufferReference(
+                    new UniformBufferChunk(
+                        currentBuffer,
+                        writeIndex / buffer_chunk_size * buffer_chunk_size,
+                        Math.Min(buffer_chunk_size, buffer_size - writeIndex)),
+                    writeIndex % buffer_chunk_size);
+            }
+
             return new UniformBufferReference(
                 new UniformBufferChunk(
                     currentBuffer,
-                    writeIndex / buffer_chunk_size * buffer_chunk_size,
-                    Math.Min(buffer_chunk_size, buffer_size - writeIndex)),
-                writeIndex % buffer_chunk_size);
+                    0,
+                    buffer_size),
+                writeIndex);
         }
 
         public void Commit()
