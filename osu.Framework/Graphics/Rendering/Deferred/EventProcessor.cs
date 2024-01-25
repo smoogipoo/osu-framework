@@ -1,7 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Pipelines;
@@ -65,10 +64,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             {
                 switch (reader.CurrentType())
                 {
-                    case RenderEventType.AddPrimitiveToBatch:
-                        processEvent(reader.Current<AddPrimitiveToBatchEvent>());
-                        break;
-
                     case RenderEventType.SetFrameBuffer:
                         processEvent(reader.Current<SetFrameBufferEvent>());
                         break;
@@ -125,26 +120,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<SetUniformBufferDataEvent>());
                         break;
 
-                    case RenderEventType.SetShaderStorageBufferObjectData:
-                        break;
-
                     case RenderEventType.Flush:
                         processEvent(reader.Current<FlushEvent>());
                         break;
-
-                    default:
-                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
 
-        private void processEvent(in AddPrimitiveToBatchEvent e)
-        {
-        }
-
         private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource);
 
-        private void processEvent(in UnsetFrameBufferEvent e) => pipeline.SetFrameBuffer(null);
+        private void processEvent(in UnsetFrameBufferEvent _) => pipeline.SetFrameBuffer(null);
 
         private void processEvent(in SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
 
