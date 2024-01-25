@@ -66,6 +66,8 @@ namespace osu.Framework.Graphics.Veldrid
             graphicsPipeline = new GraphicsPipeline(veldridDevice);
             bufferUpdatePipeline = new SimplePipeline(veldridDevice);
             textureUpdatePipeline = new SimplePipeline(veldridDevice);
+
+            MaxTextureSize = veldridDevice.MaxTextureSize;
         }
 
         protected internal override void BeginFrame(Vector2 windowSize)
