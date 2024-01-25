@@ -15,7 +15,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
     {
         private const int min_buffer_size = 1024 * 1024; // 1MB
 
-        private readonly Dictionary<object, ResourceReference> resourceReferences = new Dictionary<object, ResourceReference>();
         private readonly List<object> resources = new List<object>();
         private readonly List<MemoryBuffer> memoryBuffers = new List<MemoryBuffer>();
 
@@ -26,7 +25,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             for (int i = 0; i < memoryBuffers.Count; i++)
                 memoryBuffers[i].Dispose();
 
-            resourceReferences.Clear();
             resources.Clear();
             memoryBuffers.Clear();
         }
@@ -36,23 +34,22 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         {
             ThreadSafety.EnsureDrawThread();
 
-            if (resourceReferences.TryGetValue(obj, out ResourceReference existing))
-                return existing;
-
             resources.Add(obj);
-
-            return resourceReferences[obj] = new ResourceReference(resources.Count - 1);
+            return new ResourceReference(resources.Count - 1);
         }
 
         public object Dereference(ResourceReference reference)
         {
             ThreadSafety.EnsureDrawThread();
+
             return resources[reference.Id];
         }
 
         public MemoryReference AllocateObject<T>(T data)
             where T : unmanaged
         {
+            ThreadSafety.EnsureDrawThread();
+
             MemoryReference reference = AllocateRegion(Unsafe.SizeOf<T>());
             MemoryMarshal.Write(GetRegion(reference), ref data);
             return reference;
@@ -83,6 +80,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public Span<byte> GetRegion(MemoryReference reference)
         {
             ThreadSafety.EnsureDrawThread();
+
             return memoryBuffers[reference.BufferId].GetBuffer(reference);
         }
 
