@@ -37,12 +37,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             return false;
         }
 
-        public RenderEventType CurrentType()
-            => (RenderEventType)eventData[0];
+        public readonly ref RenderEventType CurrentType()
+            => ref MemoryMarshal.AsRef<RenderEventType>(eventData);
 
-        public T Current<T>()
+        public readonly ref T Current<T>()
             where T : unmanaged, IRenderEvent
-            => MemoryMarshal.Read<T>(eventData[1..]);
+            => ref MemoryMarshal.AsRef<T>(eventData[1..]);
 
         public void Reset()
         {
