@@ -1,6 +1,9 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.IO;
+using System.Text;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Pipelines;
@@ -10,6 +13,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class EventProcessor
     {
+        private const string debug_output_path = "";
+
         private readonly DeferredRenderer deferredRenderer;
         private readonly GraphicsPipeline pipeline;
         private readonly VertexManager vertexManager;
@@ -24,6 +29,68 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         }
 
         public void ProcessEvents(EventListReader reader)
+        {
+            printEventsForDebug(reader);
+            reader.Reset();
+
+            processUploads(reader);
+            reader.Reset();
+
+            processEvents(reader);
+            reader.Reset();
+        }
+
+        private void printEventsForDebug(EventListReader reader)
+        {
+            if (string.IsNullOrEmpty(debug_output_path))
+                return;
+
+            StringBuilder builder = new StringBuilder();
+            int indent = 0;
+
+            while (reader.Next())
+            {
+                string info;
+                int indentChange = 0;
+
+                switch (reader.CurrentType())
+                {
+                    case RenderEventType.DrawNodeAction:
+                    {
+                        ref DrawNodeActionEvent e = ref reader.Current<DrawNodeActionEvent>();
+
+                        info = $"DrawNode.{e.Action} ({e.DrawNode.Dereference<DrawNode>(deferredRenderer)})";
+
+                        switch (e.Action)
+                        {
+                            case DrawNodeActionType.Enter:
+                                indentChange += 2;
+                                break;
+
+                            case DrawNodeActionType.Exit:
+                                indentChange -= 2;
+                                break;
+                        }
+
+                        break;
+                    }
+
+                    default:
+                    {
+                        info = $"{reader.CurrentType().ToString()}";
+                        break;
+                    }
+                }
+
+                indent += Math.Min(0, indentChange);
+                builder.AppendLine($"{new string(' ', indent)}{info}");
+                indent += Math.Max(0, indentChange);
+            }
+
+            File.WriteAllText(debug_output_path, builder.ToString());
+        }
+
+        private void processUploads(EventListReader reader)
         {
             while (reader.Next())
             {
@@ -57,9 +124,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             vertexManager.Commit();
             uniformBufferManager.Commit();
+        }
 
-            reader.Reset();
-
+        private void processEvents(EventListReader reader)
+        {
             while (reader.Next())
             {
                 switch (reader.CurrentType())

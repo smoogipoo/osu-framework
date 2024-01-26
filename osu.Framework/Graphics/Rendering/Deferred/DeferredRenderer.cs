@@ -56,6 +56,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => renderEvents.Enqueue(@event);
 
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
+        private readonly Stack<DrawNode> drawNodeStack = new Stack<DrawNode>();
 
         private EventProcessor processor = null!;
         private VeldridDevice veldridDevice = null!;
@@ -86,6 +87,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             renderEvents.Reset();
             vertexManager.Reset();
             uniformBufferManager.Reset();
+            drawNodeStack.Clear();
 
             veldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
 
@@ -242,5 +244,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         protected internal override void ClearCurrent() => veldridDevice.ClearCurrent();
 
         protected internal override Image<Rgba32> TakeScreenshot() => veldridDevice.TakeScreenshot();
+
+        void IRenderer.EnterDrawNode(DrawNode node)
+        {
+            drawNodeStack.Push(node);
+            EnqueueEvent(new DrawNodeActionEvent(Reference(node), DrawNodeActionType.Enter));
+        }
+
+        void IRenderer.ExitDrawNode()
+        {
+            EnqueueEvent(new DrawNodeActionEvent(Reference(drawNodeStack.Pop()), DrawNodeActionType.Exit));
+        }
     }
 }

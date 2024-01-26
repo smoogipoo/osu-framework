@@ -27,5 +27,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
         SetUniformBufferData,
         SetShaderStorageBufferObjectData,
         Flush,
+
+        DrawNodeAction
     }
 }
