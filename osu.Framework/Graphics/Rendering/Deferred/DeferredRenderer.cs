@@ -191,12 +191,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => veldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
 
-        void IVeldridRenderer.BindFrameBuffer(VeldridFrameBuffer frameBuffer) => BindFrameBuffer(frameBuffer);
-
-        void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer) => UnbindFrameBuffer(frameBuffer);
-
-        Textures.Texture IVeldridRenderer.CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT) => CreateTexture(nativeTexture, wrapModeS, wrapModeT);
-
         public void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer) => uniformBufferResetList.Add(veldridUniformBuffer);
 
         public bool UseStructuredBuffers => veldridDevice.UseStructuredBuffers;

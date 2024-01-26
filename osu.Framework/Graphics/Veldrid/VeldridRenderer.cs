@@ -289,12 +289,6 @@ namespace osu.Framework.Graphics.Veldrid
         void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer)
             => veldridDevice.Graphics.AttachUniformBuffer(blockName, veldridBuffer);
 
-        void IVeldridRenderer.BindFrameBuffer(VeldridFrameBuffer frameBuffer)
-            => BindFrameBuffer(frameBuffer);
-
-        void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer)
-            => UnbindFrameBuffer(frameBuffer);
-
         /// <summary>
         /// Checks whether the given frame buffer is currently bound.
         /// </summary>
@@ -310,9 +304,6 @@ namespace osu.Framework.Graphics.Veldrid
 
         void IVeldridRenderer.RegisterUniformBufferForReset(IVeldridUniformBuffer buffer)
             => uniformBufferResetList.Add(buffer);
-
-        Texture IVeldridRenderer.CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT)
-            => CreateTexture(nativeTexture, wrapModeS, wrapModeT);
 
         #endregion
     }
