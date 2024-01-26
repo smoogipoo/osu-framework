@@ -140,6 +140,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<UnsetFrameBufferEvent>());
                         break;
 
+                    case RenderEventType.ResizeFrameBuffer:
+                        processEvent(reader.Current<ResizeFrameBufferEvent>());
+                        break;
+
                     case RenderEventType.SetShader:
                         processEvent(reader.Current<SetShaderEvent>());
                         break;
@@ -195,13 +199,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resource);
+        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer));
 
         private void processEvent(in UnsetFrameBufferEvent _) => pipeline.SetFrameBuffer(null);
 
+        private void processEvent(in ResizeFrameBufferEvent e) => e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resize(e.Size);
+
         private void processEvent(in SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
 
-        private void processEvent(in SetTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<VeldridTexture>(deferredRenderer));
+        private void processEvent(in SetTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<IVeldridTexture>(deferredRenderer));
 
         private void processEvent(in BindUniformBlockEvent e)
         {

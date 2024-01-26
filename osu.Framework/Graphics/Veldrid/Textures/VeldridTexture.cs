@@ -22,7 +22,7 @@ using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid.Textures
 {
-    internal class VeldridTexture : INativeTexture
+    internal class VeldridTexture : INativeTexture, IVeldridTexture
     {
         private readonly Queue<ITextureUpload> uploadQueue = new Queue<ITextureUpload>();
 

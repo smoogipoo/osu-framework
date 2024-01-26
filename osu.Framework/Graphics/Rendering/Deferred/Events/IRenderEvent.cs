@@ -13,6 +13,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Events
         AddPrimitiveToBatch,
         SetFrameBuffer,
         UnsetFrameBuffer,
+        ResizeFrameBuffer,
         SetShader,
         SetTexture,
         BindUniformBlock,

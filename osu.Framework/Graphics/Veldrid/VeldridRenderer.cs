@@ -295,7 +295,11 @@ namespace osu.Framework.Graphics.Veldrid
         void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer)
             => UnbindFrameBuffer(frameBuffer);
 
-        bool IVeldridRenderer.IsFrameBufferBound(VeldridFrameBuffer frameBuffer)
+        /// <summary>
+        /// Checks whether the given frame buffer is currently bound.
+        /// </summary>
+        /// <param name="frameBuffer">The frame buffer to check.</param>
+        public bool IsFrameBufferBound(VeldridFrameBuffer frameBuffer)
             => FrameBuffer == frameBuffer;
 
         void IVeldridRenderer.BindShader(VeldridShader shader)

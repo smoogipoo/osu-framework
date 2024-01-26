@@ -68,12 +68,6 @@ namespace osu.Framework.Graphics.Veldrid
 
         void UnbindFrameBuffer(VeldridFrameBuffer frameBuffer);
 
-        /// <summary>
-        /// Checks whether the given frame buffer is currently bound.
-        /// </summary>
-        /// <param name="frameBuffer">The frame buffer to check.</param>
-        bool IsFrameBufferBound(VeldridFrameBuffer frameBuffer);
-
         void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer);
 
         Texture CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS = WrapMode.None, WrapMode wrapModeT = WrapMode.None);

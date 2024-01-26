@@ -152,7 +152,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => new DeferredShader(this, new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), compilationStore));
 
         public override IFrameBuffer CreateFrameBuffer(RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
-            => new DeferredFrameBuffer(this, new VeldridFrameBuffer(this, renderBufferFormats?.ToPixelFormats(), filteringMode.ToSamplerFilter()));
+            => new DeferredFrameBuffer(this, renderBufferFormats?.ToPixelFormats(), filteringMode.ToSamplerFilter());
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,
                                                               Color4? initialisationColour = null)
@@ -194,14 +194,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         void IVeldridRenderer.BindFrameBuffer(VeldridFrameBuffer frameBuffer) => BindFrameBuffer(frameBuffer);
 
         void IVeldridRenderer.UnbindFrameBuffer(VeldridFrameBuffer frameBuffer) => UnbindFrameBuffer(frameBuffer);
-
-        public bool IsFrameBufferBound(VeldridFrameBuffer frameBuffer)
-        {
-            if (FrameBuffer is DeferredFrameBuffer deferred)
-                return deferred.Resource == frameBuffer;
-
-            return FrameBuffer == frameBuffer;
-        }
 
         Textures.Texture IVeldridRenderer.CreateTexture(INativeTexture nativeTexture, WrapMode wrapModeS, WrapMode wrapModeT) => CreateTexture(nativeTexture, wrapModeS, wrapModeT);
 

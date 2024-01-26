@@ -31,7 +31,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             ShaderSet = { VertexLayouts = new VertexLayoutDescription[1] }
         };
 
-        private VeldridFrameBuffer? currentFrameBuffer;
+        private IVeldridFrameBuffer? currentFrameBuffer;
         private VeldridShader? currentShader;
         private VeldridIndexBuffer? currentIndexBuffer;
 
@@ -115,7 +115,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             pipelineDesc.DepthStencilState.StencilBack.Comparison = pipelineDesc.DepthStencilState.StencilFront.Comparison = stencilInfo.TestFunction.ToComparisonKind();
         }
 
-        public void SetFrameBuffer(VeldridFrameBuffer? frameBuffer)
+        public void SetFrameBuffer(IVeldridFrameBuffer? frameBuffer)
         {
             currentFrameBuffer = frameBuffer;
 
@@ -139,7 +139,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             Commands.SetIndexBuffer(indexBuffer.Buffer, VeldridIndexBuffer.FORMAT);
         }
 
-        public void AttachTexture(int unit, VeldridTexture texture)
+        public void AttachTexture(int unit, IVeldridTexture texture)
         {
             var resources = texture.GetResourceList();
 

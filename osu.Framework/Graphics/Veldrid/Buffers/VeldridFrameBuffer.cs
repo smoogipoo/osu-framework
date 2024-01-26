@@ -14,13 +14,13 @@ using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid.Buffers
 {
-    internal class VeldridFrameBuffer : IFrameBuffer
+    internal class VeldridFrameBuffer : IFrameBuffer, IVeldridFrameBuffer
     {
         public osu.Framework.Graphics.Textures.Texture Texture { get; }
 
         public Framebuffer Framebuffer { get; private set; }
 
-        private readonly IVeldridRenderer renderer;
+        private readonly VeldridRenderer renderer;
         private readonly PixelFormat? depthFormat;
 
         private readonly VeldridTexture colourTarget;
@@ -47,7 +47,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             }
         }
 
-        public VeldridFrameBuffer(IVeldridRenderer renderer, PixelFormat[]? formats = null, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
+        public VeldridFrameBuffer(VeldridRenderer renderer, PixelFormat[]? formats = null, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
         {
             // todo: we probably want the arguments separated to "PixelFormat[] colorFormats, PixelFormat depthFormat".
             if (formats?.Length > 1)
