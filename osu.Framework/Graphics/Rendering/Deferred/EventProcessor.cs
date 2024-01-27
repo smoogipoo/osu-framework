@@ -13,8 +13,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class EventProcessor
     {
-        private const string debug_output_path = "";
-
         private readonly DeferredRenderer deferredRenderer;
         private readonly GraphicsPipeline pipeline;
         private readonly VertexManager vertexManager;
@@ -42,7 +40,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void printEventsForDebug(EventListReader reader)
         {
-            if (string.IsNullOrEmpty(debug_output_path))
+            if (string.IsNullOrEmpty(FrameworkEnvironment.DeferredRendererEventsOutputPath))
                 return;
 
             StringBuilder builder = new StringBuilder();
@@ -87,7 +85,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 indent += Math.Max(0, indentChange);
             }
 
-            File.WriteAllText(debug_output_path, builder.ToString());
+            File.WriteAllText(FrameworkEnvironment.DeferredRendererEventsOutputPath, builder.ToString());
         }
 
         private void processUploads(EventListReader reader)
