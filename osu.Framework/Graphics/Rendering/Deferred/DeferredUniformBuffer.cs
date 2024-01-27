@@ -65,7 +65,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 new ResourceSetDescription(
                     layout,
                     new DeviceBufferRange(
-                        renderer.Context.UniformBufferManager.GetBuffer(reference),
+                        chunk.Buffer,
                         (uint)chunk.Offset,
                         (uint)chunk.Size)));
         }

@@ -5,12 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using osu.Framework.Statistics;
-using Veldrid;
 
 namespace osu.Framework.Graphics.Veldrid
 {
     internal abstract class VeldridStagingResourcePool<T>
-        where T : class, DeviceResource, IDisposable
+        where T : class, IDisposable
     {
         protected readonly VeldridDevice Device;
 

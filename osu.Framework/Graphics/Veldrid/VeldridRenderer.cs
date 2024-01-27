@@ -20,7 +20,6 @@ using osuTK.Graphics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Veldrid;
-using Texture = osu.Framework.Graphics.Textures.Texture;
 
 namespace osu.Framework.Graphics.Veldrid
 {

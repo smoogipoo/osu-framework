@@ -9,7 +9,6 @@ using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Vertices;
-using osu.Framework.Platform;
 using osu.Framework.Statistics;
 using osu.Framework.Utils;
 using Veldrid;
@@ -21,9 +20,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private const int buffer_size = 2 * 1024 * 1024; // 2MB per VBO.
 
         private readonly DeferredContext context;
-        private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
-        private readonly VeldridIndexBuffer?[] indexBuffers = new VeldridIndexBuffer?[2];
+
+        private readonly DeferredBufferPool vertexBufferPool;
+        private readonly List<PooledBuffer> inUseBuffers = new List<PooledBuffer>();
         private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
+        private readonly VeldridIndexBuffer?[] indexBuffers = new VeldridIndexBuffer?[2];
 
         private int currentBuffer;
         private int currentWriteIndex;
@@ -32,6 +33,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public VertexManager(DeferredContext context)
         {
             this.context = context;
+            vertexBufferPool = new DeferredBufferPool(context, buffer_size, BufferUsage.VertexBuffer, nameof(VertexManager));
         }
 
         public void Write(in MemoryReference primitive)
@@ -42,16 +44,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 currentWriteIndex = 0;
             }
 
-            if (currentBuffer == buffers.Count)
+            if (currentBuffer == inUseBuffers.Count)
             {
-                buffers.Add(context.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.VertexBuffer | BufferUsage.Dynamic)));
-                NativeMemoryTracker.AddMemory(this, buffer_size);
+                PooledBuffer newBuffer = vertexBufferPool.Get(context);
+
+                inUseBuffers.Add(newBuffer);
+                mappedBuffers.Add(context.Device.Map(newBuffer.Buffer, MapMode.Write));
             }
 
-            if (currentBuffer == mappedBuffers.Count)
-                mappedBuffers.Add(context.Device.Map(buffers[currentBuffer], MapMode.Write));
-
-            primitive.WriteTo(context, mappedBuffers[currentBuffer], currentWriteIndex);
+            primitive.WriteTo(context, mappedBuffers[^1], currentWriteIndex);
             currentWriteIndex += primitive.Length;
 
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);
@@ -108,7 +109,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 int countToDraw = Math.Min(remainingPrimitives * primitiveSize, Math.Min(count, indexBuffer.VertexCapacity));
 
                 // Bind the vertex buffer.
-                pipeline.SetVertexBuffer(buffers[bufferIndex], VeldridVertexUtils<T>.Layout, (uint)indexInBuffer);
+                pipeline.SetVertexBuffer(inUseBuffers[bufferIndex].Buffer, VeldridVertexUtils<T>.Layout, (uint)indexInBuffer);
                 pipeline.DrawVertices(topology.ToPrimitiveTopology(), 0, countToDraw);
 
                 currentDrawIndex += countToDraw * VeldridVertexUtils<T>.STRIDE;
@@ -118,6 +119,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
         public void Reset()
         {
+            vertexBufferPool.NewFrame();
+            inUseBuffers.Clear();
+
             currentBuffer = 0;
             currentWriteIndex = 0;
             currentDrawIndex = 0;

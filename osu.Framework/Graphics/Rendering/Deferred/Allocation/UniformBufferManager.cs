@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using osu.Framework.Platform;
 using osu.Framework.Utils;
 using Veldrid;
 
@@ -20,7 +19,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private const int buffer_chunk_size = 65536;
 
         private readonly DeferredContext context;
-        private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
+
+        private readonly DeferredBufferPool uniformBufferPool;
+        private readonly List<PooledBuffer> inUseBuffers = new List<PooledBuffer>();
         private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
 
         private int currentBuffer;
@@ -29,6 +30,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public UniformBufferManager(DeferredContext context)
         {
             this.context = context;
+            uniformBufferPool = new DeferredBufferPool(context, buffer_size, BufferUsage.UniformBuffer, nameof(UniformBufferManager));
         }
 
         public UniformBufferReference Write(in MemoryReference memory)
@@ -39,14 +41,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 currentWriteIndex = 0;
             }
 
-            if (currentBuffer == buffers.Count)
+            if (currentBuffer == inUseBuffers.Count)
             {
-                buffers.Add(context.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.UniformBuffer | BufferUsage.Dynamic)));
-                NativeMemoryTracker.AddMemory(this, buffer_size);
-            }
+                PooledBuffer newBuffer = uniformBufferPool.Get(context);
 
-            if (currentBuffer == mappedBuffers.Count)
-                mappedBuffers.Add(context.Device.Map(buffers[currentBuffer], MapMode.Write));
+                inUseBuffers.Add(newBuffer);
+                mappedBuffers.Add(context.Device.Map(newBuffer.Buffer, MapMode.Write));
+            }
 
             memory.WriteTo(context, mappedBuffers[currentBuffer], currentWriteIndex);
 
@@ -60,7 +61,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             {
                 return new UniformBufferReference(
                     new UniformBufferChunk(
-                        currentBuffer,
+                        inUseBuffers[currentBuffer].Buffer,
                         writeIndex / buffer_chunk_size * buffer_chunk_size,
                         Math.Min(buffer_chunk_size, buffer_size - writeIndex)),
                     writeIndex % buffer_chunk_size);
@@ -68,7 +69,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             return new UniformBufferReference(
                 new UniformBufferChunk(
-                    currentBuffer,
+                    inUseBuffers[currentBuffer].Buffer,
                     0,
                     buffer_size),
                 writeIndex);
@@ -82,10 +83,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             mappedBuffers.Clear();
         }
 
-        public DeviceBuffer GetBuffer(in UniformBufferReference reference) => buffers[reference.Chunk.BufferId];
-
         public void Reset()
         {
+            uniformBufferPool.NewFrame();
+            inUseBuffers.Clear();
+
             currentBuffer = 0;
             currentWriteIndex = 0;
 
@@ -93,7 +95,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         }
     }
 
-    public readonly record struct UniformBufferChunk(int BufferId, int Offset, int Size);
+    public readonly record struct UniformBufferChunk(DeviceBuffer Buffer, int Offset, int Size);
 
     public readonly record struct UniformBufferReference(UniformBufferChunk Chunk, int OffsetInChunk);
 }

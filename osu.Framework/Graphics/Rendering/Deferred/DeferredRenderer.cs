@@ -25,22 +25,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class DeferredRenderer : Renderer, IVeldridRenderer
     {
-        public readonly DeferredContext Context;
+        public VeldridDevice VeldridDevice { get; private set; } = null!;
+        public DeferredContext Context { get; private set; } = null!;
 
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
         private readonly Stack<DrawNode> drawNodeStack = new Stack<DrawNode>();
 
-        private VeldridDevice veldridDevice = null!;
-
-        public DeferredRenderer()
-        {
-            Context = new DeferredContext(this);
-        }
-
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
-            veldridDevice = new VeldridDevice(graphicsSurface);
-            MaxTextureSize = veldridDevice.MaxTextureSize;
+            VeldridDevice = new VeldridDevice(graphicsSurface);
+            Context = new DeferredContext(this);
+
+            MaxTextureSize = VeldridDevice.MaxTextureSize;
         }
 
         protected internal override void BeginFrame(Vector2 windowSize)
@@ -53,7 +49,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             Context.NewFrame();
 
-            veldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
+            VeldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
 
             base.BeginFrame(windowSize);
         }
@@ -62,9 +58,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             base.FinishFrame();
 
-            new EventProcessor(Context, veldridDevice.Graphics).ProcessEvents();
+            new EventProcessor(Context, VeldridDevice.Graphics).ProcessEvents();
 
-            veldridDevice.FinishFrame();
+            VeldridDevice.FinishFrame();
         }
 
         public ResourceReference Reference<T>(T obj) where T : class => Context.Reference(obj);
@@ -155,59 +151,59 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVeldridRenderer.UnbindShader(VeldridShader shader) => UnbindShader(shader);
 
-        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer) => veldridDevice.Graphics.AttachUniformBuffer(blockName, veldridBuffer);
+        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer) => VeldridDevice.Graphics.AttachUniformBuffer(blockName, veldridBuffer);
 
         void IVeldridRenderer.UpdateTexture<T>(Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data)
-            => veldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data);
+            => VeldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data);
 
         void IVeldridRenderer.UpdateTexture(Texture texture, int x, int y, int width, int height, int level, IntPtr data, int rowLengthInBytes)
-            => veldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
+            => VeldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
 
-        CommandList IVeldridRenderer.BufferUpdateCommands => veldridDevice.Graphics.Commands;
+        CommandList IVeldridRenderer.BufferUpdateCommands => VeldridDevice.Graphics.Commands;
 
         void IVeldridRenderer.EnqueueTextureUpload(VeldridTexture texture) => EnqueueTextureUpload(texture);
 
-        void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => veldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
+        void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => VeldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
 
         public void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer) => uniformBufferResetList.Add(veldridUniformBuffer);
 
-        public bool UseStructuredBuffers => veldridDevice.UseStructuredBuffers;
+        public bool UseStructuredBuffers => VeldridDevice.UseStructuredBuffers;
 
-        GraphicsSurfaceType IVeldridRenderer.SurfaceType => veldridDevice.SurfaceType;
+        GraphicsSurfaceType IVeldridRenderer.SurfaceType => VeldridDevice.SurfaceType;
 
-        public ResourceFactory Factory => veldridDevice.Factory;
+        public ResourceFactory Factory => VeldridDevice.Factory;
 
-        public GraphicsDevice Device => veldridDevice.Device;
+        public GraphicsDevice Device => VeldridDevice.Device;
 
         protected internal override bool VerticalSync
         {
-            get => veldridDevice.VerticalSync;
-            set => veldridDevice.VerticalSync = value;
+            get => VeldridDevice.VerticalSync;
+            set => VeldridDevice.VerticalSync = value;
         }
 
         protected internal override bool AllowTearing
         {
-            get => veldridDevice.AllowTearing;
-            set => veldridDevice.AllowTearing = value;
+            get => VeldridDevice.AllowTearing;
+            set => VeldridDevice.AllowTearing = value;
         }
 
-        public override bool IsDepthRangeZeroToOne => veldridDevice.IsDepthRangeZeroToOne;
+        public override bool IsDepthRangeZeroToOne => VeldridDevice.IsDepthRangeZeroToOne;
 
-        public override bool IsUvOriginTopLeft => veldridDevice.IsUvOriginTopLeft;
+        public override bool IsUvOriginTopLeft => VeldridDevice.IsUvOriginTopLeft;
 
-        public override bool IsClipSpaceYInverted => veldridDevice.IsClipSpaceYInverted;
+        public override bool IsClipSpaceYInverted => VeldridDevice.IsClipSpaceYInverted;
 
-        protected internal override void SwapBuffers() => veldridDevice.SwapBuffers();
+        protected internal override void SwapBuffers() => VeldridDevice.SwapBuffers();
 
-        protected internal override void WaitUntilIdle() => veldridDevice.WaitUntilIdle();
+        protected internal override void WaitUntilIdle() => VeldridDevice.WaitUntilIdle();
 
-        protected internal override void WaitUntilNextFrameReady() => veldridDevice.WaitUntilNextFrameReady();
+        protected internal override void WaitUntilNextFrameReady() => VeldridDevice.WaitUntilNextFrameReady();
 
-        protected internal override void MakeCurrent() => veldridDevice.MakeCurrent();
+        protected internal override void MakeCurrent() => VeldridDevice.MakeCurrent();
 
-        protected internal override void ClearCurrent() => veldridDevice.ClearCurrent();
+        protected internal override void ClearCurrent() => VeldridDevice.ClearCurrent();
 
-        protected internal override Image<Rgba32> TakeScreenshot() => veldridDevice.TakeScreenshot();
+        protected internal override Image<Rgba32> TakeScreenshot() => VeldridDevice.TakeScreenshot();
 
         void IRenderer.EnterDrawNode(DrawNode node)
         {
