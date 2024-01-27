@@ -20,7 +20,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
     {
         private const int buffer_size = 2 * 1024 * 1024; // 2MB per VBO.
 
-        private readonly DeferredRenderer renderer;
+        private readonly DeferredContext context;
         private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
         private readonly VeldridIndexBuffer?[] indexBuffers = new VeldridIndexBuffer?[2];
         private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
@@ -29,9 +29,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private int currentWriteIndex;
         private int currentDrawIndex;
 
-        public VertexManager(DeferredRenderer renderer)
+        public VertexManager(DeferredContext context)
         {
-            this.renderer = renderer;
+            this.context = context;
         }
 
         public void Write(in MemoryReference primitive)
@@ -44,14 +44,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             if (currentBuffer == buffers.Count)
             {
-                buffers.Add(renderer.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.VertexBuffer | BufferUsage.Dynamic)));
+                buffers.Add(context.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.VertexBuffer | BufferUsage.Dynamic)));
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
             if (currentBuffer == mappedBuffers.Count)
-                mappedBuffers.Add(renderer.Device.Map(buffers[currentBuffer], MapMode.Write));
+                mappedBuffers.Add(context.Device.Map(buffers[currentBuffer], MapMode.Write));
 
-            primitive.WriteTo(renderer, mappedBuffers[currentBuffer], currentWriteIndex);
+            primitive.WriteTo(context, mappedBuffers[currentBuffer], currentWriteIndex);
             currentWriteIndex += primitive.Length;
 
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);
@@ -60,7 +60,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public void Commit()
         {
             foreach (var b in mappedBuffers)
-                renderer.Device.Unmap(b.Resource);
+                context.Device.Unmap(b.Resource);
 
             mappedBuffers.Clear();
         }
@@ -74,8 +74,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             indexBuffer ??= indexLayout switch
             {
-                IndexLayout.Linear => new VeldridIndexBuffer(renderer, VeldridIndexLayout.Linear, IRenderer.MAX_VERTICES),
-                IndexLayout.Quad => new VeldridIndexBuffer(renderer, VeldridIndexLayout.Quad, IRenderer.MAX_QUADS * IRenderer.VERTICES_PER_QUAD),
+                IndexLayout.Linear => new VeldridIndexBuffer(context.Renderer, VeldridIndexLayout.Linear, IRenderer.MAX_VERTICES),
+                IndexLayout.Quad => new VeldridIndexBuffer(context.Renderer, VeldridIndexLayout.Quad, IRenderer.MAX_QUADS * IRenderer.VERTICES_PER_QUAD),
                 _ => throw new ArgumentOutOfRangeException(nameof(indexLayout), indexLayout, null)
             };
 

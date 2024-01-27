@@ -19,16 +19,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         /// </summary>
         private const int buffer_chunk_size = 65536;
 
-        private readonly DeferredRenderer renderer;
+        private readonly DeferredContext context;
         private readonly List<DeviceBuffer> buffers = new List<DeviceBuffer>();
         private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
 
         private int currentBuffer;
         private int currentWriteIndex;
 
-        public UniformBufferManager(DeferredRenderer renderer)
+        public UniformBufferManager(DeferredContext context)
         {
-            this.renderer = renderer;
+            this.context = context;
         }
 
         public UniformBufferReference Write(in MemoryReference memory)
@@ -41,22 +41,22 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             if (currentBuffer == buffers.Count)
             {
-                buffers.Add(renderer.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.UniformBuffer | BufferUsage.Dynamic)));
+                buffers.Add(context.Factory.CreateBuffer(new BufferDescription(buffer_size, BufferUsage.UniformBuffer | BufferUsage.Dynamic)));
                 NativeMemoryTracker.AddMemory(this, buffer_size);
             }
 
             if (currentBuffer == mappedBuffers.Count)
-                mappedBuffers.Add(renderer.Device.Map(buffers[currentBuffer], MapMode.Write));
+                mappedBuffers.Add(context.Device.Map(buffers[currentBuffer], MapMode.Write));
 
-            memory.WriteTo(renderer, mappedBuffers[currentBuffer], currentWriteIndex);
+            memory.WriteTo(context, mappedBuffers[currentBuffer], currentWriteIndex);
 
-            int alignment = (int)renderer.Device.UniformBufferMinOffsetAlignment;
+            int alignment = (int)context.Device.UniformBufferMinOffsetAlignment;
             int alignedLength = MathUtils.DivideRoundUp(memory.Length, alignment) * alignment;
 
             int writeIndex = currentWriteIndex;
             currentWriteIndex += alignedLength;
 
-            if (renderer.Device.Features.BufferRangeBinding)
+            if (context.Device.Features.BufferRangeBinding)
             {
                 return new UniformBufferReference(
                     new UniformBufferChunk(
@@ -77,7 +77,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public void Commit()
         {
             foreach (var b in mappedBuffers)
-                renderer.Device.Unmap(b.Resource);
+                context.Device.Unmap(b.Resource);
 
             mappedBuffers.Clear();
         }

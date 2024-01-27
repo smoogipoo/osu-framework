@@ -9,24 +9,21 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal readonly record struct MemoryReference(int BufferId, int Index, int Length)
     {
-        public Span<byte> GetRegion(DeferredRenderer renderer)
-            => renderer.GetRegion(this);
-
-        public void WriteTo(DeferredRenderer renderer, MappedResource target, int offsetInTarget)
+        public void WriteTo(DeferredContext context, MappedResource target, int offsetInTarget)
         {
             ThreadSafety.EnsureDrawThread();
 
             unsafe
             {
                 Span<byte> targetSpan = new Span<byte>(target.Data.ToPointer(), (int)target.SizeInBytes);
-                GetRegion(renderer).CopyTo(targetSpan[offsetInTarget..]);
+                context.GetRegion(this).CopyTo(targetSpan[offsetInTarget..]);
             }
         }
 
-        public void WriteTo(DeferredRenderer renderer, DeviceBuffer target, int offsetInTarget)
+        public void WriteTo(DeferredContext context, DeviceBuffer target, int offsetInTarget)
         {
             ThreadSafety.EnsureDrawThread();
-            renderer.Device.UpdateBuffer(target, (uint)offsetInTarget, GetRegion(renderer));
+            context.Device.UpdateBuffer(target, (uint)offsetInTarget, context.GetRegion(this));
         }
     }
 }

@@ -21,7 +21,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         where TData : unmanaged, IEquatable<TData>
     {
         private readonly DeferredRenderer renderer;
-        private readonly UniformBufferManager uniformBufferManager;
 
         private readonly List<UniformBufferReference> dataOffsets = new List<UniformBufferReference>();
         private int currentOffsetIndex = -1;
@@ -29,10 +28,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private readonly Dictionary<UniformBufferChunk, ResourceSet> resourceSets = new Dictionary<UniformBufferChunk, ResourceSet>();
 
-        public DeferredUniformBuffer(DeferredRenderer renderer, UniformBufferManager uniformBufferManager)
+        public DeferredUniformBuffer(DeferredRenderer renderer)
         {
             this.renderer = renderer;
-            this.uniformBufferManager = uniformBufferManager;
         }
 
         TData IUniformBuffer<TData>.Data
@@ -50,7 +48,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         }
 
         public void Write(in MemoryReference memory)
-            => dataOffsets.Add(uniformBufferManager.Write(memory));
+            => dataOffsets.Add(renderer.Context.UniformBufferManager.Write(memory));
 
         public void MoveNext()
             => currentOffsetIndex++;
@@ -67,7 +65,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 new ResourceSetDescription(
                     layout,
                     new DeviceBufferRange(
-                        uniformBufferManager.GetBuffer(reference),
+                        renderer.Context.UniformBufferManager.GetBuffer(reference),
                         (uint)chunk.Offset,
                         (uint)chunk.Size)));
         }

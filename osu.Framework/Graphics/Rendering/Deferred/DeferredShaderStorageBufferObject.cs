@@ -51,7 +51,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        public void Write(int index, MemoryReference memory) => memory.WriteTo(renderer, buffer, index * elementSize);
+        public void Write(int index, MemoryReference memory)
+            => memory.WriteTo(renderer.Context, buffer, index * elementSize);
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
             => renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));

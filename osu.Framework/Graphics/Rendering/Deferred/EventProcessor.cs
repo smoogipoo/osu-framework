@@ -4,44 +4,36 @@
 using System;
 using System.IO;
 using System.Text;
-using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Textures;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    internal class EventProcessor
+    internal readonly ref struct EventProcessor
     {
-        private readonly DeferredRenderer deferredRenderer;
+        private readonly DeferredContext context;
         private readonly GraphicsPipeline pipeline;
-        private readonly VertexManager vertexManager;
-        private readonly UniformBufferManager uniformBufferManager;
 
-        public EventProcessor(DeferredRenderer deferredRenderer, GraphicsPipeline pipeline, VertexManager vertexManager, UniformBufferManager uniformBufferManager)
+        public EventProcessor(DeferredContext context, GraphicsPipeline pipeline)
         {
-            this.deferredRenderer = deferredRenderer;
+            this.context = context;
             this.pipeline = pipeline;
-            this.vertexManager = vertexManager;
-            this.uniformBufferManager = uniformBufferManager;
         }
 
-        public void ProcessEvents(EventListReader reader)
+        public void ProcessEvents()
         {
-            printEventsForDebug(reader);
-            reader.Reset();
-
-            processUploads(reader);
-            reader.Reset();
-
-            processEvents(reader);
-            reader.Reset();
+            printEventsForDebug();
+            processUploads();
+            processEvents();
         }
 
-        private void printEventsForDebug(EventListReader reader)
+        private void printEventsForDebug()
         {
             if (string.IsNullOrEmpty(FrameworkEnvironment.DeferredRendererEventsOutputPath))
                 return;
+
+            EventListReader reader = context.RenderEvents.CreateReader();
 
             StringBuilder builder = new StringBuilder();
             int indent = 0;
@@ -57,7 +49,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     {
                         ref DrawNodeActionEvent e = ref reader.Current<DrawNodeActionEvent>();
 
-                        info = $"DrawNode.{e.Action} ({e.DrawNode.Dereference<DrawNode>(deferredRenderer)})";
+                        info = $"DrawNode.{e.Action} ({context.Dereference<DrawNode>(e.DrawNode)})";
 
                         switch (e.Action)
                         {
@@ -88,8 +80,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             File.WriteAllText(FrameworkEnvironment.DeferredRendererEventsOutputPath, builder.ToString());
         }
 
-        private void processUploads(EventListReader reader)
+        private void processUploads()
         {
+            EventListReader reader = context.RenderEvents.CreateReader();
+
             while (reader.Next())
             {
                 switch (reader.CurrentType())
@@ -97,7 +91,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     case RenderEventType.AddPrimitiveToBatch:
                     {
                         ref AddPrimitiveToBatchEvent e = ref reader.Current<AddPrimitiveToBatchEvent>();
-                        IDeferredVertexBatch batch = e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer);
+                        IDeferredVertexBatch batch = context.Dereference<IDeferredVertexBatch>(e.VertexBatch);
                         batch.Write(e.Memory);
                         break;
                     }
@@ -105,7 +99,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     case RenderEventType.SetUniformBufferData:
                     {
                         ref SetUniformBufferDataEvent e = ref reader.Current<SetUniformBufferDataEvent>();
-                        IDeferredUniformBuffer buffer = e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer);
+                        IDeferredUniformBuffer buffer = context.Dereference<IDeferredUniformBuffer>(e.Buffer);
                         buffer.Write(e.Memory);
                         break;
                     }
@@ -113,19 +107,21 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     case RenderEventType.SetShaderStorageBufferObjectData:
                     {
                         ref SetShaderStorageBufferObjectDataEvent e = ref reader.Current<SetShaderStorageBufferObjectDataEvent>();
-                        IDeferredShaderStorageBufferObject buffer = e.Buffer.Dereference<IDeferredShaderStorageBufferObject>(deferredRenderer);
+                        IDeferredShaderStorageBufferObject buffer = context.Dereference<IDeferredShaderStorageBufferObject>(e.Buffer);
                         buffer.Write(e.Index, e.Memory);
                         break;
                     }
                 }
             }
 
-            vertexManager.Commit();
-            uniformBufferManager.Commit();
+            context.VertexManager.Commit();
+            context.UniformBufferManager.Commit();
         }
 
-        private void processEvents(EventListReader reader)
+        private void processEvents()
         {
+            EventListReader reader = context.RenderEvents.CreateReader();
+
             while (reader.Next())
             {
                 switch (reader.CurrentType())
@@ -197,21 +193,21 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer));
+        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(context.Dereference<DeferredFrameBuffer>(e.FrameBuffer));
 
         private void processEvent(in UnsetFrameBufferEvent _) => pipeline.SetFrameBuffer(null);
 
-        private void processEvent(in ResizeFrameBufferEvent e) => e.FrameBuffer.Dereference<DeferredFrameBuffer>(deferredRenderer).Resize(e.Size);
+        private void processEvent(in ResizeFrameBufferEvent e) => context.Dereference<DeferredFrameBuffer>(e.FrameBuffer).Resize(e.Size);
 
-        private void processEvent(in SetShaderEvent e) => pipeline.SetShader(e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource);
+        private void processEvent(in SetShaderEvent e) => pipeline.SetShader(context.Dereference<DeferredShader>(e.Shader).Resource);
 
-        private void processEvent(in SetTextureEvent e) => pipeline.AttachTexture(e.Unit, e.Texture.Dereference<IVeldridTexture>(deferredRenderer));
+        private void processEvent(in SetTextureEvent e) => pipeline.AttachTexture(e.Unit, context.Dereference<IVeldridTexture>(e.Texture));
 
         private void processEvent(in BindUniformBlockEvent e)
         {
-            e.Shader.Dereference<DeferredShader>(deferredRenderer).Resource.BindUniformBlock(
-                e.Name.Dereference<string>(deferredRenderer),
-                e.Buffer.Dereference<IUniformBuffer>(deferredRenderer));
+            context.Dereference<DeferredShader>(e.Shader).Resource.BindUniformBlock(
+                context.Dereference<string>(e.Name),
+                context.Dereference<IUniformBuffer>(e.Buffer));
         }
 
         private void processEvent(in ClearEvent e) => pipeline.Clear(e.Info);
@@ -230,8 +226,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(in SetBlendMaskEvent e) => pipeline.SetBlendMask(e.Mask);
 
-        private void processEvent(in SetUniformBufferDataEvent e) => e.Buffer.Dereference<IDeferredUniformBuffer>(deferredRenderer).MoveNext();
+        private void processEvent(in SetUniformBufferDataEvent e) => context.Dereference<IDeferredUniformBuffer>(e.Buffer).MoveNext();
 
-        private void processEvent(in FlushEvent e) => e.VertexBatch.Dereference<IDeferredVertexBatch>(deferredRenderer).Draw(pipeline, e.VertexCount);
+        private void processEvent(in FlushEvent e) => context.Dereference<IDeferredVertexBatch>(e.VertexBatch).Draw(pipeline, e.VertexCount);
     }
 }

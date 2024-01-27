@@ -25,55 +25,21 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal class DeferredRenderer : Renderer, IVeldridRenderer
     {
-        private readonly ResourceAllocator allocator;
-        private readonly EventList renderEvents;
-        private readonly VertexManager vertexManager;
-        private readonly UniformBufferManager uniformBufferManager;
-
-        public ResourceReference Reference<T>(T obj)
-            where T : class
-            => allocator.Reference(obj);
-
-        public object Dereference(ResourceReference reference)
-            => allocator.Dereference(reference);
-
-        public MemoryReference AllocateObject<T>(T data)
-            where T : unmanaged
-            => allocator.AllocateObject(data);
-
-        public MemoryReference AllocateRegion<T>(ReadOnlySpan<T> data)
-            where T : unmanaged
-            => allocator.AllocateRegion(data);
-
-        public MemoryReference AllocateRegion(int length)
-            => allocator.AllocateRegion(length);
-
-        public Span<byte> GetRegion(MemoryReference reference)
-            => allocator.GetRegion(reference);
-
-        public void EnqueueEvent<T>(in T @event)
-            where T : unmanaged, IRenderEvent
-            => renderEvents.Enqueue(@event);
+        public readonly DeferredContext Context;
 
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
         private readonly Stack<DrawNode> drawNodeStack = new Stack<DrawNode>();
 
-        private EventProcessor processor = null!;
         private VeldridDevice veldridDevice = null!;
 
         public DeferredRenderer()
         {
-            allocator = new ResourceAllocator();
-            renderEvents = new EventList(allocator);
-            vertexManager = new VertexManager(this);
-            uniformBufferManager = new UniformBufferManager(this);
+            Context = new DeferredContext(this);
         }
 
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             veldridDevice = new VeldridDevice(graphicsSurface);
-            processor = new EventProcessor(this, veldridDevice.Graphics, vertexManager, uniformBufferManager);
-
             MaxTextureSize = veldridDevice.MaxTextureSize;
         }
 
@@ -81,13 +47,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             foreach (var ubo in uniformBufferResetList)
                 ubo.ResetCounters();
-            uniformBufferResetList.Clear();
 
-            allocator.Reset();
-            renderEvents.Reset();
-            vertexManager.Reset();
-            uniformBufferManager.Reset();
+            uniformBufferResetList.Clear();
             drawNodeStack.Clear();
+
+            Context.NewFrame();
 
             veldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
 
@@ -98,10 +62,24 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             base.FinishFrame();
 
-            processor.ProcessEvents(renderEvents.CreateReader());
+            new EventProcessor(Context, veldridDevice.Graphics).ProcessEvents();
 
             veldridDevice.FinishFrame();
         }
+
+        public ResourceReference Reference<T>(T obj) where T : class => Context.Reference(obj);
+
+        public object Dereference(ResourceReference reference) => Context.Dereference(reference);
+
+        public MemoryReference AllocateObject<T>(T data) where T : unmanaged => Context.AllocateObject(data);
+
+        public MemoryReference AllocateRegion<T>(ReadOnlySpan<T> data) where T : unmanaged => Context.AllocateRegion(data);
+
+        public MemoryReference AllocateRegion(int length) => Context.AllocateRegion(length);
+
+        public Span<byte> GetRegion(MemoryReference reference) => Context.GetRegion(reference);
+
+        public void EnqueueEvent<T>(in T renderEvent) where T : unmanaged, IRenderEvent => Context.EnqueueEvent(renderEvent);
 
         protected override bool SetTextureImplementation(INativeTexture? texture, int unit)
         {
@@ -162,13 +140,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => new VeldridVideoTexture(this, width, height);
 
         protected override IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
-            => new DeferredVertexBatch<TVertex>(this, vertexManager, topology, IndexLayout.Linear);
+            => new DeferredVertexBatch<TVertex>(this, topology, IndexLayout.Linear);
 
         protected override IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers)
-            => new DeferredVertexBatch<TVertex>(this, vertexManager, PrimitiveTopology.Triangles, IndexLayout.Quad);
+            => new DeferredVertexBatch<TVertex>(this, PrimitiveTopology.Triangles, IndexLayout.Quad);
 
         protected override IUniformBuffer<TData> CreateUniformBuffer<TData>()
-            => new DeferredUniformBuffer<TData>(this, uniformBufferManager);
+            => new DeferredUniformBuffer<TData>(this);
 
         protected override IShaderStorageBufferObject<TData> CreateShaderStorageBufferObject<TData>(int uboSize, int ssboSize)
             => new DeferredShaderStorageBufferObject<TData>(this, ssboSize);

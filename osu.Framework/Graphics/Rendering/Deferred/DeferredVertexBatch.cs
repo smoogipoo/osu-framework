@@ -26,18 +26,15 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public Action<TVertex> AddAction { get; }
 
         private readonly DeferredRenderer renderer;
-        private readonly VertexManager vertexManager;
-
         private readonly PrimitiveTopology topology;
         private readonly IndexLayout indexLayout;
         private readonly int primitiveSize;
 
         private int currentDrawCount;
 
-        public DeferredVertexBatch(DeferredRenderer renderer, VertexManager vertexManager, PrimitiveTopology topology, IndexLayout indexLayout)
+        public DeferredVertexBatch(DeferredRenderer renderer, PrimitiveTopology topology, IndexLayout indexLayout)
         {
             this.renderer = renderer;
-            this.vertexManager = vertexManager;
 
             this.topology = topology;
             this.indexLayout = indexLayout;
@@ -60,9 +57,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public void Write(in MemoryReference primitive) => vertexManager.Write(primitive);
+        public void Write(in MemoryReference primitive)
+            => renderer.Context.VertexManager.Write(primitive);
 
-        public void Draw(GraphicsPipeline pipeline, int count) => vertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
+        public void Draw(GraphicsPipeline pipeline, int count)
+            => renderer.Context.VertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
 
         int IVertexBatch.Size => int.MaxValue;
 
