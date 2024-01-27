@@ -55,8 +55,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         ResourceSet IVeldridUniformBuffer.GetResourceSet(ResourceLayout layout)
         {
-            UniformBufferReference reference = dataOffsets[currentOffsetIndex];
-            UniformBufferChunk chunk = reference.Chunk;
+            UniformBufferChunk chunk = dataOffsets[currentOffsetIndex].Chunk;
 
             if (resourceSets.TryGetValue(chunk, out ResourceSet? existing))
                 return existing;
@@ -74,14 +73,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVeldridUniformBuffer.ResetCounters()
         {
+            foreach ((_, ResourceSet set) in resourceSets)
+                set.Dispose();
+
+            resourceSets.Clear();
             dataOffsets.Clear();
+
             currentOffsetIndex = -1;
             data = default;
         }
 
         public void Dispose()
         {
-            // Todo:
         }
     }
 }
