@@ -135,6 +135,9 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
 
         public void SetIndexBuffer(VeldridIndexBuffer indexBuffer)
         {
+            if (currentIndexBuffer == indexBuffer)
+                return;
+
             currentIndexBuffer = indexBuffer;
             Commands.SetIndexBuffer(indexBuffer.Buffer, VeldridIndexBuffer.FORMAT);
         }
