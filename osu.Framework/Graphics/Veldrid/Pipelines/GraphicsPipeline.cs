@@ -35,6 +35,9 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
         private VeldridShader? currentShader;
         private VeldridIndexBuffer? currentIndexBuffer;
 
+        private DeviceBuffer? currentVertexBuffer;
+        private VertexLayoutDescription currentVertexLayout;
+
         public GraphicsPipeline(VeldridDevice device)
             : base(device)
         {
@@ -50,6 +53,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             currentFrameBuffer = null;
             currentShader = null;
             currentIndexBuffer = null;
+            currentVertexBuffer = null;
         }
 
         public void Clear(ClearInfo clearInfo)
@@ -125,12 +129,18 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             pipelineDesc.Outputs = fb.OutputDescription;
         }
 
-        public void SetVertexBuffer(DeviceBuffer buffer, VertexLayoutDescription layout, uint offsetInBuffer = 0)
+        public void SetVertexBuffer(DeviceBuffer buffer, VertexLayoutDescription layout)
         {
-            Commands.SetVertexBuffer(0, buffer, offsetInBuffer);
+            if (buffer == currentVertexBuffer && layout.Equals(currentVertexLayout))
+                return;
+
+            Commands.SetVertexBuffer(0, buffer);
             pipelineDesc.ShaderSet.VertexLayouts[0] = layout;
 
             FrameStatistics.Increment(StatisticsCounterType.VBufBinds);
+
+            currentVertexBuffer = buffer;
+            currentVertexLayout = layout;
         }
 
         public void SetIndexBuffer(VeldridIndexBuffer indexBuffer)
@@ -155,7 +165,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             attachedUniformBuffers[name] = buffer;
         }
 
-        public void DrawVertices(global::Veldrid.PrimitiveTopology topology, int vertexStart, int verticesCount)
+        public void DrawVertices(global::Veldrid.PrimitiveTopology topology, int vertexStart, int verticesCount, int vertexOffset = 0)
         {
             if (currentShader == null)
                 throw new InvalidOperationException("No shader bound.");
@@ -212,7 +222,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
 
             int indexStart = currentIndexBuffer.TranslateToIndex(vertexStart);
             int indicesCount = currentIndexBuffer.TranslateToIndex(verticesCount);
-            Commands.DrawIndexed((uint)indicesCount, 1, (uint)indexStart, 0, 0);
+            Commands.DrawIndexed((uint)indicesCount, 1, (uint)indexStart, vertexOffset, 0);
 
             FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
             FrameStatistics.Add(StatisticsCounterType.VerticesDraw, verticesCount);

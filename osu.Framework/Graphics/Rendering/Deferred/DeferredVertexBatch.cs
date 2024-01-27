@@ -58,7 +58,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         }
 
         public void Write(in MemoryReference primitive)
-            => renderer.Context.VertexManager.Write(primitive);
+            => renderer.Context.VertexManager.Write<TVertex>(primitive);
 
         public void Draw(GraphicsPipeline pipeline, int count)
             => renderer.Context.VertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
