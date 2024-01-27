@@ -25,16 +25,16 @@ namespace osu.Framework.Configuration
         [Description("OpenGL (Legacy)")]
         OpenGLLegacy,
 
-        [Description("Deferred (Metal)")]
+        [Description("Metal (Experimental)")]
         Deferred_Metal,
 
-        [Description("Deferred (Vulkan)")]
+        [Description("Vulkan (Experimental)")]
         Deferred_Vulkan,
 
-        [Description("Deferred (Direct3D 11)")]
+        [Description("Direct3D 11 (Experimental)")]
         Deferred_Direct3D11,
 
-        [Description("Deferred (OpenGL)")]
+        [Description("OpenGL (Experimental)")]
         Deferred_OpenGL
     }
 }
