@@ -67,6 +67,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public object Dereference(ResourceReference reference) => Context.Dereference(reference);
 
+        public ResourceReference NullReference() => Context.NullReference();
+
         public MemoryReference AllocateObject<T>(T data) where T : unmanaged => Context.AllocateObject(data);
 
         public MemoryReference AllocateRegion<T>(ReadOnlySpan<T> data) where T : unmanaged => Context.AllocateRegion(data);
@@ -86,13 +88,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             return true;
         }
 
-        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
-        {
-            if (frameBuffer == null)
-                EnqueueEvent(new UnsetFrameBufferEvent());
-            else
-                EnqueueEvent(new SetFrameBufferEvent(Reference(frameBuffer)));
-        }
+        protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer) => EnqueueEvent(new SetFrameBufferEvent(frameBuffer == null ? NullReference() : Reference(frameBuffer)));
 
         public override void DrawVerticesImplementation(PrimitiveTopology type, int vertexStart, int verticesCount)
         {

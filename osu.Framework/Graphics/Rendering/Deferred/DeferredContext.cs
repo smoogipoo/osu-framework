@@ -42,6 +42,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public T Dereference<T>(ResourceReference reference) => (T)Allocator.Dereference(reference);
 
+        public ResourceReference NullReference() => Allocator.NullReference();
+
         public MemoryReference AllocateObject<T>(T data) where T : unmanaged => Allocator.AllocateObject(data);
 
         public MemoryReference AllocateRegion<T>(ReadOnlySpan<T> data) where T : unmanaged => Allocator.AllocateRegion(data);

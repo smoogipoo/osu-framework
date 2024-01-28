@@ -130,10 +130,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<SetFrameBufferEvent>());
                         break;
 
-                    case RenderEventType.UnsetFrameBuffer:
-                        processEvent(reader.Current<UnsetFrameBufferEvent>());
-                        break;
-
                     case RenderEventType.ResizeFrameBuffer:
                         processEvent(reader.Current<ResizeFrameBufferEvent>());
                         break;
@@ -193,9 +189,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(context.Dereference<DeferredFrameBuffer>(e.FrameBuffer));
-
-        private void processEvent(in UnsetFrameBufferEvent _) => pipeline.SetFrameBuffer(null);
+        private void processEvent(in SetFrameBufferEvent e) => pipeline.SetFrameBuffer(context.Dereference<DeferredFrameBuffer?>(e.FrameBuffer));
 
         private void processEvent(in ResizeFrameBufferEvent e) => context.Dereference<DeferredFrameBuffer>(e.FrameBuffer).Resize(e.Size);
 

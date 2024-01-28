@@ -27,6 +27,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             resources.Clear();
             memoryBuffers.Clear();
+
+            // Special value used by NullReference().
+            resources.Add(null!);
         }
 
         public ResourceReference Reference<T>(T obj)
@@ -44,6 +47,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             return resources[reference.Id];
         }
+
+        public ResourceReference NullReference() => new ResourceReference(0);
 
         public MemoryReference AllocateObject<T>(T data)
             where T : unmanaged
