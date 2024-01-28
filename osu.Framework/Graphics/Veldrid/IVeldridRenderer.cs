@@ -30,7 +30,7 @@ namespace osu.Framework.Graphics.Veldrid
 
         void UnbindShader(VeldridShader shader);
 
-        void BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer);
+        void BindUniformBuffer(string blockName, IUniformBuffer buffer);
 
         /// <summary>
         /// Updates a <see cref="global::Veldrid.Texture"/> with a <paramref name="data"/> at the specified coordinates.

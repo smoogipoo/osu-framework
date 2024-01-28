@@ -90,6 +90,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer) => EnqueueEvent(new SetFrameBufferEvent(frameBuffer == null ? NullReference() : Reference(frameBuffer)));
 
+        protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer) => EnqueueEvent(new SetUniformBufferEvent(Reference(blockName), Reference(buffer)));
+
         public override void DrawVerticesImplementation(PrimitiveTopology type, int vertexStart, int verticesCount)
         {
             // Handled by the batch...
@@ -146,8 +148,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         void IVeldridRenderer.BindShader(VeldridShader shader) => BindShader(shader);
 
         void IVeldridRenderer.UnbindShader(VeldridShader shader) => UnbindShader(shader);
-
-        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer) => VeldridDevice.Graphics.AttachUniformBuffer(blockName, veldridBuffer);
 
         void IVeldridRenderer.UpdateTexture<T>(Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data)
             => VeldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data);

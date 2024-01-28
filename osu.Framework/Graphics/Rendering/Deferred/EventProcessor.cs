@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Text;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Textures;
 
@@ -142,8 +143,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<SetTextureEvent>());
                         break;
 
-                    case RenderEventType.BindUniformBlock:
-                        processEvent(reader.Current<BindUniformBlockEvent>());
+                    case RenderEventType.SetUniformBuffer:
+                        processEvent(reader.Current<SetUniformBufferEvent>());
                         break;
 
                     case RenderEventType.Clear:
@@ -197,12 +198,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(in SetTextureEvent e) => pipeline.AttachTexture(e.Unit, context.Dereference<IVeldridTexture>(e.Texture));
 
-        private void processEvent(in BindUniformBlockEvent e)
-        {
-            context.Dereference<DeferredShader>(e.Shader).Resource.BindUniformBlock(
-                context.Dereference<string>(e.Name),
-                context.Dereference<IUniformBuffer>(e.Buffer));
-        }
+        private void processEvent(in SetUniformBufferEvent e) => pipeline.AttachUniformBuffer(context.Dereference<string>(e.Name), context.Dereference<IVeldridUniformBuffer>(e.Buffer));
 
         private void processEvent(in ClearEvent e) => pipeline.Clear(e.Info);
 

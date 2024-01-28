@@ -143,6 +143,9 @@ namespace osu.Framework.Graphics.Veldrid
         protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
             => veldridDevice.Graphics.SetFrameBuffer((VeldridFrameBuffer?)frameBuffer);
 
+        protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer)
+            => veldridDevice.Graphics.AttachUniformBuffer(blockName, (IVeldridUniformBuffer)buffer);
+
         public void BindVertexBuffer(IVeldridVertexBuffer buffer, VertexLayoutDescription layout)
             => veldridDevice.Graphics.SetVertexBuffer(buffer.Buffer, layout);
 
@@ -284,9 +287,6 @@ namespace osu.Framework.Graphics.Veldrid
 
         void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture)
             => veldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
-
-        void IVeldridRenderer.BindUniformBuffer(string blockName, IVeldridUniformBuffer veldridBuffer)
-            => veldridDevice.Graphics.AttachUniformBuffer(blockName, veldridBuffer);
 
         /// <summary>
         /// Checks whether the given frame buffer is currently bound.

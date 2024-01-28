@@ -269,14 +269,7 @@ namespace osu.Framework.Graphics.OpenGL
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
         }
 
-        public void BindUniformBuffer(string blockName, IGLUniformBuffer glBuffer)
-        {
-            if (boundUniformBuffers.TryGetValue(blockName, out IGLUniformBuffer? current) && current == glBuffer)
-                return;
-
-            FlushCurrentBatch(FlushBatchSource.BindBuffer);
-            boundUniformBuffers[blockName] = glBuffer;
-        }
+        protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer) => boundUniformBuffers[blockName] = (IGLUniformBuffer)buffer;
 
         public override void DrawVerticesImplementation(PrimitiveTopology type, int vertexStart, int verticesCount)
         {
