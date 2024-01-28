@@ -47,7 +47,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public Uniform<T> GetUniform<T>(string name)
             where T : unmanaged, IEquatable<T>
-            => new DeferredUniform<T>(renderer, this, Resource.GetUniform<T>(name));
+            => throw new NotSupportedException();
 
         public void BindUniformBlock(string blockName, IUniformBuffer buffer)
             => renderer.BindUniformBuffer(blockName, buffer);
