@@ -3,7 +3,6 @@
 
 using System;
 using osu.Framework.Graphics.Rendering;
-using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Shaders;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Platform;
@@ -61,7 +60,5 @@ namespace osu.Framework.Graphics.Veldrid
         void EnqueueTextureUpload(VeldridTexture texture);
 
         void GenerateMipmaps(VeldridTexture texture);
-
-        void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer);
     }
 }

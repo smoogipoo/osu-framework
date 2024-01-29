@@ -301,7 +301,7 @@ namespace osu.Framework.Graphics.Veldrid
         void IVeldridRenderer.UnbindShader(VeldridShader shader)
             => base.UnbindShader(shader);
 
-        void IVeldridRenderer.RegisterUniformBufferForReset(IVeldridUniformBuffer buffer)
+        public void RegisterUniformBufferForReset(IVeldridUniformBuffer buffer)
             => uniformBufferResetList.Add(buffer);
 
         #endregion

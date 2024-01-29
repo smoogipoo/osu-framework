@@ -35,9 +35,9 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         private bool hasPendingData;
         private TData data;
 
-        private readonly IVeldridRenderer renderer;
+        private readonly VeldridRenderer renderer;
 
-        public VeldridUniformBuffer(IVeldridRenderer renderer)
+        public VeldridUniformBuffer(VeldridRenderer renderer)
         {
             this.renderer = renderer;
             storages.Add(new VeldridUniformBufferStorage<TData>(this.renderer));

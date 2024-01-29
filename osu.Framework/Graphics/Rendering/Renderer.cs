@@ -315,7 +315,7 @@ namespace osu.Framework.Graphics.Rendering
                 expensiveOperationQueue.Enqueue(operation);
         }
 
-        public void ScheduleDisposal<T>(Action<T> disposalAction, T target) where T : class
+        public void ScheduleDisposal<T>(Action<T> disposalAction, T target)
         {
             if (IsInitialised)
                 disposalQueue.ScheduleDisposal(disposalAction, target);

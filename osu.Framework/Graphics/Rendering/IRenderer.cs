@@ -343,7 +343,7 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         /// <param name="disposalAction">The disposal action.</param>
         /// <param name="target">The target to be disposed.</param>
-        void ScheduleDisposal<T>(Action<T> disposalAction, T target) where T : class;
+        void ScheduleDisposal<T>(Action<T> disposalAction, T target);
 
         /// <summary>
         /// Returns an image containing the current content of the backbuffer, i.e. takes a screenshot.
