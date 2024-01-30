@@ -11,18 +11,32 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 {
     internal class UniformBufferManager
     {
-        private const int buffer_size = 1024 * 1024; // 1MB per UBO (these are pretty small).
-
         /// <summary>
-        /// The UBO is split and bound in 65K chunks, which is the maximum supported by D3D11.
+        /// For renderers which support binding buffer ranges, the buffer is split and bound in 64KiB chunks.
+        /// This is a sane value which is supported by all renderers:
+        /// - D3D11: https://learn.microsoft.com/en-us/windows/win32/api/d3d11_1/nf-d3d11_1-id3d11devicecontext1-vssetconstantbuffers1
+        ///   Supports 4096 constants, where a "constant" is a float4.
+        /// - Metal: https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+        ///   Supports 65536 constants, where a "constant" is a type. We'll assume float.
+        /// - OpenGL: Does not explicitly define a limit.
+        ///   The minimum block size defined by the standard is 16KiB, but this is based on the shader's definition rather than bind size.
         /// </summary>
         private const int buffer_chunk_size = 65536;
 
-        private readonly DeferredContext context;
+        /// <summary>
+        /// The size of a single buffer, if the renderer supports binding buffer ranges.
+        /// </summary>
+        private const int max_buffer_size = 1024 * 1024;
 
+        private readonly DeferredContext context;
         private readonly DeferredBufferPool uniformBufferPool;
         private readonly List<PooledBuffer> inUseBuffers = new List<PooledBuffer>();
         private readonly List<MappedResource> mappedBuffers = new List<MappedResource>();
+
+        /// <summary>
+        /// The maximum size of a single buffer.
+        /// </summary>
+        private readonly int bufferSize;
 
         private int currentBuffer;
         private int currentWriteIndex;
@@ -30,12 +44,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public UniformBufferManager(DeferredContext context)
         {
             this.context = context;
-            uniformBufferPool = new DeferredBufferPool(context, buffer_size, BufferUsage.UniformBuffer, nameof(UniformBufferManager));
+
+            bufferSize = context.Device.Features.BufferRangeBinding ? max_buffer_size : buffer_chunk_size;
+            uniformBufferPool = new DeferredBufferPool(context, (uint)bufferSize, BufferUsage.UniformBuffer, nameof(UniformBufferManager));
         }
 
         public UniformBufferReference Write(in MemoryReference memory)
         {
-            if (currentWriteIndex + memory.Length > buffer_size)
+            if (currentWriteIndex + memory.Length > bufferSize)
             {
                 currentBuffer++;
                 currentWriteIndex = 0;
@@ -63,7 +79,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                     new UniformBufferChunk(
                         inUseBuffers[currentBuffer].Buffer,
                         writeIndex / buffer_chunk_size * buffer_chunk_size,
-                        Math.Min(buffer_chunk_size, buffer_size - writeIndex)),
+                        Math.Min(buffer_chunk_size, bufferSize - writeIndex)),
                     writeIndex % buffer_chunk_size);
             }
 
@@ -71,7 +87,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 new UniformBufferChunk(
                     inUseBuffers[currentBuffer].Buffer,
                     0,
-                    buffer_size),
+                    bufferSize),
                 writeIndex);
         }
 
