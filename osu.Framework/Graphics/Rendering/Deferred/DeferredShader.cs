@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Veldrid.Shaders;
 
