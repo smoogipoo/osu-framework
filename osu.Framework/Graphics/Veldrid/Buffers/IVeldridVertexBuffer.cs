@@ -4,18 +4,12 @@
 using System;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
-using osu.Framework.Graphics.Veldrid.Vertices;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Veldrid.Buffers
 {
-    internal interface IVeldridVertexBuffer<in T> : IVertexBuffer, IDisposable
-        where T : unmanaged, IEquatable<T>, IVertex
+    internal interface IVeldridVertexBuffer : IVertexBuffer, IDisposable
     {
-        protected static readonly int STRIDE = VeldridVertexUtils<T>.STRIDE;
-
-        public static readonly VertexLayoutDescription LAYOUT = VeldridVertexUtils<T>.Layout;
-
         /// <summary>
         /// Gets the number of vertices in this <see cref="IVeldridVertexBuffer{T}"/>.
         /// </summary>
@@ -25,7 +19,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// The underlying <see cref="DeviceBuffer"/> to bind for drawing.
         /// </summary>
         DeviceBuffer Buffer { get; }
+    }
 
+    internal interface IVeldridVertexBuffer<in T> : IVeldridVertexBuffer
+        where T : unmanaged, IEquatable<T>, IVertex
+    {
         /// <summary>
         /// Sets the vertex at a specific index of this <see cref="VeldridVertexBuffer{T}"/>.
         /// </summary>

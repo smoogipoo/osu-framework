@@ -60,6 +60,7 @@ namespace osu.Framework.Threading
             StatisticsCounterType.VerticesDraw,
             StatisticsCounterType.VerticesUpl,
             StatisticsCounterType.UniformUpl,
+            StatisticsCounterType.UniformDup,
             StatisticsCounterType.Pixels,
         };
     }

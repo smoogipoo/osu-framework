@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Vertices;
 using osu.Framework.Platform;
 using osu.Framework.Statistics;
-using PrimitiveTopology = Veldrid.PrimitiveTopology;
 
 namespace osu.Framework.Graphics.Veldrid.Batches
 {
@@ -156,15 +156,12 @@ namespace osu.Framework.Graphics.Veldrid.Batches
             if (synchronisationBeginIndex >= 0)
                 buffer.UpdateRange(synchronisationBeginIndex, synchronisationEndIndex);
 
-            renderer.BindVertexBuffer(buffer);
+            renderer.BindVertexBuffer(buffer, VeldridVertexUtils<T>.Layout);
             renderer.BindIndexBuffer(indexLayout, Size);
             renderer.DrawVertices(primitiveType, drawStartIndex, countToDraw);
 
             // When using multiple buffers we advance to the next one with every draw to prevent contention on the same buffer with future vertex updates.
             synchronisationBeginIndex = -1;
-
-            FrameStatistics.Increment(StatisticsCounterType.DrawCalls);
-            FrameStatistics.Add(StatisticsCounterType.VerticesDraw, countToDraw);
 
             return countToDraw;
         }

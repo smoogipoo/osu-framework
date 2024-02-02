@@ -76,6 +76,7 @@ namespace osu.Framework.Statistics
         VerticesDraw,
         VerticesUpl,
         UniformUpl,
+        UniformDup,
         Pixels,
 
         TasksRun,

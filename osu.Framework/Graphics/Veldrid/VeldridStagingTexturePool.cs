@@ -7,8 +7,8 @@ namespace osu.Framework.Graphics.Veldrid
 {
     internal class VeldridStagingTexturePool : VeldridStagingResourcePool<Texture>
     {
-        public VeldridStagingTexturePool(VeldridRenderer renderer)
-            : base(renderer, nameof(VeldridStagingTexturePool))
+        public VeldridStagingTexturePool(VeldridDevice device)
+            : base(device, nameof(VeldridStagingTexturePool))
         {
         }
 
@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Veldrid
             if (TryGet(t => t.Width >= width && t.Height >= height && t.Format == format, out var texture))
                 return texture;
 
-            texture = Renderer.Factory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, format, TextureUsage.Staging));
+            texture = Device.Factory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, format, TextureUsage.Staging));
             AddNewResource(texture);
             return texture;
         }

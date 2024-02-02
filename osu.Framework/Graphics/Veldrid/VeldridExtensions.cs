@@ -9,6 +9,7 @@ using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Logging;
 using osuTK.Graphics;
 using SharpGen.Runtime;
@@ -331,6 +332,21 @@ namespace osu.Framework.Graphics.Veldrid
             }
         }
 
+        public static VeldridIndexLayout ToVeldridIndexLayout(this IndexLayout layout)
+        {
+            switch (layout)
+            {
+                case IndexLayout.Linear:
+                    return VeldridIndexLayout.Linear;
+
+                case IndexLayout.Quad:
+                    return VeldridIndexLayout.Quad;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(layout), layout, null);
+            }
+        }
+
         public static GraphicsPipelineDescription Clone(this GraphicsPipelineDescription pipeline)
         {
             pipeline.BlendState.AttachmentStates = (BlendAttachmentDescription[])pipeline.BlendState.AttachmentStates.Clone();
@@ -405,7 +421,7 @@ namespace osu.Framework.Graphics.Veldrid
             Debug.Assert(device.BackendType == GraphicsBackend.Vulkan);
 
             var info = device.GetVulkanInfo();
-            var physicalDevice = info.PhysicalDevice;
+            IntPtr physicalDevice = info.PhysicalDevice;
 
             uint instanceExtensionsCount = 0;
             var result = VulkanNative.vkEnumerateInstanceExtensionProperties((byte*)null, ref instanceExtensionsCount, IntPtr.Zero);

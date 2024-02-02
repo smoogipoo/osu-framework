@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
+using osu.Framework.Graphics.Veldrid.Vertices;
 using osu.Framework.Platform;
 using Veldrid;
 
@@ -47,14 +48,15 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         private unsafe void initialiseBuffer()
         {
-            sharedBuffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(IVeldridVertexBuffer<T>.STRIDE * Size), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
+            sharedBuffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(VeldridVertexUtils<T>.STRIDE * Size), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             sharedBufferMemory = (T*)renderer.Device.Map(sharedBuffer, MapMode.Write).Data;
             memoryLease = NativeMemoryTracker.AddMemory(this, sharedBuffer.SizeInBytes);
 
             LastUseFrameIndex = renderer.FrameIndex;
         }
 
-        void IVeldridVertexBuffer<T>.UpdateRange(int from, int to) => throw new NotSupportedException("This implementation shares buffer storage with the GPU, no explicit synchronisation is required prior to drawing. See https://developer.apple.com/documentation/metal/mtlstoragemode/mtlstoragemodeshared?language=objc for more information.");
+        void IVeldridVertexBuffer<T>.UpdateRange(int from, int to) => throw new NotSupportedException(
+            "This implementation shares buffer storage with the GPU, no explicit synchronisation is required prior to drawing. See https://developer.apple.com/documentation/metal/mtlstoragemode/mtlstoragemodeshared?language=objc for more information.");
 
         ~VeldridMetalVertexBuffer()
         {
