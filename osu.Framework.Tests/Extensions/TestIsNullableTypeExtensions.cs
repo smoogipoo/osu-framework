@@ -29,8 +29,15 @@ namespace osu.Framework.Tests.Extensions
         private int nonNullValueGetProperty { get; }
         private int? nullableValueGetProperty { get; }
 
-        private int nonNullValueSetProperty { set { } }
-        private int? nullableValueSetProperty { set { } }
+        private int nonNullValueSetProperty
+        {
+            set { }
+        }
+
+        private int? nullableValueSetProperty
+        {
+            set { }
+        }
 
         private object nonNullReferenceField;
         private object? nullableReferenceField;
@@ -41,18 +48,33 @@ namespace osu.Framework.Tests.Extensions
         private object nonNullReferenceGetProperty { get; }
         private object? nullableReferenceGetProperty { get; }
 
-        private object nonNullReferenceSetProperty { set { } }
-        private object? nullableReferenceSetProperty { set { } }
+        private object nonNullReferenceSetProperty
+        {
+            set { }
+        }
+
+        private object? nullableReferenceSetProperty
+        {
+            set { }
+        }
 
 #nullable disable
         private object nonNullReferenceFieldWithoutNullableReferenceTypes;
 #nullable enable
 
+        // ReSharper disable once InconsistentNaming
         private event Action nonNullEvent;
+
+        // ReSharper disable once InconsistentNaming
         private event Action? nullableEvent;
 
-        private void testValueParamMethod(int param1, int? param2) { }
-        private void testReferenceParamMethod(object param1, object? param2) { }
+        private void testValueParamMethod(int param1, int? param2)
+        {
+        }
+
+        private void testReferenceParamMethod(object param1, object? param2)
+        {
+        }
 
         [Test]
         public void TestNonNullValueField() => Assert.False(GetType().GetField(nameof(nonNullValueField), binding_flags).IsNullable());

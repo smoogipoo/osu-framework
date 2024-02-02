@@ -239,7 +239,7 @@ namespace osu.Framework.Graphics.OpenGL
             while (FrameBuffer == frameBuffer)
                 UnbindFrameBuffer(frameBuffer);
 
-            ScheduleDisposal(GL.DeleteFramebuffer, ((GLFrameBuffer)frameBuffer).FrameBuffer);
+            ScheduleDisposal(f => GL.DeleteFramebuffer(f.FrameBuffer), (GLFrameBuffer)frameBuffer);
         }
 
         protected override void ClearImplementation(ClearInfo clearInfo)
@@ -269,20 +269,11 @@ namespace osu.Framework.Graphics.OpenGL
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
         }
 
-        public void BindUniformBuffer(string blockName, IGLUniformBuffer glBuffer)
-        {
-            if (boundUniformBuffers.TryGetValue(blockName, out IGLUniformBuffer? current) && current == glBuffer)
-                return;
+        protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer) => boundUniformBuffers[blockName] = (IGLUniformBuffer)buffer;
 
-            FlushCurrentBatch(FlushBatchSource.BindBuffer);
-            boundUniformBuffers[blockName] = glBuffer;
-        }
-
-        public void DrawVertices(PrimitiveType type, int vertexStart, int verticesCount)
+        public override void DrawVerticesImplementation(PrimitiveTopology type, int vertexStart, int verticesCount)
         {
             var glShader = (GLShader)Shader!;
-
-            glShader.BindUniformBlock("g_GlobalUniforms", GlobalUniformBuffer!);
 
             int currentUniformBinding = 0;
             int currentStorageBinding = 0;
@@ -308,7 +299,7 @@ namespace osu.Framework.Graphics.OpenGL
                 }
             }
 
-            GL.DrawElements(type, verticesCount, DrawElementsType.UnsignedShort, (IntPtr)(vertexStart * sizeof(ushort)));
+            GL.DrawElements(GLUtils.ToPrimitiveType(type), verticesCount, DrawElementsType.UnsignedShort, (IntPtr)(vertexStart * sizeof(ushort)));
         }
 
         protected override void SetScissorStateImplementation(bool enabled)
@@ -500,7 +491,7 @@ namespace osu.Framework.Graphics.OpenGL
         protected override INativeTexture CreateNativeVideoTexture(int width, int height) => new GLVideoTexture(this, width, height);
 
         protected override IVertexBatch<TVertex> CreateLinearBatch<TVertex>(int size, int maxBuffers, PrimitiveTopology topology)
-            => new GLLinearBatch<TVertex>(this, size, maxBuffers, GLUtils.ToPrimitiveType(topology));
+            => new GLLinearBatch<TVertex>(this, size, maxBuffers, topology);
 
         protected override IVertexBatch<TVertex> CreateQuadBatch<TVertex>(int size, int maxBuffers) => new GLQuadBatch<TVertex>(this, size, maxBuffers);
     }

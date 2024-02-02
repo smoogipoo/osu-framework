@@ -14,7 +14,7 @@ using Texture = Veldrid.Texture;
 
 namespace osu.Framework.Graphics.Veldrid.Buffers
 {
-    internal class VeldridFrameBuffer : IFrameBuffer
+    internal class VeldridFrameBuffer : IFrameBuffer, IVeldridFrameBuffer
     {
         public osu.Framework.Graphics.Textures.Texture Texture { get; }
 
@@ -24,7 +24,6 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         private readonly PixelFormat? depthFormat;
 
         private readonly VeldridTexture colourTarget;
-        private readonly int mipLevel;
         private Texture? depthTarget;
 
         private Vector2 size = Vector2.One;
@@ -48,8 +47,6 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             }
         }
 
-        private readonly bool externalColourTarget;
-
         public VeldridFrameBuffer(VeldridRenderer renderer, PixelFormat[]? formats = null, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
         {
             // todo: we probably want the arguments separated to "PixelFormat[] colorFormats, PixelFormat depthFormat".
@@ -66,23 +63,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             recreateResources();
         }
 
-        internal VeldridFrameBuffer(VeldridRenderer renderer, VeldridTexture colourTarget, int mipLevel)
-        {
-            this.renderer = renderer;
-            this.colourTarget = colourTarget;
-            this.mipLevel = mipLevel;
-
-            Texture = renderer.CreateTexture(colourTarget);
-            externalColourTarget = true;
-
-            recreateResources();
-        }
-
         [MemberNotNull(nameof(Framebuffer))]
         private void recreateResources()
         {
             // The texture is created once and resized internally, so it should not be deleted.
-            DeleteResources(false);
+            deleteResources(false);
 
             if (depthFormat is PixelFormat depth)
             {
@@ -92,7 +77,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
             FramebufferDescription description = new FramebufferDescription
             {
-                ColorTargets = new[] { new FramebufferAttachmentDescription(colourTarget.GetResourceList().Single().Texture, 0, (uint)mipLevel) },
+                ColorTargets = new[] { new FramebufferAttachmentDescription(colourTarget.GetResourceList().Single().Texture, 0) },
                 DepthTarget = depthTarget == null ? null : new FramebufferAttachmentDescription(depthTarget, 0)
             };
 
@@ -110,9 +95,9 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         /// Deletes the resources of this frame buffer.
         /// </summary>
         /// <param name="deleteTexture">Whether the texture should also be deleted.</param>
-        public void DeleteResources(bool deleteTexture)
+        private void deleteResources(bool deleteTexture)
         {
-            if (deleteTexture && !externalColourTarget)
+            if (deleteTexture)
                 colourTarget.Dispose();
 
             if (Framebuffer.IsNotNull())
@@ -142,7 +127,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             if (isDisposed)
                 return;
 
-            renderer.DeleteFrameBuffer(this);
+            while (renderer.IsFrameBufferBound(this))
+                Unbind();
+
+            deleteResources(true);
+
             isDisposed = true;
         }
 
@@ -150,7 +139,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         {
             protected override TextureUsage Usages => base.Usages | TextureUsage.RenderTarget;
 
-            public FrameBufferTexture(VeldridRenderer renderer, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
+            public FrameBufferTexture(IVeldridRenderer renderer, SamplerFilter filteringMode = SamplerFilter.MinLinear_MagLinear_MipLinear)
                 : base(renderer, 1, 1, true, filteringMode)
             {
                 BypassTextureUploadQueueing = true;

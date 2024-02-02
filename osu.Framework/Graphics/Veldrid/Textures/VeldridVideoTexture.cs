@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
     {
         private VeldridTextureResources[]? resourceList;
 
-        public VeldridVideoTexture(VeldridRenderer renderer, int width, int height)
+        public VeldridVideoTexture(IVeldridRenderer renderer, int width, int height)
             : base(renderer, width, height, true)
         {
         }
@@ -48,6 +48,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
                     resourceList[i] = new VeldridTextureResources
                     (
+                        Renderer,
                         Renderer.Factory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_UNorm, Usages)),
                         Renderer.Factory.CreateSampler(new SamplerDescription
                         {
