@@ -11,6 +11,7 @@ layout(location = 1) in lowp vec4 v_Colour;
 #endif
 
 layout(location = 4) in mediump vec2 v_BlendRange;
+layout(location = 5) in lowp vec4 v_BorderColour;
 
 highp float distanceFromRoundedRect(highp vec2 offset, highp float radius)
 {
@@ -51,14 +52,6 @@ highp float distanceFromDrawingRect(mediump vec2 texCoord)
 
 	highp vec2 xyDistance = max(topLeftOffset, bottomRightOffset);
 	return max(xyDistance.x, xyDistance.y);
-}
-
-lowp vec4 getBorderColour()
-{
-    highp vec2 relativeTexCoord = v_MaskingPosition / (g_MaskingRect.zw - g_MaskingRect.xy);
-    lowp vec4 top = mix(g_BorderColour[0], g_BorderColour[2], relativeTexCoord.x);
-    lowp vec4 bottom = mix(g_BorderColour[1], g_BorderColour[3], relativeTexCoord.x);
-    return mix(top, bottom, relativeTexCoord.y);
 }
 
 lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
@@ -118,14 +111,11 @@ lowp vec4 getRoundedColor(lowp vec4 texel, mediump vec2 texCoord)
 	if (colourWeight == 1.0)
 		return vec4(contentColour.rgb, contentColour.a * alphaFactor);
 
-	lowp vec4 borderColour = getBorderColour();
-
 	if (colourWeight <= 0.0)
-		return vec4(borderColour.rgb, borderColour.a * alphaFactor);
+		return vec4(v_BorderColour.rgb, v_BorderColour.a * alphaFactor);
 
 	contentColour.a *= alphaFactor;
-	borderColour.a *= 1.0 - colourWeight;
-	return blend(borderColour, contentColour);
+	return blend(vec4(v_BorderColour.rgb, v_BorderColour.a * 1.0 - colourWeight), contentColour);
 }
 
 #endif

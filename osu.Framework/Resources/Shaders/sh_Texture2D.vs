@@ -15,6 +15,7 @@ layout(location = 1) out lowp vec4 v_Colour;
 layout(location = 2) out highp vec2 v_TexCoord;
 layout(location = 3) out highp vec4 v_TexRect;
 layout(location = 4) out mediump vec2 v_BlendRange;
+layout(location = 5) out lowp vec4 v_BorderColour;
 
 void main(void)
 {
@@ -26,6 +27,11 @@ void main(void)
     v_TexCoord = m_TexCoord;
     v_TexRect = m_TexRect;
     v_BlendRange = m_BlendRange;
+
+    highp vec2 relativeTexCoord = v_MaskingPosition / (g_MaskingRect.zw - g_MaskingRect.xy);
+    lowp vec4 top = mix(g_BorderColour[0], g_BorderColour[2], relativeTexCoord.x);
+    lowp vec4 bottom = mix(g_BorderColour[1], g_BorderColour[3], relativeTexCoord.x);
+    v_BorderColour = mix(top, bottom, relativeTexCoord.y);
 
     gl_Position = g_ProjMatrix * vec4(m_Position, 1.0, 1.0);
 
