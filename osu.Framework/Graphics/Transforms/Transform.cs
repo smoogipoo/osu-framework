@@ -64,6 +64,7 @@ namespace osu.Framework.Graphics.Transforms
         internal ITransformSequence CompletionTargetSequence;
 
         internal ITransformSequence AbortTargetSequence;
+        internal Transform NextInSequence;
 
         public Transform Clone() => (Transform)MemberwiseClone();
 

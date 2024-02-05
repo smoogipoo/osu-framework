@@ -4,6 +4,8 @@
 #nullable disable
 
 using System;
+using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace osu.Framework.Graphics.Transforms
@@ -28,8 +30,6 @@ namespace osu.Framework.Graphics.Transforms
 
         private readonly T origin;
 
-        private readonly List<Transform> transforms = new List<Transform>(1); // the most common usage of transforms sees one transform being added.
-
         private bool hasCompleted = true;
 
         private readonly double startTime;
@@ -38,6 +38,14 @@ namespace osu.Framework.Graphics.Transforms
 
         private Transform last;
         private double lastEndTime;
+
+        private Transform firstInSequence;
+        private Transform lastInSequence;
+
+        /// <summary>
+        /// How many transforms were added to this sequence.
+        /// </summary>
+        private int length;
 
         private bool hasEnd => lastEndTime != double.PositiveInfinity;
 
@@ -81,7 +89,12 @@ namespace osu.Framework.Graphics.Transforms
                     $"{nameof(transform)} must operate upon {nameof(origin)}={origin}, but operates upon {transform.TargetTransformable}.");
             }
 
-            transforms.Add(transform);
+            // Updated linked list of transforms.
+            firstInSequence ??= transform;
+            if (lastInSequence != null)
+                lastInSequence.NextInSequence = transform;
+            lastInSequence = transform;
+            length++;
 
             transform.CompletionTargetSequence = null;
             transform.AbortTargetSequence = this;
@@ -133,8 +146,11 @@ namespace osu.Framework.Graphics.Transforms
                 throw new InvalidOperationException($"May not append {nameof(TransformSequence<T>)} with different origin.");
 
             var oldLast = last;
-            foreach (var t in child.transforms)
-                Add(t);
+
+            using TransformSequenceEnumerator enumerator = new TransformSequenceEnumerator(child);
+
+            while (enumerator.MoveNext())
+                Add(enumerator.Current);
 
             // If we flatten a child into ourselves that already completed, then
             // we need to make sure to update the hasCompleted value, too, since
@@ -177,7 +193,7 @@ namespace osu.Framework.Graphics.Transforms
             return this;
         }
 
-        private void subscribeComplete(Action func)
+        private void subscribeComplete(Action<T> func)
         {
             if (onComplete != null)
             {
@@ -192,10 +208,10 @@ namespace osu.Framework.Graphics.Transforms
             // and therefore when subscribing we need to take into account
             // potential previous completions.
             if (hasCompleted)
-                func();
+                func(origin);
         }
 
-        private void subscribeAbort(Action func)
+        private void subscribeAbort(Action<T> func)
         {
             if (onAbort != null)
                 throw new InvalidOperationException("May not subscribe abort multiple times.");
@@ -206,8 +222,8 @@ namespace osu.Framework.Graphics.Transforms
             onAbort = func;
         }
 
-        private Action onComplete;
-        private Action onAbort;
+        private Action<T> onComplete;
+        private Action<T> onAbort;
 
         /// <summary>
         /// Append a looping <see cref="TransformSequence{T}"/> to this <see cref="TransformSequence{T}"/>.
@@ -303,8 +319,12 @@ namespace osu.Framework.Graphics.Transforms
         {
             double iterDuration = endTime - startTime + pause;
 
-            foreach (var t in transforms)
+            using TransformSequenceEnumerator enumerator = new TransformSequenceEnumerator(this);
+
+            while (enumerator.MoveNext())
             {
+                Transform t = enumerator.Current!;
+
                 var tmpOnAbort = t.AbortTargetSequence;
                 t.AbortTargetSequence = null;
                 t.TargetTransformable.RemoveTransform(t);
@@ -331,17 +351,28 @@ namespace osu.Framework.Graphics.Transforms
             }
 
             // This sort is required such that no abortions happen.
-            var sortedTransforms = new List<Transform>(transforms);
-            sortedTransforms.Sort(Transform.COMPARER);
+            Transform[] sortedTransforms = ArrayPool<Transform>.Shared.Rent(length);
 
-            foreach (var t in sortedTransforms)
+            try
             {
-                t.LoopDelay = iterDuration;
+                copyTo(sortedTransforms);
+                Array.Sort(sortedTransforms, 0, length, Transform.COMPARER);
 
-                t.Applied = false;
-                t.AppliedToEnd = false; // we want to force a reprocess of this transform. it may have been applied-to-end in the Add, but not correctly looped as a result.
+                for (int i = 0; i < length; i++)
+                {
+                    Transform t = sortedTransforms[i];
 
-                t.TargetTransformable.AddTransform(t, t.TransformID);
+                    t.LoopDelay = iterDuration;
+
+                    t.Applied = false;
+                    t.AppliedToEnd = false; // we want to force a reprocess of this transform. it may have been applied-to-end in the Add, but not correctly looped as a result.
+
+                    t.TargetTransformable.AddTransform(t, t.TransformID);
+                }
+            }
+            finally
+            {
+                ArrayPool<Transform>.Shared.Return(sortedTransforms);
             }
         }
 
@@ -400,7 +431,7 @@ namespace osu.Framework.Graphics.Transforms
             if (!hasEnd)
                 throw new InvalidOperationException($"Can not perform {nameof(Then)} on an endless {nameof(TransformSequence<T>)}.");
 
-            subscribeComplete(() => function(origin));
+            subscribeComplete(function);
         }
 
         /// <summary>
@@ -409,7 +440,7 @@ namespace osu.Framework.Graphics.Transforms
         /// Only a single callback function may be registered.
         /// </summary>
         /// <param name="function">The callback function.</param>
-        public void OnAbort(Action<T> function) => subscribeAbort(() => function(origin));
+        public void OnAbort(Action<T> function) => subscribeAbort(function);
 
         /// <summary>
         /// Registers a callback <paramref name="function"/> which is triggered once any <see cref="Transform"/> in this
@@ -427,13 +458,17 @@ namespace osu.Framework.Graphics.Transforms
 
         void ITransformSequence.TransformAborted()
         {
-            if (transforms.Count == 0)
+            if (length == 0)
                 return;
 
             // No need for OnAbort events to trigger anymore, since
             // we are already aware of the abortion.
-            foreach (var t in transforms)
+            using TransformSequenceEnumerator enumerator = new TransformSequenceEnumerator(this);
+
+            while (enumerator.MoveNext())
             {
+                Transform t = enumerator.Current!;
+
                 t.AbortTargetSequence = null;
                 t.CompletionTargetSequence = null;
 
@@ -441,16 +476,68 @@ namespace osu.Framework.Graphics.Transforms
                     t.TargetTransformable.RemoveTransform(t);
             }
 
-            transforms.Clear();
+            firstInSequence = null;
+            lastInSequence = null;
             last = null;
+            length = 0;
 
-            onAbort?.Invoke();
+            onAbort?.Invoke(origin);
         }
 
         void ITransformSequence.TransformCompleted()
         {
             hasCompleted = true;
-            onComplete?.Invoke();
+            onComplete?.Invoke(origin);
+        }
+
+        private void copyTo(Transform[] transforms)
+        {
+            Transform current = firstInSequence;
+
+            for (int i = 0; i < length; i++)
+            {
+                transforms[i] = current;
+                current = current!.NextInSequence;
+            }
+        }
+
+        private struct TransformSequenceEnumerator : IEnumerator<Transform>
+        {
+            private readonly Transform[] transforms;
+            private readonly int length;
+            private int index;
+
+            public TransformSequenceEnumerator(TransformSequence<T> sequence)
+            {
+                transforms = ArrayPool<Transform>.Shared.Rent(sequence.length);
+                length = sequence.length;
+                index = 0;
+
+                sequence.copyTo(transforms);
+            }
+
+            public bool MoveNext()
+            {
+                if (index < length)
+                {
+                    Current = transforms[index];
+                    index++;
+                    return true;
+                }
+
+                return false;
+            }
+
+            public void Reset() => index = 0;
+
+            public Transform Current { get; private set; }
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose()
+            {
+                ArrayPool<Transform>.Shared.Return(transforms);
+            }
         }
     }
 }
