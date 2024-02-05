@@ -61,11 +61,6 @@ namespace osu.Framework.Graphics.Transforms
 
         internal bool HasStartValue;
 
-        internal ITransformSequence CompletionTargetSequence;
-
-        internal ITransformSequence AbortTargetSequence;
-        internal Transform NextInSequence;
-
         public Transform Clone() => (Transform)MemberwiseClone();
 
         public static readonly IComparer<Transform> COMPARER = new TransformTimeComparer();
@@ -86,9 +81,15 @@ namespace osu.Framework.Graphics.Transforms
             }
         }
 
-        internal void TriggerComplete() => CompletionTargetSequence?.TransformCompleted();
+        internal void TriggerComplete() => TransformSequenceCallbacks?.TransformCompleted();
 
-        internal void TriggerAbort() => AbortTargetSequence?.TransformAborted();
+        internal void TriggerAbort() => TransformSequenceCallbacks?.TransformAborted();
+
+        internal Transform StartOfSequence;
+        internal Transform NextInSequence;
+
+        private TransformSequenceCallbacks transformSequenceCallbacks;
+        internal TransformSequenceCallbacks TransformSequenceCallbacks => StartOfSequence.transformSequenceCallbacks ??= new TransformSequenceCallbacks(StartOfSequence);
     }
 
     public abstract class Transform<TValue> : Transform
@@ -125,5 +126,109 @@ namespace osu.Framework.Graphics.Transforms
     public abstract class Transform<TValue, T> : Transform<TValue, DefaultEasingFunction, T>
         where T : class, ITransformable
     {
+    }
+
+    internal class TransformSequenceCallbacks
+    {
+        /// <summary>
+        /// The transform at which the sequence ends. Set by <see cref="TransformSequence{T}"/>.
+        /// </summary>
+        public Transform End;
+
+        /// <summary>
+        /// Whether the sequence has been aborted.
+        /// </summary>
+        private bool aborted;
+
+        /// <summary>
+        /// Whether the sequence has completed.
+        /// </summary>
+        private bool completed;
+
+        /// <summary>
+        /// The transform at which the sequence starts. Set by <see cref="TransformSequence{T}"/>.
+        /// </summary>
+        private readonly Transform start;
+
+        private Action<object> onAbort;
+        private Action<object> onCompleted;
+
+        public TransformSequenceCallbacks(Transform start)
+        {
+            this.start = start;
+        }
+
+        public void SetAbortCallback<T>(Action<T> callback)
+        {
+            if (onAbort != null)
+                throw new InvalidOperationException("May not subscribe abort multiple times.");
+
+            // No need to worry about new transforms immediately aborting, so
+            // we can just subscribe here and be sure abort couldn't have been
+            // triggered already.
+            onAbort = o => callback((T)o);
+        }
+
+        public Action<object> ClearAbortCallback()
+        {
+            Action<object> tmpOnAbort = onAbort;
+            onAbort = null;
+            return tmpOnAbort;
+        }
+
+        public void SetCompletionCallback<T>(Action<T> callback)
+        {
+            if (onCompleted != null)
+            {
+                throw new InvalidOperationException(
+                    "May not subscribe completion multiple times." +
+                    $"This exception is also caused by calling {nameof(TransformSequence<Drawable>.Then)} or {nameof(TransformSequence<Drawable>.Finally)} on an infinitely looping {nameof(TransformSequence<Drawable>)}.");
+            }
+
+            onCompleted = o => callback((T)o);
+
+            // Completion can be immediately triggered by instant transforms,
+            // and therefore when subscribing we need to take into account
+            // potential previous completions.
+            if (completed)
+                onCompleted?.Invoke(start.TargetTransformable);
+        }
+
+        public Action<object> ClearCompletionCallback()
+        {
+            Action<object> tmpOnCompleted = onCompleted;
+            onCompleted = null;
+            return tmpOnCompleted;
+        }
+
+        public void TransformAborted()
+        {
+            if (aborted || completed)
+                return;
+
+            aborted = true;
+
+            Transform current = start;
+
+            while (current != End)
+            {
+                if (!current.HasStartValue)
+                    current.TargetTransformable.RemoveTransform(current);
+
+                current = current.NextInSequence;
+            }
+
+            onAbort?.Invoke(start.TargetTransformable);
+        }
+
+        public void TransformCompleted()
+        {
+            if (aborted || completed)
+                return;
+
+            completed = true;
+
+            onCompleted?.Invoke(start.TargetTransformable);
+        }
     }
 }

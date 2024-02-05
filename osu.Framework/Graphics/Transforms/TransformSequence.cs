@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Buffers;
 using System.Collections;
@@ -19,7 +17,7 @@ namespace osu.Framework.Graphics.Transforms
     /// <typeparam name="T">
     /// The type of the <see cref="ITransformable"/> the <see cref="Transform"/>s in this sequence operate upon.
     /// </typeparam>
-    public class TransformSequence<T> : ITransformSequence where T : class, ITransformable
+    public struct TransformSequence<T> where T : class, ITransformable
     {
         /// <summary>
         /// A delegate that generates a new <see cref="TransformSequence{T}"/> on a given <paramref name="origin"/>.
@@ -30,17 +28,15 @@ namespace osu.Framework.Graphics.Transforms
 
         private readonly T origin;
 
-        private bool hasCompleted = true;
-
         private readonly double startTime;
         private double currentTime;
         private double endTime => Math.Max(currentTime, lastEndTime);
 
-        private Transform last;
+        private Transform? last;
         private double lastEndTime;
 
-        private Transform firstInSequence;
-        private Transform lastInSequence;
+        private Transform? firstInSequence;
+        private Transform? lastInSequence;
 
         /// <summary>
         /// How many transforms were added to this sequence.
@@ -60,18 +56,20 @@ namespace osu.Framework.Graphics.Transforms
 
             this.origin = origin;
             startTime = currentTime = lastEndTime = origin.TransformStartTime;
+            firstInSequence = null;
+            lastInSequence = null;
+            last = null;
+            length = 0;
         }
 
         private void onLoopingTransform()
         {
             // As soon as we have an infinitely looping transform,
             // completion no longer makes sense.
-            if (last != null)
-                last.CompletionTargetSequence = null;
+            firstInSequence?.TransformSequenceCallbacks.ClearCompletionCallback();
 
             last = null;
             lastEndTime = double.PositiveInfinity;
-            hasCompleted = false;
         }
 
         public TransformSequence<T> TransformTo<TValue>(string propertyOrFieldName, TValue newValue, double duration = 0, Easing easing = Easing.None) =>
@@ -89,15 +87,14 @@ namespace osu.Framework.Graphics.Transforms
                     $"{nameof(transform)} must operate upon {nameof(origin)}={origin}, but operates upon {transform.TargetTransformable}.");
             }
 
-            // Updated linked list of transforms.
             firstInSequence ??= transform;
+            transform.StartOfSequence = firstInSequence;
+
             if (lastInSequence != null)
                 lastInSequence.NextInSequence = transform;
             lastInSequence = transform;
-            length++;
 
-            transform.CompletionTargetSequence = null;
-            transform.AbortTargetSequence = this;
+            length++;
 
             if (transform.IsLooping)
                 onLoopingTransform();
@@ -105,13 +102,8 @@ namespace osu.Framework.Graphics.Transforms
             // Update last transform for completion callback
             if (last == null || transform.EndTime > lastEndTime)
             {
-                if (last != null)
-                    last.CompletionTargetSequence = null;
-
                 last = transform;
-                last.CompletionTargetSequence = this;
                 lastEndTime = last.EndTime;
-                hasCompleted = false;
             }
         }
 
@@ -145,18 +137,10 @@ namespace osu.Framework.Graphics.Transforms
             if (!ReferenceEquals(child.origin, origin))
                 throw new InvalidOperationException($"May not append {nameof(TransformSequence<T>)} with different origin.");
 
-            var oldLast = last;
-
             using TransformSequenceEnumerator enumerator = new TransformSequenceEnumerator(child);
 
             while (enumerator.MoveNext())
                 Add(enumerator.Current);
-
-            // If we flatten a child into ourselves that already completed, then
-            // we need to make sure to update the hasCompleted value, too, since
-            // the already completed final transform will no longer fire any events.
-            if (oldLast != last)
-                hasCompleted = child.hasCompleted;
 
             return this;
         }
@@ -192,38 +176,6 @@ namespace osu.Framework.Graphics.Transforms
 
             return this;
         }
-
-        private void subscribeComplete(Action<T> func)
-        {
-            if (onComplete != null)
-            {
-                throw new InvalidOperationException(
-                    "May not subscribe completion multiple times." +
-                    $"This exception is also caused by calling {nameof(Then)} or {nameof(Finally)} on an infinitely looping {nameof(TransformSequence<T>)}.");
-            }
-
-            onComplete = func;
-
-            // Completion can be immediately triggered by instant transforms,
-            // and therefore when subscribing we need to take into account
-            // potential previous completions.
-            if (hasCompleted)
-                func(origin);
-        }
-
-        private void subscribeAbort(Action<T> func)
-        {
-            if (onAbort != null)
-                throw new InvalidOperationException("May not subscribe abort multiple times.");
-
-            // No need to worry about new transforms immediately aborting, so
-            // we can just subscribe here and be sure abort couldn't have been
-            // triggered already.
-            onAbort = func;
-        }
-
-        private Action<T> onComplete;
-        private Action<T> onAbort;
 
         /// <summary>
         /// Append a looping <see cref="TransformSequence{T}"/> to this <see cref="TransformSequence{T}"/>.
@@ -323,12 +275,11 @@ namespace osu.Framework.Graphics.Transforms
 
             while (enumerator.MoveNext())
             {
-                Transform t = enumerator.Current!;
+                Transform t = enumerator.Current;
 
-                var tmpOnAbort = t.AbortTargetSequence;
-                t.AbortTargetSequence = null;
+                var onAbortAction = firstInSequence?.TransformSequenceCallbacks.ClearAbortCallback();
                 t.TargetTransformable.RemoveTransform(t);
-                t.AbortTargetSequence = tmpOnAbort;
+                firstInSequence?.TransformSequenceCallbacks.SetAbortCallback(onAbortAction);
 
                 // Update start and end times such that no transformations need to be instantly
                 // looped right after they're added. This is required so that transforms can be
@@ -431,7 +382,7 @@ namespace osu.Framework.Graphics.Transforms
             if (!hasEnd)
                 throw new InvalidOperationException($"Can not perform {nameof(Then)} on an endless {nameof(TransformSequence<T>)}.");
 
-            subscribeComplete(function);
+            firstInSequence?.TransformSequenceCallbacks.SetCompletionCallback(function);
         }
 
         /// <summary>
@@ -440,7 +391,7 @@ namespace osu.Framework.Graphics.Transforms
         /// Only a single callback function may be registered.
         /// </summary>
         /// <param name="function">The callback function.</param>
-        public void OnAbort(Action<T> function) => subscribeAbort(function);
+        public void OnAbort(Action<T> function) => firstInSequence?.TransformSequenceCallbacks.SetAbortCallback(function);
 
         /// <summary>
         /// Registers a callback <paramref name="function"/> which is triggered once any <see cref="Transform"/> in this
@@ -456,47 +407,13 @@ namespace osu.Framework.Graphics.Transforms
             OnAbort(function);
         }
 
-        void ITransformSequence.TransformAborted()
-        {
-            if (length == 0)
-                return;
-
-            // No need for OnAbort events to trigger anymore, since
-            // we are already aware of the abortion.
-            using TransformSequenceEnumerator enumerator = new TransformSequenceEnumerator(this);
-
-            while (enumerator.MoveNext())
-            {
-                Transform t = enumerator.Current!;
-
-                t.AbortTargetSequence = null;
-                t.CompletionTargetSequence = null;
-
-                if (!t.HasStartValue)
-                    t.TargetTransformable.RemoveTransform(t);
-            }
-
-            firstInSequence = null;
-            lastInSequence = null;
-            last = null;
-            length = 0;
-
-            onAbort?.Invoke(origin);
-        }
-
-        void ITransformSequence.TransformCompleted()
-        {
-            hasCompleted = true;
-            onComplete?.Invoke(origin);
-        }
-
         private void copyTo(Transform[] transforms)
         {
-            Transform current = firstInSequence;
+            Transform? current = firstInSequence;
 
             for (int i = 0; i < length; i++)
             {
-                transforms[i] = current;
+                transforms[i] = current!;
                 current = current!.NextInSequence;
             }
         }
@@ -514,6 +431,8 @@ namespace osu.Framework.Graphics.Transforms
                 index = 0;
 
                 sequence.copyTo(transforms);
+
+                Current = null!;
             }
 
             public bool MoveNext()
