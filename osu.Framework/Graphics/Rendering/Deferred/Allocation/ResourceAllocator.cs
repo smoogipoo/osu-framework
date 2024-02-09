@@ -56,7 +56,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             ThreadSafety.EnsureDrawThread();
 
             MemoryReference reference = AllocateRegion(Unsafe.SizeOf<T>());
-            MemoryMarshal.Write(GetRegion(reference), ref data);
+            Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(GetRegion(reference)), data);
             return reference;
         }
 

@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 
@@ -34,7 +33,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             Span<byte> buffer = allocator.GetRegion(reference);
 
             buffer[0] = (byte)renderEvent.Type;
-            MemoryMarshal.Write(buffer[1..], ref Unsafe.AsRef(renderEvent));
+            Unsafe.WriteUnaligned(ref buffer[1], renderEvent);
 
             events.Add(reference);
         }
