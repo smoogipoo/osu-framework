@@ -27,6 +27,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public void Enqueue<T>(in T renderEvent)
             where T : unmanaged, IRenderEvent
         {
+            events.Add(createEvent(renderEvent));
+        }
+
+        public void ReplaceCurrent<T>(EventListReader reader, in T newEvent)
+            where T : unmanaged, IRenderEvent
+        {
+            events[reader.CurrentIndex()] = createEvent(newEvent);
+        }
+
+        private MemoryReference createEvent<T>(in T renderEvent)
+            where T : unmanaged, IRenderEvent
+        {
             int requiredSize = Unsafe.SizeOf<T>() + 1;
 
             MemoryReference reference = allocator.AllocateRegion(requiredSize);
@@ -35,7 +47,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             buffer[0] = (byte)renderEvent.Type;
             Unsafe.WriteUnaligned(ref buffer[1], renderEvent);
 
-            events.Add(reference);
+            return reference;
         }
 
         public EventListReader CreateReader() => new EventListReader(allocator, events);

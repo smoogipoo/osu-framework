@@ -23,6 +23,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
         private readonly Dictionary<GraphicsPipelineDescription, Pipeline> pipelineCache = new Dictionary<GraphicsPipelineDescription, Pipeline>();
         private readonly Dictionary<int, VeldridTextureResources> attachedTextures = new Dictionary<int, VeldridTextureResources>();
         private readonly Dictionary<string, IVeldridUniformBuffer> attachedUniformBuffers = new Dictionary<string, IVeldridUniformBuffer>();
+        private readonly Dictionary<IVeldridUniformBuffer, uint> uniformBufferOffsets = new Dictionary<IVeldridUniformBuffer, uint>();
 
         private GraphicsPipelineDescription pipelineDesc = new GraphicsPipelineDescription
         {
@@ -50,6 +51,7 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
 
             attachedTextures.Clear();
             attachedUniformBuffers.Clear();
+            uniformBufferOffsets.Clear();
             currentFrameBuffer = null;
             currentShader = null;
             currentIndexBuffer = null;
@@ -160,9 +162,14 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
                 attachedTextures[unit++] = resources[i];
         }
 
-        public void AttachUniformBuffer(string name, IVeldridUniformBuffer buffer)
+        public void AttachUniformBuffer(string name, IVeldridUniformBuffer buffer, uint bufferOffset = 0)
         {
             attachedUniformBuffers[name] = buffer;
+        }
+
+        public void SetUniformBufferOffset(IVeldridUniformBuffer buffer, uint bufferOffset)
+        {
+            uniformBufferOffsets[buffer] = bufferOffset;
         }
 
         public void DrawVertices(global::Veldrid.PrimitiveTopology topology, int vertexStart, int verticesCount, int vertexOffset = 0)
@@ -216,8 +223,10 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
                 if (layout == null)
                     continue;
 
-                uint offsetInBuffer = buffer.GetOffset();
-                Commands.SetGraphicsResourceSet((uint)layout.Set, buffer.GetResourceSet(layout.Layout), 1, ref offsetInBuffer);
+                if (uniformBufferOffsets.TryGetValue(buffer, out uint bufferOffset))
+                    Commands.SetGraphicsResourceSet((uint)layout.Set, buffer.GetResourceSet(layout.Layout), 1, ref bufferOffset);
+                else
+                    Commands.SetGraphicsResourceSet((uint)layout.Set, buffer.GetResourceSet(layout.Layout));
             }
 
             int indexStart = currentIndexBuffer.TranslateToIndex(vertexStart);

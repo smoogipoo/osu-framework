@@ -71,6 +71,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public object Dereference(ResourceReference reference) => Context.Dereference(reference);
 
+        public T Dereference<T>(ResourceReference reference) => Context.Dereference<T>(reference);
+
         public ResourceReference NullReference() => Context.NullReference();
 
         public MemoryReference AllocateObject<T>(T data) where T : unmanaged => Context.AllocateObject(data);

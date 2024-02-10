@@ -2,8 +2,10 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Pipelines;
@@ -101,7 +103,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     {
                         ref SetUniformBufferDataEvent e = ref reader.Current<SetUniformBufferDataEvent>();
                         IDeferredUniformBuffer buffer = context.Dereference<IDeferredUniformBuffer>(e.Buffer);
-                        buffer.Write(e.Memory);
+                        UniformBufferReference range = buffer.Write(e.Memory);
+                        context.RenderEvents.ReplaceCurrent(reader, new SetUniformBufferRangeEvent(e.Buffer, range));
                         break;
                     }
 
@@ -179,12 +182,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         processEvent(reader.Current<SetBlendMaskEvent>());
                         break;
 
-                    case RenderEventType.SetUniformBufferData:
-                        processEvent(reader.Current<SetUniformBufferDataEvent>());
-                        break;
-
                     case RenderEventType.Flush:
                         processEvent(reader.Current<FlushEvent>());
+                        break;
+
+                    case RenderEventType.SetUniformBufferRange:
+                        processEvent(reader.Current<SetUniformBufferRangeEvent>());
+                        break;
+
+                    case RenderEventType.SetUniformBufferData:
+                        Debug.Fail($"Should be replaced by {nameof(SetUniformBufferRangeEvent)} during upload.");
                         break;
                 }
             }
@@ -216,8 +223,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(in SetBlendMaskEvent e) => pipeline.SetBlendMask(e.Mask);
 
-        private void processEvent(in SetUniformBufferDataEvent e) => context.Dereference<IDeferredUniformBuffer>(e.Buffer).MoveNext();
-
         private void processEvent(in FlushEvent e) => context.Dereference<IDeferredVertexBatch>(e.VertexBatch).Draw(e.VertexCount);
+
+        private void processEvent(in SetUniformBufferRangeEvent e)
+        {
+            IDeferredUniformBuffer buffer = context.Dereference<IDeferredUniformBuffer>(e.UniformBuffer);
+
+            buffer.Activate(e.Range.Chunk);
+            pipeline.SetUniformBufferOffset(buffer, (uint)e.Range.OffsetInChunk);
+        }
     }
 }

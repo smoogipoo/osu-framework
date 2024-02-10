@@ -78,7 +78,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             {
                 return new UniformBufferReference(
                     new UniformBufferChunk(
-                        inUseBuffers[currentBuffer].Buffer,
+                        context.Reference(inUseBuffers[currentBuffer].Buffer),
                         writeIndex / buffer_chunk_size * buffer_chunk_size,
                         Math.Min(buffer_chunk_size, bufferSize - writeIndex)),
                     writeIndex % buffer_chunk_size);
@@ -86,7 +86,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             return new UniformBufferReference(
                 new UniformBufferChunk(
-                    inUseBuffers[currentBuffer].Buffer,
+                    context.Reference(inUseBuffers[currentBuffer].Buffer),
                     0,
                     bufferSize),
                 writeIndex);
@@ -112,7 +112,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         }
     }
 
-    public readonly record struct UniformBufferChunk(DeviceBuffer Buffer, int Offset, int Size);
+    internal readonly record struct UniformBufferChunk(ResourceReference Buffer, int Offset, int Size);
 
-    public readonly record struct UniformBufferReference(UniformBufferChunk Chunk, int OffsetInChunk);
+    internal readonly record struct UniformBufferReference(UniformBufferChunk Chunk, int OffsetInChunk);
 }

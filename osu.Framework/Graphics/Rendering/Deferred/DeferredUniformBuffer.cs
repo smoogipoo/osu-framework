@@ -11,22 +11,20 @@ using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
-    internal interface IDeferredUniformBuffer
+    internal interface IDeferredUniformBuffer : IVeldridUniformBuffer
     {
-        void Write(in MemoryReference memory);
-        void MoveNext();
+        UniformBufferReference Write(in MemoryReference memory);
+        void Activate(UniformBufferChunk chunk);
     }
 
-    internal class DeferredUniformBuffer<TData> : IUniformBuffer<TData>, IDeferredUniformBuffer, IVeldridUniformBuffer
+    internal class DeferredUniformBuffer<TData> : IUniformBuffer<TData>, IDeferredUniformBuffer
         where TData : unmanaged, IEquatable<TData>
     {
         private readonly DeferredRenderer renderer;
+        private readonly Dictionary<ChunkReference, ResourceSet> bufferChunks = new Dictionary<ChunkReference, ResourceSet>();
 
-        private readonly List<UniformBufferReference> dataOffsets = new List<UniformBufferReference>();
-        private int currentOffsetIndex = -1;
         private TData data;
-
-        private readonly Dictionary<UniformBufferChunk, ResourceSet> resourceSets = new Dictionary<UniformBufferChunk, ResourceSet>();
+        private ChunkReference currentChunk;
 
         public DeferredUniformBuffer(DeferredRenderer renderer)
         {
@@ -47,44 +45,51 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             }
         }
 
-        public void Write(in MemoryReference memory)
-            => dataOffsets.Add(renderer.Context.UniformBufferManager.Write(memory));
+        public UniformBufferReference Write(in MemoryReference memory)
+            => renderer.Context.UniformBufferManager.Write(memory);
 
-        public void MoveNext()
-            => currentOffsetIndex++;
+        public void Activate(UniformBufferChunk chunk) => currentChunk = new ChunkReference(renderer, chunk);
 
         ResourceSet IVeldridUniformBuffer.GetResourceSet(ResourceLayout layout)
         {
-            UniformBufferChunk chunk = dataOffsets[currentOffsetIndex].Chunk;
-
-            if (resourceSets.TryGetValue(chunk, out ResourceSet? existing))
+            if (bufferChunks.TryGetValue(currentChunk, out ResourceSet? existing))
                 return existing;
 
-            return resourceSets[chunk] = renderer.Factory.CreateResourceSet(
+            return bufferChunks[currentChunk] = renderer.Factory.CreateResourceSet(
                 new ResourceSetDescription(
                     layout,
                     new DeviceBufferRange(
-                        chunk.Buffer,
-                        (uint)chunk.Offset,
-                        (uint)chunk.Size)));
+                        currentChunk.Buffer,
+                        currentChunk.Offset,
+                        currentChunk.Size)));
         }
-
-        uint IVeldridUniformBuffer.GetOffset() => (uint)dataOffsets[currentOffsetIndex].OffsetInChunk;
 
         void IVeldridUniformBuffer.ResetCounters()
         {
-            foreach ((_, ResourceSet set) in resourceSets)
+            foreach ((_, ResourceSet set) in bufferChunks)
                 set.Dispose();
 
-            resourceSets.Clear();
-            dataOffsets.Clear();
-
-            currentOffsetIndex = -1;
+            bufferChunks.Clear();
             data = default;
+            currentChunk = default;
         }
 
         public void Dispose()
         {
+        }
+
+        private readonly record struct ChunkReference
+        {
+            public readonly DeviceBuffer Buffer;
+            public readonly uint Size;
+            public readonly uint Offset;
+
+            public ChunkReference(DeferredRenderer renderer, UniformBufferChunk chunk)
+            {
+                Buffer = renderer.Dereference<DeviceBuffer>(chunk.Buffer);
+                Size = (uint)chunk.Size;
+                Offset = (uint)chunk.Offset;
+            }
         }
     }
 }

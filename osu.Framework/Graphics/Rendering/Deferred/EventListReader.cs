@@ -44,6 +44,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             where T : unmanaged, IRenderEvent
             => ref MemoryMarshal.AsRef<T>(eventData[1..]);
 
+        public int CurrentIndex() => eventIndex - 1;
+
         public void Reset()
         {
             eventIndex = 0;
