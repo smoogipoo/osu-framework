@@ -20,6 +20,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private const int buffer_size = 2 * 1024 * 1024; // 2MB per VBO.
 
         private readonly DeferredContext context;
+        private readonly GraphicsPipeline pipeline;
 
         private readonly DeferredBufferPool vertexBufferPool;
         private readonly List<PooledBuffer> inUseBuffers = new List<PooledBuffer>();
@@ -32,10 +33,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private int currentDrawBuffer;
         private int currentDrawIndex;
 
-        public VertexManager(DeferredContext context)
+        public VertexManager(DeferredContext context, GraphicsPipeline pipeline)
         {
             this.context = context;
-            vertexBufferPool = new DeferredBufferPool(context, buffer_size, BufferUsage.VertexBuffer, nameof(VertexManager));
+            this.pipeline = pipeline;
+            vertexBufferPool = new DeferredBufferPool(pipeline, buffer_size, BufferUsage.VertexBuffer, nameof(VertexManager));
         }
 
         public void Write<T>(in MemoryReference primitive)
@@ -53,7 +55,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             if (currentWriteBuffer == inUseBuffers.Count)
             {
-                PooledBuffer newBuffer = vertexBufferPool.Get(context);
+                PooledBuffer newBuffer = vertexBufferPool.Get();
 
                 inUseBuffers.Add(newBuffer);
                 mappedBuffers.Add(context.Device.Map(newBuffer.Buffer, MapMode.Write));
@@ -73,7 +75,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             mappedBuffers.Clear();
         }
 
-        public void Draw<T>(GraphicsPipeline pipeline, int vertexCount, PrimitiveTopology topology, IndexLayout indexLayout, int primitiveSize)
+        public void Draw<T>(int vertexCount, PrimitiveTopology topology, IndexLayout indexLayout, int primitiveSize)
             where T : unmanaged, IEquatable<T>, IVertex
         {
             if (vertexCount == 0)

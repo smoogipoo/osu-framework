@@ -11,6 +11,7 @@ using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Graphics.Veldrid.Shaders;
 using osu.Framework.Graphics.Veldrid.Textures;
 using osu.Framework.Platform;
@@ -31,10 +32,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
         private readonly Stack<DrawNode> drawNodeStack = new Stack<DrawNode>();
 
+        private GraphicsPipeline pipeline = null!;
+
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             VeldridDevice = new VeldridDevice(graphicsSurface);
-            Context = new DeferredContext(this);
+            pipeline = new GraphicsPipeline(VeldridDevice);
+            Context = new DeferredContext(this, pipeline);
 
             MaxTextureSize = VeldridDevice.MaxTextureSize;
         }
@@ -46,10 +50,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             uniformBufferResetList.Clear();
             drawNodeStack.Clear();
-
             Context.NewFrame();
 
-            VeldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
+            VeldridDevice.NewFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
+            pipeline.Begin();
 
             base.BeginFrame(windowSize);
         }
@@ -58,9 +62,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         {
             base.FinishFrame();
 
-            new EventProcessor(Context, VeldridDevice.Graphics).ProcessEvents();
+            new EventProcessor(Context, pipeline).ProcessEvents();
 
-            VeldridDevice.FinishFrame();
+            pipeline.End();
         }
 
         public ResourceReference Reference<T>(T obj) where T : class => Context.Reference(obj);
@@ -150,16 +154,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         void IVeldridRenderer.UnbindShader(VeldridShader shader) => UnbindShader(shader);
 
         void IVeldridRenderer.UpdateTexture<T>(Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data)
-            => VeldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data);
+            => pipeline.UpdateTexture(texture, x, y, width, height, level, data);
 
         void IVeldridRenderer.UpdateTexture(Texture texture, int x, int y, int width, int height, int level, IntPtr data, int rowLengthInBytes)
-            => VeldridDevice.Graphics.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
+            => pipeline.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
 
-        CommandList IVeldridRenderer.BufferUpdateCommands => VeldridDevice.Graphics.Commands;
+        CommandList IVeldridRenderer.BufferUpdateCommands => pipeline.Commands;
 
         void IVeldridRenderer.EnqueueTextureUpload(VeldridTexture texture) => EnqueueTextureUpload(texture);
 
-        void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => VeldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
+        void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => pipeline.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
 
         public void RegisterUniformBufferForReset(IVeldridUniformBuffer veldridUniformBuffer) => uniformBufferResetList.Add(veldridUniformBuffer);
 

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using osu.Framework.Utils;
 using Veldrid;
 
@@ -41,12 +42,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         private int currentBuffer;
         private int currentWriteIndex;
 
-        public UniformBufferManager(DeferredContext context)
+        public UniformBufferManager(DeferredContext context, SimplePipeline pipeline)
         {
             this.context = context;
 
             bufferSize = context.Device.Features.BufferRangeBinding ? max_buffer_size : buffer_chunk_size;
-            uniformBufferPool = new DeferredBufferPool(context, (uint)bufferSize, BufferUsage.UniformBuffer, nameof(UniformBufferManager));
+            uniformBufferPool = new DeferredBufferPool(pipeline, (uint)bufferSize, BufferUsage.UniformBuffer, nameof(UniformBufferManager));
         }
 
         public UniformBufferReference Write(in MemoryReference memory)
@@ -59,7 +60,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
 
             if (currentBuffer == inUseBuffers.Count)
             {
-                PooledBuffer newBuffer = uniformBufferPool.Get(context);
+                PooledBuffer newBuffer = uniformBufferPool.Get();
 
                 inUseBuffers.Add(newBuffer);
                 mappedBuffers.Add(context.Device.Map(newBuffer.Buffer, MapMode.Write));

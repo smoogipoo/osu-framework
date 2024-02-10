@@ -55,12 +55,15 @@ namespace osu.Framework.Graphics.Veldrid
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
 
         private VeldridDevice veldridDevice = null!;
+        private GraphicsPipeline graphicsPipeline = null!;
         private SimplePipeline bufferUpdatePipeline = null!;
         private SimplePipeline textureUpdatePipeline = null!;
 
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
             veldridDevice = new VeldridDevice(graphicsSurface);
+
+            graphicsPipeline = new GraphicsPipeline(veldridDevice);
             bufferUpdatePipeline = new SimplePipeline(veldridDevice);
             textureUpdatePipeline = new SimplePipeline(veldridDevice);
 
@@ -73,7 +76,8 @@ namespace osu.Framework.Graphics.Veldrid
                 ubo.ResetCounters();
             uniformBufferResetList.Clear();
 
-            veldridDevice.BeginFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
+            veldridDevice.NewFrame(new Vector2I((int)windowSize.X, (int)windowSize.Y));
+            graphicsPipeline.Begin();
             bufferUpdatePipeline.Begin();
 
             base.BeginFrame(windowSize);
@@ -86,7 +90,7 @@ namespace osu.Framework.Graphics.Veldrid
             flushTextureUploadCommands();
 
             bufferUpdatePipeline.End();
-            veldridDevice.FinishFrame();
+            graphicsPipeline.End();
         }
 
         protected internal override void SwapBuffers()
@@ -105,49 +109,49 @@ namespace osu.Framework.Graphics.Veldrid
             => veldridDevice.ClearCurrent();
 
         protected override void ClearImplementation(ClearInfo clearInfo)
-            => veldridDevice.Graphics.Clear(clearInfo);
+            => graphicsPipeline.Clear(clearInfo);
 
         protected override void SetScissorStateImplementation(bool enabled)
-            => veldridDevice.Graphics.SetScissorState(enabled);
+            => graphicsPipeline.SetScissorState(enabled);
 
         protected override bool SetTextureImplementation(INativeTexture? texture, int unit)
         {
             if (texture is not VeldridTexture veldridTexture)
                 return false;
 
-            veldridDevice.Graphics.AttachTexture(unit, veldridTexture);
+            graphicsPipeline.AttachTexture(unit, veldridTexture);
             return true;
         }
 
         protected override void SetShaderImplementation(IShader shader)
-            => veldridDevice.Graphics.SetShader((VeldridShader)shader);
+            => graphicsPipeline.SetShader((VeldridShader)shader);
 
         protected override void SetBlendImplementation(BlendingParameters blendingParameters)
-            => veldridDevice.Graphics.SetBlend(blendingParameters);
+            => graphicsPipeline.SetBlend(blendingParameters);
 
         protected override void SetBlendMaskImplementation(BlendingMask blendingMask)
-            => veldridDevice.Graphics.SetBlendMask(blendingMask);
+            => graphicsPipeline.SetBlendMask(blendingMask);
 
         protected override void SetViewportImplementation(RectangleI viewport)
-            => veldridDevice.Graphics.SetViewport(viewport);
+            => graphicsPipeline.SetViewport(viewport);
 
         protected override void SetScissorImplementation(RectangleI scissor)
-            => veldridDevice.Graphics.SetScissor(scissor);
+            => graphicsPipeline.SetScissor(scissor);
 
         protected override void SetDepthInfoImplementation(DepthInfo depthInfo)
-            => veldridDevice.Graphics.SetDepthInfo(depthInfo);
+            => graphicsPipeline.SetDepthInfo(depthInfo);
 
         protected override void SetStencilInfoImplementation(StencilInfo stencilInfo)
-            => veldridDevice.Graphics.SetStencilInfo(stencilInfo);
+            => graphicsPipeline.SetStencilInfo(stencilInfo);
 
         protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
-            => veldridDevice.Graphics.SetFrameBuffer((VeldridFrameBuffer?)frameBuffer);
+            => graphicsPipeline.SetFrameBuffer((VeldridFrameBuffer?)frameBuffer);
 
         protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer)
-            => veldridDevice.Graphics.AttachUniformBuffer(blockName, (IVeldridUniformBuffer)buffer);
+            => graphicsPipeline.AttachUniformBuffer(blockName, (IVeldridUniformBuffer)buffer);
 
         public void BindVertexBuffer(IVeldridVertexBuffer buffer, VertexLayoutDescription layout)
-            => veldridDevice.Graphics.SetVertexBuffer(buffer.Buffer, layout);
+            => graphicsPipeline.SetVertexBuffer(buffer.Buffer, layout);
 
         public void BindIndexBuffer(VeldridIndexLayout layout, int verticesCount)
         {
@@ -161,7 +165,7 @@ namespace osu.Framework.Graphics.Veldrid
                 indexBuffer = new VeldridIndexBuffer(this, layout, verticesCount);
             }
 
-            veldridDevice.Graphics.SetIndexBuffer(indexBuffer);
+            graphicsPipeline.SetIndexBuffer(indexBuffer);
         }
 
         public override void DrawVerticesImplementation(Rendering.PrimitiveTopology type, int vertexStart, int verticesCount)
@@ -173,7 +177,7 @@ namespace osu.Framework.Graphics.Veldrid
             // until that appears to be problem, let's just flush here.
             flushTextureUploadCommands();
 
-            veldridDevice.Graphics.DrawVertices(type.ToPrimitiveTopology(), vertexStart, verticesCount);
+            graphicsPipeline.DrawVertices(type.ToPrimitiveTopology(), vertexStart, verticesCount);
         }
 
         private void ensureTextureUploadCommandsBegan()
@@ -286,7 +290,7 @@ namespace osu.Framework.Graphics.Veldrid
             => EnqueueTextureUpload(texture);
 
         void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture)
-            => veldridDevice.Graphics.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
+            => graphicsPipeline.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
 
         /// <summary>
         /// Checks whether the given frame buffer is currently bound.

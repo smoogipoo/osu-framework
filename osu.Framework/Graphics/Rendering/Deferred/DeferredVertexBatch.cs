@@ -5,14 +5,13 @@ using System;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
-using osu.Framework.Graphics.Veldrid.Pipelines;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
 {
     internal interface IDeferredVertexBatch
     {
         void Write(in MemoryReference primitive);
-        void Draw(GraphicsPipeline pipeline, int count);
+        void Draw(int count);
     }
 
     internal class DeferredVertexBatch<TVertex> : IVertexBatch<TVertex>, IDeferredVertexBatch
@@ -60,8 +59,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public void Write(in MemoryReference primitive)
             => renderer.Context.VertexManager.Write<TVertex>(primitive);
 
-        public void Draw(GraphicsPipeline pipeline, int count)
-            => renderer.Context.VertexManager.Draw<TVertex>(pipeline, count, topology, indexLayout, primitiveSize);
+        public void Draw(int count)
+            => renderer.Context.VertexManager.Draw<TVertex>(count, topology, indexLayout, primitiveSize);
 
         int IVertexBatch.Size => int.MaxValue;
 

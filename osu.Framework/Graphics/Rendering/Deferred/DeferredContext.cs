@@ -4,6 +4,7 @@
 using System;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
+using osu.Framework.Graphics.Veldrid.Pipelines;
 using Veldrid;
 
 namespace osu.Framework.Graphics.Rendering.Deferred
@@ -11,7 +12,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal class DeferredContext
     {
         public GraphicsDevice Device => Renderer.Device;
-        public ResourceFactory Factory => Renderer.Factory;
 
         public readonly DeferredRenderer Renderer;
         public readonly ResourceAllocator Allocator;
@@ -19,13 +19,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         public readonly UniformBufferManager UniformBufferManager;
         public readonly VertexManager VertexManager;
 
-        public DeferredContext(DeferredRenderer renderer)
+        public DeferredContext(DeferredRenderer renderer, GraphicsPipeline pipeline)
         {
             Renderer = renderer;
             Allocator = new ResourceAllocator();
             RenderEvents = new EventList(Allocator);
-            UniformBufferManager = new UniformBufferManager(this);
-            VertexManager = new VertexManager(this);
+            UniformBufferManager = new UniformBufferManager(this, pipeline);
+            VertexManager = new VertexManager(this, pipeline);
         }
 
         public void NewFrame()

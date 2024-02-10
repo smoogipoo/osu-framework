@@ -218,6 +218,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private void processEvent(in SetUniformBufferDataEvent e) => context.Dereference<IDeferredUniformBuffer>(e.Buffer).MoveNext();
 
-        private void processEvent(in FlushEvent e) => context.Dereference<IDeferredVertexBatch>(e.VertexBatch).Draw(pipeline, e.VertexCount);
+        private void processEvent(in FlushEvent e) => context.Dereference<IDeferredVertexBatch>(e.VertexBatch).Draw(e.VertexCount);
     }
 }
