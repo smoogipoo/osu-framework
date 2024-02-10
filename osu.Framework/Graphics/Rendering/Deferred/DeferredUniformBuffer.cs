@@ -20,8 +20,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
     internal class DeferredUniformBuffer<TData> : IUniformBuffer<TData>, IDeferredUniformBuffer
         where TData : unmanaged, IEquatable<TData>
     {
+        private static readonly List<(ChunkReference, ResourceLayout)> dead_chunks = new List<(ChunkReference, ResourceLayout)>();
+
         private readonly DeferredRenderer renderer;
-        private readonly Dictionary<ChunkReference, ResourceSet> bufferChunks = new Dictionary<ChunkReference, ResourceSet>();
+        private readonly Dictionary<(ChunkReference, ResourceLayout), ResourceSet> bufferChunks = new Dictionary<(ChunkReference, ResourceLayout), ResourceSet>();
 
         private TData data;
         private ChunkReference currentChunk;
@@ -52,10 +54,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         ResourceSet IVeldridUniformBuffer.GetResourceSet(ResourceLayout layout)
         {
-            if (bufferChunks.TryGetValue(currentChunk, out ResourceSet? existing))
+            if (bufferChunks.TryGetValue((currentChunk, layout), out ResourceSet? existing))
                 return existing;
 
-            return bufferChunks[currentChunk] = renderer.Factory.CreateResourceSet(
+            return bufferChunks[(currentChunk, layout)] = renderer.Factory.CreateResourceSet(
                 new ResourceSetDescription(
                     layout,
                     new DeviceBufferRange(
@@ -66,10 +68,16 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         void IVeldridUniformBuffer.ResetCounters()
         {
-            foreach ((_, ResourceSet set) in bufferChunks)
+            foreach (((ChunkReference chunk, ResourceLayout layout) key, ResourceSet set) in bufferChunks)
+            {
+                if (key.chunk.Buffer.IsDisposed)
+                    dead_chunks.Add(key);
                 set.Dispose();
+            }
 
-            bufferChunks.Clear();
+            foreach (var key in dead_chunks)
+                bufferChunks.Remove(key);
+
             data = default;
             currentChunk = default;
         }
