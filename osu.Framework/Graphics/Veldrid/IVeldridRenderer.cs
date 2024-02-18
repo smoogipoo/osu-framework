@@ -11,7 +11,13 @@ using Veldrid;
 namespace osu.Framework.Graphics.Veldrid
 {
     /// <summary>
-    /// Basic interface for all renderers that need Veldrid graphics objects.
+    /// Interface for all Veldrid-based renderers that want to use the following objects:
+    /// <list type="bullet">
+    /// <item><see cref="VeldridShader"/></item>
+    /// <item><see cref="VeldridShaderPart"/></item>
+    /// <item><see cref="VeldridTexture"/></item>
+    /// <item><see cref="VeldridVideoTexture"/></item>
+    /// </list>
     /// </summary>
     internal interface IVeldridRenderer : IRenderer
     {
