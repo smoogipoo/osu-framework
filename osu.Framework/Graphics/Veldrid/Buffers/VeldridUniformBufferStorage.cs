@@ -11,14 +11,14 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
     internal class VeldridUniformBufferStorage<TData>
         where TData : unmanaged, IEquatable<TData>
     {
-        private readonly IVeldridRenderer renderer;
+        private readonly VeldridRenderer renderer;
         private readonly DeviceBuffer buffer;
         private readonly NativeMemoryTracker.NativeMemoryLease memoryLease;
 
         private ResourceSet? set;
         private TData data;
 
-        public VeldridUniformBufferStorage(IVeldridRenderer renderer)
+        public VeldridUniformBufferStorage(VeldridRenderer renderer)
         {
             this.renderer = renderer;
 

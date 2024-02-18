@@ -23,8 +23,6 @@ namespace osu.Framework.Graphics.Veldrid
 
         bool UseStructuredBuffers { get; }
 
-        CommandList BufferUpdateCommands { get; }
-
         void BindShader(VeldridShader shader);
 
         void UnbindShader(VeldridShader shader);

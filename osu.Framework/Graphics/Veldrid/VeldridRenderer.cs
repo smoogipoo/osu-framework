@@ -162,7 +162,7 @@ namespace osu.Framework.Graphics.Veldrid
             if (indexBuffer == null || indexBuffer.VertexCapacity < verticesCount)
             {
                 indexBuffer?.Dispose();
-                indexBuffer = new VeldridIndexBuffer(this, layout, verticesCount);
+                indexBuffer = new VeldridIndexBuffer(bufferUpdatePipeline, layout, verticesCount);
             }
 
             graphicsPipeline.SetIndexBuffer(indexBuffer);
@@ -271,10 +271,10 @@ namespace osu.Framework.Graphics.Veldrid
 
         #region IVeldridRenderer
 
-        bool IVeldridRenderer.UseStructuredBuffers
+        public bool UseStructuredBuffers
             => veldridDevice.UseStructuredBuffers;
 
-        CommandList IVeldridRenderer.BufferUpdateCommands
+        public CommandList BufferUpdateCommands
             => bufferUpdatePipeline.Commands;
 
         void IVeldridRenderer.UpdateTexture<T>(global::Veldrid.Texture texture, int x, int y, int width, int height, int level, ReadOnlySpan<T> data)

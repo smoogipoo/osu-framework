@@ -87,8 +87,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             ref VeldridIndexBuffer? indexBuffer = ref indexBuffers[(int)indexLayout];
             indexBuffer ??= indexLayout switch
             {
-                IndexLayout.Linear => new VeldridIndexBuffer(context.Renderer, VeldridIndexLayout.Linear, IRenderer.MAX_VERTICES),
-                IndexLayout.Quad => new VeldridIndexBuffer(context.Renderer, VeldridIndexLayout.Quad, IRenderer.MAX_QUADS * IRenderer.VERTICES_PER_QUAD),
+                IndexLayout.Linear => new VeldridIndexBuffer(pipeline, VeldridIndexLayout.Linear, IRenderer.MAX_VERTICES),
+                IndexLayout.Quad => new VeldridIndexBuffer(pipeline, VeldridIndexLayout.Quad, IRenderer.MAX_QUADS * IRenderer.VERTICES_PER_QUAD),
                 _ => throw new ArgumentOutOfRangeException(nameof(indexLayout), indexLayout, null)
             };
 

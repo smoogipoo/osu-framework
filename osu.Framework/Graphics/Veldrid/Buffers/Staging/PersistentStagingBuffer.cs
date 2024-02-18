@@ -13,11 +13,11 @@ namespace osu.Framework.Graphics.Veldrid.Buffers.Staging
     internal class PersistentStagingBuffer<T> : IStagingBuffer<T>
         where T : unmanaged
     {
-        private readonly IVeldridRenderer renderer;
+        private readonly VeldridRenderer renderer;
         private readonly DeviceBuffer stagingBuffer;
         private MappedResource? stagingBufferMap;
 
-        public PersistentStagingBuffer(IVeldridRenderer renderer, uint count)
+        public PersistentStagingBuffer(VeldridRenderer renderer, uint count)
         {
             this.renderer = renderer;
 

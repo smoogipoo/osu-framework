@@ -15,10 +15,10 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
 
         private readonly TData[] data;
         private readonly DeviceBuffer buffer;
-        private readonly IVeldridRenderer renderer;
+        private readonly VeldridRenderer renderer;
         private readonly uint elementSize;
 
-        public VeldridShaderStorageBufferObject(IVeldridRenderer renderer, int uboSize, int ssboSize)
+        public VeldridShaderStorageBufferObject(VeldridRenderer renderer, int uboSize, int ssboSize)
         {
             this.renderer = renderer;
 

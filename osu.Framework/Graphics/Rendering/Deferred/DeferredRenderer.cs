@@ -161,8 +161,6 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         void IVeldridRenderer.UpdateTexture(Texture texture, int x, int y, int width, int height, int level, IntPtr data, int rowLengthInBytes)
             => pipeline.UpdateTexture(texture, x, y, width, height, level, data, rowLengthInBytes);
 
-        CommandList IVeldridRenderer.BufferUpdateCommands => pipeline.Commands;
-
         void IVeldridRenderer.EnqueueTextureUpload(VeldridTexture texture) => EnqueueTextureUpload(texture);
 
         void IVeldridRenderer.GenerateMipmaps(VeldridTexture texture) => pipeline.Commands.GenerateMipmaps(texture.GetResourceList().Single().Texture);
