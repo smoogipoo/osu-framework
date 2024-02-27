@@ -73,6 +73,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
             => Context.EnqueueEvent(SetFrameBufferEvent.Create(this, frameBuffer));
 
+        protected override void DeleteFrameBufferImplementation(IFrameBuffer frameBuffer)
+            => ((DeferredFrameBuffer)frameBuffer).Dispose();
+
         protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer)
             => Context.EnqueueEvent(SetUniformBufferEvent.Create(this, blockName, buffer));
 
@@ -186,11 +189,11 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         void IRenderer.EnterDrawNode(DrawNode node)
         {
             drawNodeStack.Push(node);
-            Context.EnqueueEvent(DrawNodeActionEvent.Create(this, node, DrawNodeActionType.Enter));
+            Context.EnqueueEvent(DrawNodeEnterEvent.Create(this, node));
         }
 
         void IRenderer.ExitDrawNode()
-            => Context.EnqueueEvent(DrawNodeActionEvent.Create(this, drawNodeStack.Pop(), DrawNodeActionType.Exit));
+            => Context.EnqueueEvent(DrawNodeExitEvent.Create(this, drawNodeStack.Pop()));
 
         protected override IShaderPart CreateShaderPart(IShaderStore store, string name, byte[]? rawData, ShaderPartType partType)
             => new VeldridShaderPart(this, rawData, partType, store);

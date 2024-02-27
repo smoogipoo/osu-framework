@@ -50,23 +50,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
                 switch (enumerator.CurrentType())
                 {
-                    case RenderEventType.DrawNodeAction:
+                    case RenderEventType.DrawNodeEnter:
                     {
-                        ref DrawNodeActionEvent e = ref enumerator.Current<DrawNodeActionEvent>();
+                        ref DrawNodeEnterEvent e = ref enumerator.Current<DrawNodeEnterEvent>();
+                        info = $"DrawNode.Enter ({context.Dereference<DrawNode>(e.DrawNode)})";
+                        indentChange += 2;
+                        break;
+                    }
 
-                        info = $"DrawNode.{e.Action} ({context.Dereference<DrawNode>(e.DrawNode)})";
-
-                        switch (e.Action)
-                        {
-                            case DrawNodeActionType.Enter:
-                                indentChange += 2;
-                                break;
-
-                            case DrawNodeActionType.Exit:
-                                indentChange -= 2;
-                                break;
-                        }
-
+                    case RenderEventType.DrawNodeExit:
+                    {
+                        ref DrawNodeExitEvent e = ref enumerator.Current<DrawNodeExitEvent>();
+                        info = $"DrawNode.Exit ({context.Dereference<DrawNode>(e.DrawNode)})";
+                        indentChange -= 2;
                         break;
                     }
 

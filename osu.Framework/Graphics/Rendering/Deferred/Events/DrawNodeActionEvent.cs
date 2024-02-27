@@ -5,15 +5,9 @@ using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct DrawNodeActionEvent(RenderEventType Type, ResourceReference DrawNode, DrawNodeActionType Action) : IRenderEvent
+    internal readonly record struct DrawNodeExitEvent(RenderEventType Type, ResourceReference DrawNode) : IRenderEvent
     {
-        public static DrawNodeActionEvent Create(DeferredRenderer renderer, DrawNode drawNode, DrawNodeActionType action)
-            => new DrawNodeActionEvent(RenderEventType.DrawNodeAction, renderer.Context.Reference(drawNode), action);
-    }
-
-    internal enum DrawNodeActionType : byte
-    {
-        Enter,
-        Exit
+        public static DrawNodeExitEvent Create(DeferredRenderer renderer, DrawNode drawNode)
+            => new DrawNodeExitEvent(RenderEventType.DrawNodeExit, renderer.Context.Reference(drawNode));
     }
 }
