@@ -106,6 +106,38 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 where T : unmanaged, IRenderEvent
                 => ref Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(eventData));
 
+            public int CurrentIndex() => eventIndex - 1;
+
+            public readonly ref T ReadAt<T>(int index)
+                where T : unmanaged, IRenderEvent
+            {
+                Span<byte> data = list.allocator.GetRegion(list.events[index]);
+                return ref Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(data));
+            }
+
+            public void ReplaceAt<T>(int index, T newEvent)
+                where T : unmanaged, IRenderEvent
+            {
+                if (index == CurrentIndex())
+                {
+                    Replace(newEvent);
+                    return;
+                }
+
+                Span<byte> data = list.allocator.GetRegion(list.events[index]);
+
+                if (Unsafe.SizeOf<T>() <= data.Length)
+                {
+                    // Fast path where we can maintain contiguous data reads.
+                    Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(data), newEvent);
+                }
+                else
+                {
+                    // Slow path.
+                    list.events[eventIndex] = list.createEvent(newEvent);
+                }
+            }
+
             /// <summary>
             /// Replaces the current event with a new one.
             /// </summary>

@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
@@ -28,9 +29,58 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         public void ProcessEvents()
         {
+            analyseDrawNodes();
+
             printEventsForDebug();
+
             processUploads();
             processEvents();
+        }
+
+        private void analyseDrawNodes()
+        {
+            EventList.Enumerator enumerator = context.RenderEvents.CreateEnumerator();
+
+            // Only supports 128 DrawNode recursion levels for now...
+            int[] dnStartIndices = ArrayPool<int>.Shared.Rent(128);
+            int currentDn = -1;
+            bool currentDnHasFrameBuffer = false;
+
+            while (enumerator.Next())
+            {
+                switch (enumerator.CurrentType())
+                {
+                    case RenderEventType.DrawNodeEnter:
+                    {
+                        dnStartIndices[++currentDn] = enumerator.CurrentIndex();
+                        currentDnHasFrameBuffer = false;
+                        break;
+                    }
+
+                    case RenderEventType.SetFrameBuffer:
+                    {
+                        if (currentDn < 0 || currentDnHasFrameBuffer)
+                            break;
+
+                        int startIndex = dnStartIndices[currentDn];
+                        DrawNodeEnterEvent ce = enumerator.ReadAt<DrawNodeEnterEvent>(startIndex);
+                        enumerator.ReplaceAt(startIndex, ce with { Metadata = new DrawNodeEnterMetadata(HasFrameBuffer: true) });
+                        break;
+                    }
+
+                    case RenderEventType.DrawNodeExit:
+                    {
+                        currentDn--;
+
+                        // Yes, this resets even when we resume back to a DrawNode we've previously marked as having a framebuffer.
+                        // Worst case is SetFrameBuffer will be triggered again.
+                        currentDnHasFrameBuffer = false;
+                        break;
+                    }
+                }
+            }
+
+            ArrayPool<int>.Shared.Return(dnStartIndices);
         }
 
         private void printEventsForDebug()
@@ -53,7 +103,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     case RenderEventType.DrawNodeEnter:
                     {
                         ref DrawNodeEnterEvent e = ref enumerator.Current<DrawNodeEnterEvent>();
-                        info = $"DrawNode.Enter ({context.Dereference<DrawNode>(e.DrawNode)})";
+                        info = $"DrawNode.Enter ({context.Dereference<DrawNode>(e.DrawNode)}): {e.Metadata}";
                         indentChange += 2;
                         break;
                     }
