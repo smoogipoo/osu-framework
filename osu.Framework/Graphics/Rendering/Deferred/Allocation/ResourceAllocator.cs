@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using osu.Framework.Development;
@@ -17,9 +16,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
     internal class ResourceAllocator
     {
         private const int min_buffer_size = 1024 * 1024; // 1MB per buffer.
+        private static readonly ArrayPool<byte> memory_pool = ArrayPool<byte>.Shared;
 
         private readonly List<object> resources = new List<object>();
-        private readonly List<MemoryBuffer> memoryBuffers = new List<MemoryBuffer>();
+        private readonly List<byte[]> memoryBuffers = new List<byte[]>();
+
+        private int currentBufferLength;
+        private int currentBufferRemaining;
 
         /// <summary>
         /// Prepares this <see cref="ResourceAllocator"/> for a new frame.
@@ -29,10 +32,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             ThreadSafety.EnsureDrawThread();
 
             for (int i = 0; i < memoryBuffers.Count; i++)
-                memoryBuffers[i].Dispose();
+                memory_pool.Return(memoryBuffers[i]);
 
             resources.Clear();
             memoryBuffers.Clear();
+            currentBufferLength = 0;
+            currentBufferRemaining = 0;
 
             // Special value used by NullReference().
             resources.Add(null!);
@@ -113,10 +118,17 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         {
             ThreadSafety.EnsureDrawThread();
 
-            if (memoryBuffers.Count == 0 || memoryBuffers[^1].Remaining < length)
-                memoryBuffers.Add(new MemoryBuffer(memoryBuffers.Count, Math.Max(min_buffer_size * (1 << memoryBuffers.Count), length)));
+            if (currentBufferRemaining < length)
+            {
+                byte[] buffer = memory_pool.Rent(Math.Max(min_buffer_size * (1 << memoryBuffers.Count), length));
+                memoryBuffers.Add(buffer);
+                currentBufferLength = buffer.Length;
+                currentBufferRemaining = buffer.Length;
+            }
 
-            return memoryBuffers[^1].Reserve(length);
+            int start = currentBufferLength - currentBufferRemaining;
+            currentBufferRemaining -= length;
+            return new MemoryReference(memoryBuffers.Count - 1, start, length);
         }
 
         /// <summary>
@@ -127,7 +139,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public Span<byte> GetRegion(MemoryReference reference)
         {
             ThreadSafety.EnsureDrawThread();
-            return memoryBuffers[reference.BufferId].GetBuffer(reference);
+            return memoryBuffers[reference.BufferId].AsSpan().Slice(reference.Offset, reference.Length);
         }
 
         /// <summary>
@@ -138,49 +150,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         public ref byte GetRegionRef(MemoryReference reference)
         {
             ThreadSafety.EnsureDrawThread();
-            return ref memoryBuffers[reference.BufferId].GetBufferRef(reference);
-        }
-
-        private class MemoryBuffer : IDisposable
-        {
-            public readonly int Id;
-            public int Size => buffer.Length;
-            public int Remaining { get; private set; }
-
-            private readonly byte[] buffer;
-
-            public MemoryBuffer(int id, int minSize)
-            {
-                Id = id;
-                buffer = ArrayPool<byte>.Shared.Rent(minSize);
-                Remaining = Size;
-            }
-
-            public MemoryReference Reserve(int length)
-            {
-                Debug.Assert(length <= Remaining);
-
-                int start = Size - Remaining;
-                Remaining -= length;
-                return new MemoryReference(Id, start, length);
-            }
-
-            public Span<byte> GetBuffer(MemoryReference reference)
-            {
-                Debug.Assert(reference.BufferId == Id);
-                return buffer.AsSpan().Slice(reference.Offset, reference.Length);
-            }
-
-            public ref byte GetBufferRef(MemoryReference reference)
-            {
-                Debug.Assert(reference.BufferId == Id);
-                return ref buffer[reference.Offset];
-            }
-
-            public void Dispose()
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+            return ref memoryBuffers[reference.BufferId][reference.Offset];
         }
     }
 }
