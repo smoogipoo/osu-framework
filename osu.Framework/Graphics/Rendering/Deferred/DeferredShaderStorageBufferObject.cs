@@ -3,7 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using osu.Framework.Graphics.Rendering.Deferred.Allocation;
+using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using Veldrid;
@@ -18,19 +18,22 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private readonly TData[] data;
         private readonly DeviceBuffer buffer;
         private readonly DeferredRenderer renderer;
-        private readonly int elementSize;
+
+        private ResourceSet? resourceSet;
+        private bool isDirty;
 
         public DeferredShaderStorageBufferObject(DeferredRenderer renderer, int ssboSize)
         {
             this.renderer = renderer;
 
-            elementSize = Unsafe.SizeOf<TData>();
-
-            // if (renderer.UseStructuredBuffers)
             Size = ssboSize;
-            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)(elementSize * Size), BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic, (uint)elementSize, true));
 
             data = new TData[Size];
+            buffer = renderer.Factory.CreateBuffer(new BufferDescription(
+                (uint)(Unsafe.SizeOf<TData>() * Size),
+                BufferUsage.StructuredBufferReadOnly | BufferUsage.Dynamic,
+                (uint)Unsafe.SizeOf<TData>(),
+                true));
         }
 
         public TData this[int index]
@@ -42,15 +45,32 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                     return;
 
                 data[index] = value;
-                renderer.Context.EnqueueEvent(SetShaderStorageBufferObjectDataEvent.Create(renderer, this, index, value));
+
+                if (!isDirty)
+                    renderer.Context.EnqueueEvent(FlushShaderStorageBufferObjectEvent.Create(renderer, this));
+
+                isDirty = true;
             }
         }
 
-        public void Write(int index, MemoryReference memory)
-            => memory.WriteTo(renderer.Context, buffer, index * elementSize);
+        public void Flush()
+        {
+            if (!isDirty)
+                return;
+
+            MappedResource mappedBuffer = renderer.Device.Map(buffer, MapMode.Write);
+
+            unsafe
+            {
+                MemoryMarshal.Cast<TData, byte>(data).CopyTo(new Span<byte>(mappedBuffer.Data.ToPointer(), (int)mappedBuffer.SizeInBytes));
+            }
+
+            renderer.Device.Unmap(buffer);
+            isDirty = false;
+        }
 
         public ResourceSet GetResourceSet(ResourceLayout layout)
-            => renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+            => resourceSet ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
 
         public void ResetCounters()
         {

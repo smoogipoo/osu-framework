@@ -112,9 +112,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
                     case RenderEventType.SetShaderStorageBufferObjectData:
                     {
-                        ref SetShaderStorageBufferObjectDataEvent e = ref enumerator.Current<SetShaderStorageBufferObjectDataEvent>();
+                        ref FlushShaderStorageBufferObjectEvent e = ref enumerator.Current<FlushShaderStorageBufferObjectEvent>();
                         IDeferredShaderStorageBufferObject buffer = context.Dereference<IDeferredShaderStorageBufferObject>(e.Buffer);
-                        buffer.Write(e.Index, e.Memory);
+                        buffer.Flush();
                         break;
                     }
                 }
