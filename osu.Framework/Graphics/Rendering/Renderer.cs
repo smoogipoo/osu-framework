@@ -257,6 +257,7 @@ namespace osu.Framework.Graphics.Rendering
                 ScreenSpaceAABB = new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y),
                 MaskingRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 ToMaskingSpace = Matrix3.Identity,
+                ToScissorSpace = Matrix3.Identity,
                 BlendRange = 1,
                 AlphaExponent = 1,
                 CornerExponent = 2.5f,
@@ -609,10 +610,13 @@ namespace osu.Framework.Graphics.Rendering
 
         #region Masking
 
-        public void PushMaskingInfo(in MaskingInfo maskingInfo, bool overwritePreviousScissor = false)
+        public void PushMaskingInfo(MaskingInfo maskingInfo, bool overwritePreviousScissor = false)
         {
+            if (!overwritePreviousScissor)
+                maskingInfo.ScreenSpaceAABB = RectangleF.Intersect(currentMaskingInfo.ScreenSpaceAABB, maskingInfo.ScreenSpaceAABB);
+
             maskingStack.Push(maskingInfo);
-            setMaskingInfo(maskingInfo, true, overwritePreviousScissor);
+            setMaskingInfo(maskingInfo);
         }
 
         public void PopMaskingInfo()
@@ -620,35 +624,15 @@ namespace osu.Framework.Graphics.Rendering
             Trace.Assert(maskingStack.Count > 1);
 
             maskingStack.Pop();
-            setMaskingInfo(maskingStack.Peek(), false, true);
+            setMaskingInfo(maskingStack.Peek());
         }
 
-        private void setMaskingInfo(MaskingInfo maskingInfo, bool isPushing, bool overwritePreviousScissor)
+        private void setMaskingInfo(MaskingInfo maskingInfo)
         {
             if (CurrentMaskingInfo == maskingInfo)
                 return;
 
             FlushCurrentBatch(FlushBatchSource.SetMasking);
-
-            if (isPushing)
-            {
-                // When drawing to a viewport that doesn't match the projection size (e.g. via framebuffers), the resultant image will be scaled
-                Vector2 projectionScale = new Vector2(ProjectionMatrix.Row0.X / 2, -ProjectionMatrix.Row1.Y / 2);
-                Vector2 viewportScale = Vector2.Multiply(Viewport.Size, projectionScale);
-
-                Vector2 location = (maskingInfo.ScreenSpaceAABB.Location - ScissorOffset) * viewportScale;
-                Vector2 size = maskingInfo.ScreenSpaceAABB.Size * viewportScale;
-
-                RectangleI actualRect = new RectangleI(
-                    (int)Math.Floor(location.X),
-                    (int)Math.Floor(location.Y),
-                    (int)Math.Ceiling(size.X),
-                    (int)Math.Ceiling(size.Y));
-
-                PushScissor(overwritePreviousScissor ? actualRect : RectangleI.Intersect(scissorRectStack.Peek(), actualRect));
-            }
-            else
-                PopScissor();
 
             currentMaskingInfo = maskingInfo;
 
@@ -962,6 +946,7 @@ namespace osu.Framework.Graphics.Rendering
                     IsUvOriginTopLeft = IsUvOriginTopLeft,
                     ProjMatrix = ProjectionMatrix,
                     ToMaskingSpace = currentMaskingInfo.ToMaskingSpace,
+                    ToScissorSpace = new Matrix4(currentMaskingInfo.ToScissorSpace),
                     IsMasking = IsMaskingActive,
                     CornerRadius = currentMaskingInfo.CornerRadius,
                     CornerExponent = currentMaskingInfo.CornerExponent,
@@ -970,6 +955,11 @@ namespace osu.Framework.Graphics.Rendering
                         currentMaskingInfo.MaskingRect.Top,
                         currentMaskingInfo.MaskingRect.Right,
                         currentMaskingInfo.MaskingRect.Bottom),
+                    ScissorRect = new Vector4(
+                        currentMaskingInfo.ScreenSpaceAABB.Left,
+                        currentMaskingInfo.ScreenSpaceAABB.Top,
+                        currentMaskingInfo.ScreenSpaceAABB.Right,
+                        currentMaskingInfo.ScreenSpaceAABB.Bottom),
                     BorderThickness = currentMaskingInfo.BorderThickness / currentMaskingInfo.BlendRange,
                     BorderColour = currentMaskingInfo.BorderThickness > 0
                         ? new Matrix4(

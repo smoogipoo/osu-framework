@@ -15,12 +15,17 @@ layout(location = 1) out lowp vec4 v_Colour;
 layout(location = 2) out highp vec2 v_TexCoord;
 layout(location = 3) out highp vec4 v_TexRect;
 layout(location = 4) out mediump vec2 v_BlendRange;
+layout(location = 5) out highp vec2 v_ScissorPosition;
 
 void main(void)
 {
     // Transform from screen space to masking space.
     highp vec3 maskingPos = g_ToMaskingSpace * vec3(m_Position, 1.0);
     v_MaskingPosition = maskingPos.xy / maskingPos.z;
+
+    // Transform from screen space to scissor space.
+    highp vec4 scissorPos = g_ToScissorSpace * vec4(m_Position, 1.0, 0.0);
+    v_ScissorPosition = scissorPos.xy / scissorPos.z;
 
     v_Colour = m_Colour;
     v_TexCoord = m_TexCoord;

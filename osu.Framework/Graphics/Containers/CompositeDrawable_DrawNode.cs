@@ -95,6 +95,7 @@ namespace osu.Framework.Graphics.Containers
                         MaskingRect = Source.DrawRectangle.Normalize(),
                         ConservativeScreenSpaceQuad = Quad.FromRectangle(shrunkDrawRectangle) * DrawInfo.Matrix,
                         ToMaskingSpace = DrawInfo.MatrixInverse,
+                        ToScissorSpace = Matrix3.Identity,
                         CornerRadius = Source.effectiveCornerRadius,
                         CornerExponent = Source.CornerExponent,
                         BorderThickness = Source.BorderThickness,

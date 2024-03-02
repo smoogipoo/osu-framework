@@ -20,12 +20,16 @@ layout(std140, set = -1, binding = 0) uniform g_GlobalUniforms
 
     mat4 g_ProjMatrix;
     mat3 g_ToMaskingSpace;
+    mat4 g_ToScissorSpace;
+
+    highp vec4 g_MaskingRect;
+    highp vec4 g_ScissorRect;
 
     bool g_IsMasking;
     highp float g_CornerRadius;
     highp float g_CornerExponent;
-    highp vec4 g_MaskingRect;
     highp float g_BorderThickness;
+
     lowp mat4 g_BorderColour;
     mediump float g_MaskingBlendRange;
     lowp float g_AlphaExponent;
