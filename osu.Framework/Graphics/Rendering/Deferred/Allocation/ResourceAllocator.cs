@@ -120,15 +120,25 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         }
 
         /// <summary>
-        /// Retrieves a <see cref="Span{T}"/> over a referenced memory region.
+        /// Retrieves a <see cref="Span{T}"/> over the underlying referenced memory region.
         /// </summary>
         /// <param name="reference">The memory reference.</param>
         /// <returns>The <see cref="Span{T}"/>.</returns>
         public Span<byte> GetRegion(MemoryReference reference)
         {
             ThreadSafety.EnsureDrawThread();
-
             return memoryBuffers[reference.BufferId].GetBuffer(reference);
+        }
+
+        /// <summary>
+        /// Retrieves a <c>byte</c> reference to the underlying referenced memory region.
+        /// </summary>
+        /// <param name="reference">The memory reference.</param>
+        /// <returns>A reference to the start of the memory region.</returns>
+        public ref byte GetRegionRef(MemoryReference reference)
+        {
+            ThreadSafety.EnsureDrawThread();
+            return ref memoryBuffers[reference.BufferId].GetBufferRef(reference);
         }
 
         private class MemoryBuffer : IDisposable
@@ -159,6 +169,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
             {
                 Debug.Assert(reference.BufferId == Id);
                 return buffer.AsSpan().Slice(reference.Offset, reference.Length);
+            }
+
+            public ref byte GetBufferRef(MemoryReference reference)
+            {
+                Debug.Assert(reference.BufferId == Id);
+                return ref buffer[reference.Offset];
             }
 
             public void Dispose()
