@@ -1,8 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
-using osu.Framework.Graphics.Rendering.Deferred;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 
@@ -10,42 +10,67 @@ namespace osu.Framework.Benchmarks
 {
     public class BenchmarkEventList
     {
-        private EventList filledEventList = null!;
+        // Used for benchmark-local testing.
+        private ResourceAllocator localAllocator = null!;
+        private List<RenderEvent> localEventList = null!;
+
+        // Used for benchmark-static testing.
+        // 0: Basic events
+        // 1: Events with data
+        // 2: Mixed events
+        private readonly (ResourceAllocator allocator, List<RenderEvent> list)[] staticItems = new (ResourceAllocator allocator, List<RenderEvent> list)[3];
 
         [GlobalSetup]
         public void GlobalSetup()
         {
-            filledEventList = new EventList(new ResourceAllocator());
+            localAllocator = new ResourceAllocator();
+            localEventList = new List<RenderEvent>();
+
+            for (int i = 0; i < staticItems.Length; i++)
+            {
+                ResourceAllocator allocator = new ResourceAllocator();
+                staticItems[i] = (allocator, new List<RenderEvent>());
+            }
 
             for (int i = 0; i < 10000; i++)
-                filledEventList.Enqueue(new FlushEvent(RenderEventType.Flush, new ResourceReference(1), 10));
+            {
+                staticItems[0].list.Add(RenderEvent.Init(new FlushEvent(new ResourceReference(1), 10)));
+                staticItems[1].list.Add(RenderEvent.Init(new AddPrimitiveToBatchEvent(new ResourceReference(0), staticItems[1].allocator.AllocateRegion(1024))));
+                staticItems[2].list.Add(i % 2 == 0
+                    ? RenderEvent.Init(new FlushEvent(new ResourceReference(1), 10))
+                    : RenderEvent.Init(new AddPrimitiveToBatchEvent(new ResourceReference(0), staticItems[2].allocator.AllocateRegion(1024))));
+            }
         }
 
         [Benchmark]
         public void Write()
         {
-            ResourceAllocator allocator = new ResourceAllocator();
-            EventList list = new EventList(allocator);
+            localAllocator.NewFrame();
 
             for (int i = 0; i < 10000; i++)
-                list.Enqueue(new FlushEvent());
+                localEventList.Add(RenderEvent.Init(new FlushEvent()));
+        }
 
-            allocator.NewFrame();
+        [Benchmark]
+        public void WriteWithData()
+        {
+            localAllocator.NewFrame();
+
+            for (int i = 0; i < 10000; i++)
+                localEventList.Add(RenderEvent.Init(new AddPrimitiveToBatchEvent(new ResourceReference(0), localAllocator.AllocateRegion(1024))));
         }
 
         [Benchmark]
         public int Read()
         {
-            var enumerator = filledEventList.CreateEnumerator();
-
             int totalVertices = 0;
 
-            while (enumerator.Next())
+            foreach (var renderEvent in staticItems[0].list)
             {
-                switch (enumerator.CurrentType())
+                switch (renderEvent.Type)
                 {
                     case RenderEventType.Flush:
-                        ref FlushEvent e = ref enumerator.Current<FlushEvent>();
+                        FlushEvent e = (FlushEvent)renderEvent;
                         totalVertices += e.VertexCount;
                         break;
                 }
@@ -55,90 +80,52 @@ namespace osu.Framework.Benchmarks
         }
 
         [Benchmark]
-        public int ReplaceSame()
+        public int ReadWithData()
         {
-            ResourceAllocator allocator = new ResourceAllocator();
-            EventList list = new EventList(allocator);
+            int data = 0;
 
-            list.Enqueue(new FlushEvent());
-            list.Enqueue(new FlushEvent());
-            list.Enqueue(new FlushEvent());
-
-            var enumerator = filledEventList.CreateEnumerator();
-            enumerator.Next();
-            enumerator.Next();
-            enumerator.Replace(new FlushEvent());
-
-            int i = 0;
-            enumerator = filledEventList.CreateEnumerator();
-
-            while (enumerator.Next())
+            foreach (var renderEvent in staticItems[1].list)
             {
-                enumerator.CurrentType();
-                i++;
+                switch (renderEvent.Type)
+                {
+                    case RenderEventType.AddPrimitiveToBatch:
+                        AddPrimitiveToBatchEvent e = (AddPrimitiveToBatchEvent)renderEvent;
+                        foreach (byte b in staticItems[1].allocator.GetRegion(e.Memory))
+                            data += b;
+                        break;
+                }
             }
 
-            allocator.NewFrame();
-
-            return i;
+            return data;
         }
 
         [Benchmark]
-        public int ReplaceSmaller()
+        public int ReadMixed()
         {
-            ResourceAllocator allocator = new ResourceAllocator();
-            EventList list = new EventList(allocator);
+            int data = 0;
 
-            list.Enqueue(new FlushEvent());
-            list.Enqueue(new FlushEvent());
-            list.Enqueue(new FlushEvent());
-
-            var enumerator = filledEventList.CreateEnumerator();
-            enumerator.Next();
-            enumerator.Next();
-            enumerator.Replace(new SetScissorStateEvent());
-
-            int i = 0;
-            enumerator = filledEventList.CreateEnumerator();
-
-            while (enumerator.Next())
+            foreach (var renderEvent in staticItems[2].list)
             {
-                enumerator.CurrentType();
-                i++;
+                switch (renderEvent.Type)
+                {
+                    case RenderEventType.Flush:
+                    {
+                        FlushEvent e = (FlushEvent)renderEvent;
+                        data += e.VertexCount;
+                        break;
+                    }
+
+                    case RenderEventType.AddPrimitiveToBatch:
+                    {
+                        AddPrimitiveToBatchEvent e = (AddPrimitiveToBatchEvent)renderEvent;
+                        foreach (byte b in staticItems[2].allocator.GetRegion(e.Memory))
+                            data += b;
+                        break;
+                    }
+                }
             }
 
-            allocator.NewFrame();
-
-            return i;
-        }
-
-        [Benchmark]
-        public int ReplaceBigger()
-        {
-            ResourceAllocator allocator = new ResourceAllocator();
-            EventList list = new EventList(allocator);
-
-            list.Enqueue(new FlushEvent());
-            list.Enqueue(new FlushEvent());
-            list.Enqueue(new FlushEvent());
-
-            var enumerator = filledEventList.CreateEnumerator();
-            enumerator.Next();
-            enumerator.Next();
-            enumerator.Replace(new SetUniformBufferDataEvent());
-
-            int i = 0;
-            enumerator = filledEventList.CreateEnumerator();
-
-            while (enumerator.Next())
-            {
-                enumerator.CurrentType();
-                i++;
-            }
-
-            allocator.NewFrame();
-
-            return i;
+            return data;
         }
     }
 }

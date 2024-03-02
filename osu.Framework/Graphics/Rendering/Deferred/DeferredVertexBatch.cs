@@ -45,15 +45,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         primitiveSize = 2;
                         break;
 
-                    case PrimitiveTopology.LineStrip:
-                        throw new NotSupportedException();
-
                     case PrimitiveTopology.Triangles:
                         primitiveSize = 3;
                         break;
 
+                    case PrimitiveTopology.LineStrip:
                     case PrimitiveTopology.TriangleStrip:
-                        throw new NotSupportedException();
+                        throw new NotImplementedException($"Topology '{topology}' is not yet implemented for this renderer.");
 
                     default:
                         throw new ArgumentOutOfRangeException();

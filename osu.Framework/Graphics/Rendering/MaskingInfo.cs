@@ -22,6 +22,8 @@ namespace osu.Framework.Graphics.Rendering
         /// </summary>
         public Matrix3 ToMaskingSpace;
 
+        public Matrix3 ToScissorSpace;
+
         public float CornerRadius;
         public float CornerExponent;
 
@@ -43,6 +45,7 @@ namespace osu.Framework.Graphics.Rendering
             left.MaskingRect == right.MaskingRect &&
             left.ConservativeScreenSpaceQuad.Equals(right.ConservativeScreenSpaceQuad) &&
             left.ToMaskingSpace == right.ToMaskingSpace &&
+            left.ToScissorSpace == right.ToScissorSpace &&
             left.CornerRadius == right.CornerRadius &&
             left.CornerExponent == right.CornerExponent &&
             left.BorderThickness == right.BorderThickness &&
