@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using osu.Framework.Development;
 using osu.Framework.Utils;
 using Veldrid;
 
@@ -57,8 +58,10 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         /// </summary>
         /// <param name="memory">The data to write.</param>
         /// <returns>A reference to the written data.</returns>
-        public UniformBufferReference Write(in MemoryReference memory)
+        public UniformBufferReference Write(in ReadOnlySpan<byte> memory)
         {
+            ThreadSafety.EnsureDrawThread();
+
             if (currentWriteIndex + memory.Length > bufferSize)
             {
                 currentBuffer++;
@@ -73,7 +76,13 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 mappedBuffers.Add(context.Device.Map(newBuffer.Buffer, MapMode.Write));
             }
 
-            memory.WriteTo(context, mappedBuffers[currentBuffer], currentWriteIndex);
+            MappedResource target = mappedBuffers[currentBuffer];
+
+            unsafe
+            {
+                Span<byte> targetSpan = new Span<byte>(target.Data.ToPointer(), (int)target.SizeInBytes);
+                memory.CopyTo(targetSpan[currentWriteIndex..]);
+            }
 
             int alignment = (int)context.Device.UniformBufferMinOffsetAlignment;
             int alignedLength = MathUtils.DivideRoundUp(memory.Length, alignment) * alignment;

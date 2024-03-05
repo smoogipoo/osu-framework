@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid.Buffers;
@@ -65,7 +64,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             AddAction = ((IVertexBatch<TVertex>)this).Add;
         }
 
-        public void Write(in MemoryReference primitive)
+        public void Write(in ReadOnlySpan<byte> primitive)
             => renderer.Context.VertexManager.Write<TVertex>(primitive);
 
         public void Draw(int count)
@@ -101,7 +100,25 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
             if (++currentPrimitiveSize == primitiveSize)
             {
-                renderer.Context.EnqueueEvent(AddPrimitiveToBatchEvent.Create(renderer, this, current_primitive.AsSpan()[..primitiveSize]));
+                switch (primitiveSize)
+                {
+                    case 1:
+                        renderer.Context.EnqueueEvent(AddPrimitiveToBatchEvent<TVertex>.Create1(renderer, this, current_primitive.AsSpan()[..primitiveSize]));
+                        break;
+
+                    case 2:
+                        renderer.Context.EnqueueEvent(AddPrimitiveToBatchEvent<TVertex>.Create2(renderer, this, current_primitive.AsSpan()[..primitiveSize]));
+                        break;
+
+                    case 3:
+                        renderer.Context.EnqueueEvent(AddPrimitiveToBatchEvent<TVertex>.Create3(renderer, this, current_primitive.AsSpan()[..primitiveSize]));
+                        break;
+
+                    case 4:
+                        renderer.Context.EnqueueEvent(AddPrimitiveToBatchEvent<TVertex>.Create4(renderer, this, current_primitive.AsSpan()[..primitiveSize]));
+                        break;
+                }
+
                 currentPrimitiveSize = 0;
             }
 

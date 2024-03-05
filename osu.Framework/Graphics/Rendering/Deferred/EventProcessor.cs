@@ -3,8 +3,8 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
-using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Veldrid.Buffers;
 using osu.Framework.Graphics.Veldrid.Pipelines;
@@ -95,18 +95,19 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 {
                     case RenderEventType.AddPrimitiveToBatch:
                     {
-                        ref AddPrimitiveToBatchEvent e = ref enumerator.Current<AddPrimitiveToBatchEvent>();
+                        ref AddPrimitiveToBatchEventOverlay e = ref enumerator.Current<AddPrimitiveToBatchEventOverlay>();
                         IDeferredVertexBatch batch = context.Dereference<IDeferredVertexBatch>(e.VertexBatch);
-                        batch.Write(e.Memory);
+                        ReadOnlySpan<byte> data = enumerator.CurrentSpan().Slice(Unsafe.SizeOf<AddPrimitiveToBatchEventOverlay>());
+                        batch.Write(data);
                         break;
                     }
 
                     case RenderEventType.SetUniformBufferData:
                     {
-                        ref SetUniformBufferDataEvent e = ref enumerator.Current<SetUniformBufferDataEvent>();
+                        ref SetUniformBufferDataEventOverlay e = ref enumerator.Current<SetUniformBufferDataEventOverlay>();
                         IDeferredUniformBuffer buffer = context.Dereference<IDeferredUniformBuffer>(e.Buffer);
-                        UniformBufferReference range = buffer.Write(e.Data.Memory);
-                        enumerator.Replace(e with { Data = new UniformBufferData(range) });
+                        ReadOnlySpan<byte> data = enumerator.CurrentSpan().Slice(Unsafe.SizeOf<SetUniformBufferDataEventOverlay>());
+                        enumerator.Replace(e with { Reference = buffer.Write(data) });
                         break;
                     }
 
@@ -189,7 +190,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                         break;
 
                     case RenderEventType.SetUniformBufferData:
-                        processEvent(enumerator.Current<SetUniformBufferDataEvent>());
+                        processEvent(enumerator.Current<SetUniformBufferDataEventOverlay>());
                         break;
                 }
             }
@@ -237,12 +238,12 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         private void processEvent(in FlushEvent e)
             => context.Dereference<IDeferredVertexBatch>(e.VertexBatch).Draw(e.VertexCount);
 
-        private void processEvent(in SetUniformBufferDataEvent e)
+        private void processEvent(in SetUniformBufferDataEventOverlay e)
         {
             IDeferredUniformBuffer buffer = context.Dereference<IDeferredUniformBuffer>(e.Buffer);
 
-            buffer.Activate(e.Data.Range.Chunk);
-            graphics.SetUniformBufferOffset(buffer, (uint)e.Data.Range.OffsetInChunk);
+            buffer.Activate(e.Reference.Chunk);
+            graphics.SetUniformBufferOffset(buffer, (uint)e.Reference.OffsetInChunk);
         }
     }
 }

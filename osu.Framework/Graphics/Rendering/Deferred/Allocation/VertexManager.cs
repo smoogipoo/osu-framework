@@ -47,7 +47,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
         /// </summary>
         /// <param name="primitive">The primitive to write. This should be exactly the full size of a primitive (triangle or quad).</param>
         /// <typeparam name="T">The type of primitive.</typeparam>
-        public void Write<T>(in MemoryReference primitive)
+        public void Write<T>(in ReadOnlySpan<byte> primitive)
             where T : unmanaged, IEquatable<T>, IVertex
         {
             // Make sure vertices are aligned to their strides.
@@ -68,7 +68,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred.Allocation
                 mappedBuffers.Add(context.Device.Map(newBuffer.Buffer, MapMode.Write));
             }
 
-            primitive.WriteTo(context, mappedBuffers[^1], currentWriteIndex);
+            MappedResource target = mappedBuffers[^1];
+
+            unsafe
+            {
+                Span<byte> targetSpan = new Span<byte>(target.Data.ToPointer(), (int)target.SizeInBytes);
+                primitive.CopyTo(targetSpan[currentWriteIndex..]);
+            }
+
             currentWriteIndex += primitive.Length;
 
             FrameStatistics.Increment(StatisticsCounterType.VerticesUpl);

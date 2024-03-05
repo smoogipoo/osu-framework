@@ -34,14 +34,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             {
                 data = value;
 
-                renderer.Context.EnqueueEvent(SetUniformBufferDataEvent.Create(renderer, this, value));
+                renderer.Context.EnqueueEvent(SetUniformBufferDataEvent<TData>.Create(renderer, this, value));
                 renderer.RegisterUniformBufferForReset(this);
 
                 FrameStatistics.Increment(StatisticsCounterType.UniformUpl);
             }
         }
 
-        public UniformBufferReference Write(in MemoryReference memory)
+        public UniformBufferReference Write(in ReadOnlySpan<byte> memory)
             => renderer.Context.UniformBufferManager.Write(memory);
 
         public void Activate(UniformBufferChunk chunk)

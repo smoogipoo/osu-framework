@@ -1,6 +1,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 using osu.Framework.Graphics.Veldrid.Buffers;
 
@@ -13,7 +14,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         /// </summary>
         /// <param name="memory">The data to write.</param>
         /// <returns>A reference to the written data.</returns>
-        UniformBufferReference Write(in MemoryReference memory);
+        UniformBufferReference Write(in ReadOnlySpan<byte> memory);
 
         /// <summary>
         /// Activates the given uniform buffer in the graphics pipeline.

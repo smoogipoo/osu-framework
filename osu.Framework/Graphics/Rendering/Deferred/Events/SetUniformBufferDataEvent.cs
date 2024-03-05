@@ -1,52 +1,24 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics.Rendering.Deferred.Allocation;
 
 namespace osu.Framework.Graphics.Rendering.Deferred.Events
 {
-    internal readonly record struct SetUniformBufferDataEvent(RenderEventType Type, ResourceReference Buffer, UniformBufferData Data) : IRenderEvent
+    internal readonly record struct SetUniformBufferDataEventOverlay(RenderEventType Type, ResourceReference Buffer, UniformBufferReference Reference) : IRenderEvent
     {
-        public static SetUniformBufferDataEvent Create<T>(DeferredRenderer renderer, IDeferredUniformBuffer uniformBuffer, T data)
-            where T : unmanaged, IEquatable<T>
-            => new SetUniformBufferDataEvent(RenderEventType.SetUniformBufferData, renderer.Context.Reference(uniformBuffer), new UniformBufferData(renderer.Context.AllocateObject(data)));
+        public static SetUniformBufferDataEventOverlay Create(DeferredRenderer renderer, IDeferredUniformBuffer uniformBuffer)
+            => new SetUniformBufferDataEventOverlay(RenderEventType.SetUniformBufferData, renderer.Context.Reference(uniformBuffer), default);
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    internal readonly struct UniformBufferData : IEquatable<UniformBufferData>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal readonly record struct SetUniformBufferDataEvent<T>(SetUniformBufferDataEventOverlay Overlay, T Data) : IRenderEvent
+        where T : unmanaged
     {
-        [FieldOffset(0)]
-        public readonly MemoryReference Memory;
+        public RenderEventType Type => Overlay.Type;
 
-        [FieldOffset(0)]
-        public readonly UniformBufferReference Range;
-
-        public UniformBufferData(MemoryReference memory)
-        {
-            Memory = memory;
-        }
-
-        public UniformBufferData(UniformBufferReference range)
-        {
-            Range = range;
-        }
-
-        public bool Equals(UniformBufferData other)
-        {
-            return Memory.Equals(other.Memory)
-                   && Range.Equals(other.Range);
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is UniformBufferData other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Memory, Range);
-        }
+        public static SetUniformBufferDataEvent<T> Create(DeferredRenderer renderer, IDeferredUniformBuffer uniformBuffer, T data)
+            => new SetUniformBufferDataEvent<T>(SetUniformBufferDataEventOverlay.Create(renderer, uniformBuffer), data);
     }
 }

@@ -106,6 +106,9 @@ namespace osu.Framework.Graphics.Rendering.Deferred
                 where T : unmanaged, IRenderEvent
                 => ref Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(eventData));
 
+            public readonly ReadOnlySpan<byte> CurrentSpan()
+                => eventData;
+
             /// <summary>
             /// Replaces the current event with a new one.
             /// </summary>

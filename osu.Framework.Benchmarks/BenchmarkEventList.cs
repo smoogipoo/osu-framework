@@ -209,7 +209,7 @@ namespace osu.Framework.Benchmarks
             var enumerator = localEventList.CreateEnumerator();
             enumerator.Next();
             enumerator.Next();
-            enumerator.Replace(new SetUniformBufferDataEvent());
+            enumerator.Replace(new SetUniformBufferDataEventOverlay());
 
             int i = 0;
             enumerator = localEventList.CreateEnumerator();
