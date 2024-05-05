@@ -834,45 +834,7 @@ namespace osu.Framework.Platform
         public IEnumerable<RendererType> GetPreferredRenderersForCurrentPlatform()
         {
             yield return RendererType.Automatic;
-
-            // Preferred per-platform renderers
-            switch (RuntimeInfo.OS)
-            {
-                case RuntimeInfo.Platform.Windows:
-                    yield return RendererType.Direct3D11;
-                    yield return RendererType.Deferred_Direct3D11;
-                    yield return RendererType.OpenGL;
-                    yield return RendererType.Deferred_Vulkan;
-
-                    break;
-
-                case RuntimeInfo.Platform.Linux:
-                    yield return RendererType.OpenGL;
-                    yield return RendererType.Deferred_OpenGL;
-                    yield return RendererType.Deferred_Vulkan;
-
-                    break;
-
-                case RuntimeInfo.Platform.macOS:
-                    yield return RendererType.Metal;
-                    yield return RendererType.Deferred_Metal;
-                    yield return RendererType.OpenGL;
-
-                    break;
-
-                case RuntimeInfo.Platform.iOS:
-                    // GL renderer not supported, see: https://github.com/ppy/osu/issues/23003.
-                    yield return RendererType.Metal;
-                    yield return RendererType.Deferred_Metal;
-
-                    break;
-
-                case RuntimeInfo.Platform.Android:
-                    // Still uses osuTK so only the legacy GL renderer is supported.
-                    yield return RendererType.OpenGL;
-
-                    break;
-            }
+            yield return RendererType.WebGPU;
         }
 
         protected virtual void ChooseAndSetupRenderer()
@@ -970,6 +932,10 @@ namespace osu.Framework.Platform
                 case RendererType.Deferred_OpenGL:
                 case RendererType.OpenGL:
                     surface = GraphicsSurfaceType.OpenGL;
+                    break;
+
+                case RendererType.WebGPU:
+                    surface = GraphicsSurfaceType.WebGPU;
                     break;
 
                 default:

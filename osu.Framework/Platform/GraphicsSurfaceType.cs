@@ -33,5 +33,7 @@ namespace osu.Framework.Platform
         /// </summary>
         [Description("Direct3D 11")]
         Direct3D11,
+
+        WebGPU
     }
 }

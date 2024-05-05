@@ -133,7 +133,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
                 cached &= compilation.WasCached;
 
-                if (renderer.SurfaceType == GraphicsSurfaceType.Vulkan)
+                if (renderer.SurfaceType == GraphicsSurfaceType.Vulkan || renderer.SurfaceType == GraphicsSurfaceType.WebGPU)
                 {
                     vertexShaderDescription.ShaderBytes = compilation.VertexBytes;
                     fragmentShaderDescription.ShaderBytes = compilation.FragmentBytes;

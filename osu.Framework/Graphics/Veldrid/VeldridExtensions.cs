@@ -473,5 +473,13 @@ namespace osu.Framework.Graphics.Veldrid
             Logger.Log($@"Metal Initialized
                         Metal Feature Set: {featureDevice} GPU family {featureFamily} ({featureVersion})");
         }
+
+        public static void LogWebGPU(this GraphicsDevice device, out int maxTextureSize)
+        {
+            Debug.Assert(device.BackendType == GraphicsBackend.WebGPU);
+
+            var info = device.GetWebGPUInfo();
+            maxTextureSize = (int)info.Limits.MaxTextureDimension2D;
+        }
     }
 }

@@ -136,7 +136,7 @@ namespace osu.Framework.Graphics.Veldrid
                 {
                     // OpenGL doesn't use a swapchain, so it's only needed on Metal.
                     // Creating a Metal surface in general would otherwise destroy the GL context.
-                    if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal)
+                    if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal || this.graphicsSurface.Type == GraphicsSurfaceType.WebGPU)
                     {
                         var metalGraphics = (IMetalGraphicsSurface)this.graphicsSurface;
                         swapchain.Source = SwapchainSource.CreateNSView(metalGraphics.CreateMetalView());
@@ -149,7 +149,7 @@ namespace osu.Framework.Graphics.Veldrid
                 {
                     // OpenGL doesn't use a swapchain, so it's only needed on Metal.
                     // Creating a Metal surface in general would otherwise destroy the GL context.
-                    if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal)
+                    if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal || this.graphicsSurface.Type == GraphicsSurfaceType.WebGPU)
                     {
                         var metalGraphics = (IMetalGraphicsSurface)this.graphicsSurface;
                         swapchain.Source = SwapchainSource.CreateUIView(metalGraphics.CreateMetalView());
@@ -208,6 +208,11 @@ namespace osu.Framework.Graphics.Veldrid
                 case GraphicsSurfaceType.Metal:
                     Device = GraphicsDevice.CreateMetal(options, swapchain);
                     Device.LogMetal(out maxTextureSize);
+                    break;
+
+                case GraphicsSurfaceType.WebGPU:
+                    Device = GraphicsDevice.CreateWebGPU(options, swapchain);
+                    Device.LogWebGPU(out maxTextureSize);
                     break;
 
                 default:
