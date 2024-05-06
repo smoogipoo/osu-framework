@@ -480,6 +480,10 @@ namespace osu.Framework.Graphics.Veldrid
 
             var info = device.GetWebGPUInfo();
             maxTextureSize = (int)info.Limits.MaxTextureDimension2D;
+
+            Logger.Log($@"WGPU Initialized
+                       Adapter: {info.AdapterName} ({info.AdapterType})
+                       Driver: {info.BackendType} ({info.VendorName}, {info.DriverDescription})");
         }
     }
 }
