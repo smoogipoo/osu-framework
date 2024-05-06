@@ -524,32 +524,32 @@ namespace osu.Framework.Platform
                 using (drawMonitor.BeginCollecting(PerformanceCollectionType.DrawReset))
                     Renderer.BeginFrame(new Vector2(Window.ClientSize.Width, Window.ClientSize.Height));
 
-                if (!bypassFrontToBackPass.Value)
-                {
-                    Renderer.SetBlend(BlendingParameters.None);
+                // if (!bypassFrontToBackPass.Value)
+                // {
+                //     Renderer.SetBlend(BlendingParameters.None);
+                //
+                //     Renderer.SetBlendMask(BlendingMask.None);
+                //     Renderer.PushDepthInfo(DepthInfo.Default);
+                //
+                //     // Front pass
+                //     DrawNode.DrawOtherOpaqueInterior(buffer.Object, Renderer);
+                //
+                //     Renderer.PopDepthInfo();
+                //     Renderer.SetBlendMask(BlendingMask.All);
+                //
+                //     // The back pass doesn't write depth, but needs to depth test properly
+                //     Renderer.PushDepthInfo(new DepthInfo(true, false));
+                // }
+                // else
+                // {
+                //     // Disable depth testing
+                //     Renderer.PushDepthInfo(new DepthInfo(false, false));
+                // }
+                //
+                // // Back pass
+                // DrawNode.DrawOther(buffer.Object, Renderer);
 
-                    Renderer.SetBlendMask(BlendingMask.None);
-                    Renderer.PushDepthInfo(DepthInfo.Default);
-
-                    // Front pass
-                    DrawNode.DrawOtherOpaqueInterior(buffer.Object, Renderer);
-
-                    Renderer.PopDepthInfo();
-                    Renderer.SetBlendMask(BlendingMask.All);
-
-                    // The back pass doesn't write depth, but needs to depth test properly
-                    Renderer.PushDepthInfo(new DepthInfo(true, false));
-                }
-                else
-                {
-                    // Disable depth testing
-                    Renderer.PushDepthInfo(new DepthInfo(false, false));
-                }
-
-                // Back pass
-                DrawNode.DrawOther(buffer.Object, Renderer);
-
-                Renderer.PopDepthInfo();
+                // Renderer.PopDepthInfo();
 
                 Renderer.FinishFrame();
 

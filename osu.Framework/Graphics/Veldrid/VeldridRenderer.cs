@@ -94,14 +94,16 @@ namespace osu.Framework.Graphics.Veldrid
             graphicsPipeline.Begin();
             bufferUpdatePipeline.Begin();
 
-            base.BeginFrame(windowSize);
+            // base.BeginFrame(windowSize);
+
+            graphicsPipeline.Clear(new ClearInfo(Color4.Aqua));
         }
 
         protected internal override void FinishFrame()
         {
-            base.FinishFrame();
+            // base.FinishFrame();
 
-            flushTextureUploadPipeline();
+            // flushTextureUploadPipeline();
 
             bufferUpdatePipeline.End();
             graphicsPipeline.End();
