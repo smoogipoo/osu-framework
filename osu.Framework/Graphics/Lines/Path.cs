@@ -201,7 +201,12 @@ namespace osu.Framework.Graphics.Lines
         public override bool ReceivePositionalInputAt(Vector2 screenSpacePos)
         {
             var localPos = ToLocalSpace(screenSpacePos);
-            return quadTree.TryGetClosest(localPos, out Vector2 closest) && (closest - localPos).LengthSquared <= PathRadius * PathRadius;
+
+            if (!quadTree.TryGetClosest(new QuadTreeCorner(localPos, localPos, localPos), out QuadTreeCorner closest))
+                return false;
+
+            return closest.LineFromPrev.DistanceSquaredToPoint(localPos) <= PathRadius * PathRadius
+                   || closest.LineToNext.DistanceSquaredToPoint(localPos) <= PathRadius * PathRadius;
         }
 
         public Vector2 PositionInBoundingBox(Vector2 pos) => pos - vertexBounds.TopLeft;
@@ -232,13 +237,13 @@ namespace osu.Framework.Graphics.Lines
         private readonly List<Line> segmentsBacking = new List<Line>();
         private readonly Cached segmentsCache = new Cached();
         private List<Line> segments => segmentsCache.IsValid ? segmentsBacking : generateSegments();
-        private QuadTree quadTree = new QuadTree(RectangleF.Empty);
+        private QuadTree<QuadTreeCorner> quadTree = new QuadTree<QuadTreeCorner>(RectangleF.Empty);
 
         private List<Line> generateSegments()
         {
             segmentsBacking.Clear();
 
-            quadTree = new QuadTree(vertexBounds.AABB);
+            quadTree = new QuadTree<QuadTreeCorner>(vertexBounds.AABB);
 
             if (vertices.Count > 1)
             {
@@ -249,16 +254,7 @@ namespace osu.Framework.Graphics.Lines
                     Line segment = new Line(vertices[i] - offset, vertices[i + 1] - offset);
                     segmentsBacking.Add(segment);
 
-                    if (i == 0)
-                        quadTree.Insert(segment.StartPoint);
-
-                    int intermediatePoints = (int)(Math.Ceiling(segment.Rho / (PathRadius / 2)));
-                    Vector2 intermediateSegmentLength = segment.Direction / intermediatePoints;
-
-                    for (int x = 1; x <= intermediatePoints; x++)
-                        quadTree.Insert(segment.StartPoint + x * intermediateSegmentLength);
-
-                    quadTree.Insert(segment.EndPoint);
+                    quadTree.Insert(new QuadTreeCorner(segment.StartPoint, i == 0 ? segment.StartPoint : vertices[i - 1], vertices[i + 1]));
                 }
             }
 
@@ -317,6 +313,24 @@ namespace osu.Framework.Graphics.Lines
             texture = null;
 
             sharedData.Dispose();
+        }
+
+        private readonly struct QuadTreeCorner : QuadTreePoint
+        {
+            public readonly Line LineFromPrev;
+            public readonly Line LineToNext;
+
+            private readonly Vector2 centre;
+
+            public QuadTreeCorner(Vector2 centre, Vector2 last, Vector2 next)
+            {
+                this.centre = centre;
+
+                LineFromPrev = new Line(last, centre);
+                LineToNext = new Line(centre, next);
+            }
+
+            Vector2 QuadTreePoint.Location => centre;
         }
     }
 }

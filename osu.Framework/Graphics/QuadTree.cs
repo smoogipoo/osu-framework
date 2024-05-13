@@ -9,7 +9,8 @@ using osuTK;
 
 namespace osu.Framework.Graphics
 {
-    public class QuadTree
+    public class QuadTree<TPoint>
+        where TPoint : struct, QuadTreePoint
     {
         private readonly QuadTreeNode rootNode;
 
@@ -18,9 +19,9 @@ namespace osu.Framework.Graphics
             rootNode = new QuadTreeNode(null, area);
         }
 
-        public bool Insert(Vector2 point) => rootNode.Insert(point);
+        public bool Insert(TPoint point) => rootNode.Insert(point);
 
-        public bool TryGetClosest(Vector2 point, out Vector2 closest) => rootNode.TryGetClosest(point, out closest);
+        public bool TryGetClosest(TPoint point, out TPoint closest) => rootNode.TryGetClosest(point, out closest);
 
         public IEnumerable<RectangleF> EnumerateAreas() => rootNode.EnumerateAreas();
 
@@ -31,7 +32,7 @@ namespace osu.Framework.Graphics
             public readonly RectangleF Area;
             private readonly QuadTreeNode? parent;
 
-            private List<Vector2>? points = new List<Vector2>(capacity);
+            private List<TPoint>? points = new List<TPoint>(capacity);
             private QuadTreeNode? topLeft;
             private QuadTreeNode? topRight;
             private QuadTreeNode? bottomLeft;
@@ -43,10 +44,10 @@ namespace osu.Framework.Graphics
                 Area = area;
             }
 
-            public bool Insert(Vector2 point)
+            public bool Insert(TPoint point)
             {
                 // ReSharper disable once PossiblyImpureMethodCallOnReadonlyVariable
-                if (!Area.Contains(point))
+                if (!Area.Contains(point.Location))
                     return false;
 
                 if (points?.Count == capacity)
@@ -69,7 +70,7 @@ namespace osu.Framework.Graphics
                        || bottomRight.Insert(point);
             }
 
-            public bool TryGetClosest(Vector2 point, out Vector2 closest)
+            public bool TryGetClosest(TPoint point, out TPoint closest)
             {
                 QuadTreeNode? closestNode = findContainingNode(point);
 
@@ -81,13 +82,13 @@ namespace osu.Framework.Graphics
 
                 Debug.Assert(closestNode.points != null);
 
-                float distToLeft = MathF.Abs(point.X - closestNode.Area.Left);
-                float distToRight = MathF.Abs(point.X - closestNode.Area.Right);
-                float distToTop = MathF.Abs(point.Y - closestNode.Area.Top);
-                float distToBottom = MathF.Abs(point.Y - closestNode.Area.Bottom);
+                float distToLeft = MathF.Abs(point.Location.X - closestNode.Area.Left);
+                float distToRight = MathF.Abs(point.Location.X - closestNode.Area.Right);
+                float distToTop = MathF.Abs(point.Location.Y - closestNode.Area.Top);
+                float distToBottom = MathF.Abs(point.Location.Y - closestNode.Area.Bottom);
                 float distToClosestBoundary = MathF.Min(MathF.Min(MathF.Min(distToLeft, distToRight), distToTop), distToBottom);
 
-                Vector2 closestPoint = Vector2.Zero;
+                TPoint closestPoint = default;
                 float distToClosestPoint = float.MaxValue;
 
                 foreach (var pt in closestNode.points)
@@ -108,9 +109,9 @@ namespace osu.Framework.Graphics
                 closest = closestPoint;
                 return true;
 
-                void computeDistanceTo(Vector2 pt)
+                void computeDistanceTo(TPoint pt)
                 {
-                    float dist = (point - pt).Length;
+                    float dist = (point.Location - pt.Location).Length;
 
                     if (dist < distToClosestPoint)
                     {
@@ -120,10 +121,10 @@ namespace osu.Framework.Graphics
                 }
             }
 
-            private QuadTreeNode? findContainingNode(Vector2 point)
+            private QuadTreeNode? findContainingNode(TPoint point)
             {
                 // ReSharper disable once PossiblyImpureMethodCallOnReadonlyVariable
-                if (!Area.Contains(point))
+                if (!Area.Contains(point.Location))
                     return null;
 
                 if (points != null)
@@ -169,7 +170,7 @@ namespace osu.Framework.Graphics
                 }
             }
 
-            private IEnumerable<Vector2> enumeratePoints(QuadTreeNode? exceptNode)
+            private IEnumerable<TPoint> enumeratePoints(QuadTreeNode? exceptNode)
             {
                 if (points != null)
                 {
@@ -229,5 +230,23 @@ namespace osu.Framework.Graphics
                 points = null;
             }
         }
+    }
+
+    public interface QuadTreePoint
+    {
+        Vector2 Location { get; }
+    }
+
+    public readonly struct QuadTreeVector2Point : QuadTreePoint
+    {
+        public Vector2 Location { get; }
+
+        public QuadTreeVector2Point(Vector2 location)
+        {
+            Location = location;
+        }
+
+        public static implicit operator QuadTreeVector2Point(Vector2 position) => new QuadTreeVector2Point(position);
+        public static implicit operator Vector2(QuadTreeVector2Point point) => point.Location;
     }
 }

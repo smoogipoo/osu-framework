@@ -15,13 +15,13 @@ namespace osu.Framework.Tests.Visual.Graphics
 {
     public partial class TestSceneQuadTree : FrameworkTestScene
     {
-        private readonly QuadTree quadTree;
+        private readonly QuadTree<QuadTreeVector2Point> quadTree;
         private readonly Container boxes;
         private readonly Container points;
 
         public TestSceneQuadTree()
         {
-            quadTree = new QuadTree(new RectangleF(0, 0, 800, 600));
+            quadTree = new QuadTree<QuadTreeVector2Point>(new RectangleF(0, 0, 800, 600));
 
             Child = new Container
             {
@@ -92,7 +92,7 @@ namespace osu.Framework.Tests.Visual.Graphics
             if (!e.IsPressed(MouseButton.Right))
                 return base.OnMouseMove(e);
 
-            if (quadTree.TryGetClosest(points.ToLocalSpace(e.ScreenSpaceMousePosition), out Vector2 closest))
+            if (quadTree.TryGetClosest(points.ToLocalSpace(e.ScreenSpaceMousePosition), out QuadTreeVector2Point closest))
             {
                 foreach (var p in points)
                     p.Colour = Precision.AlmostEquals(p.Position, closest) ? Color4.Blue : Color4.Yellow;
