@@ -479,7 +479,7 @@ namespace osu.Framework.Graphics.Veldrid
             Debug.Assert(device.BackendType == GraphicsBackend.WebGPU);
 
             var info = device.GetWebGPUInfo();
-            maxTextureSize = (int)info.Limits.MaxTextureDimension2D;
+            maxTextureSize = (int)info.Limits.maxTextureDimension2D;
 
             Logger.Log($@"WGPU Initialized
                        Adapter: {info.AdapterName} ({info.AdapterType})
