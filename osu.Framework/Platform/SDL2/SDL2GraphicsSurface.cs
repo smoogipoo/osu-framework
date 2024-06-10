@@ -7,16 +7,15 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
-using SDL;
+using static SDL2.SDL;
 
-namespace osu.Framework.Platform.SDL
+namespace osu.Framework.Platform.SDL2
 {
-    internal unsafe class SDL3GraphicsSurface : IGraphicsSurface, IOpenGLGraphicsSurface, IMetalGraphicsSurface, ILinuxGraphicsSurface, IAndroidGraphicsSurface
+    internal class SDL2GraphicsSurface : IGraphicsSurface, IOpenGLGraphicsSurface, IMetalGraphicsSurface, ILinuxGraphicsSurface
     {
-        private readonly SDL3Window window;
+        private readonly SDL2Window window;
 
         private IntPtr context;
 
@@ -25,7 +24,7 @@ namespace osu.Framework.Platform.SDL
 
         public GraphicsSurfaceType Type { get; }
 
-        public SDL3GraphicsSurface(SDL3Window window, GraphicsSurfaceType surfaceType)
+        public SDL2GraphicsSurface(SDL2Window window, GraphicsSurfaceType surfaceType)
         {
             this.window = window;
             Type = surfaceType;
@@ -33,18 +32,17 @@ namespace osu.Framework.Platform.SDL
             switch (surfaceType)
             {
                 case GraphicsSurfaceType.OpenGL:
-                    SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_RED_SIZE, 8);
-                    SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_GREEN_SIZE, 8);
-                    SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_BLUE_SIZE, 8);
-                    SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_ACCUM_ALPHA_SIZE, 0);
-                    SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_DEPTH_SIZE, 16);
-                    SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_STENCIL_SIZE, 8);
+                    SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_RED_SIZE, 8);
+                    SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_GREEN_SIZE, 8);
+                    SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_BLUE_SIZE, 8);
+                    SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_ACCUM_ALPHA_SIZE, 0);
+                    SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_DEPTH_SIZE, 16);
+                    SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_STENCIL_SIZE, 8);
                     break;
 
                 case GraphicsSurfaceType.Vulkan:
                 case GraphicsSurfaceType.Metal:
                 case GraphicsSurfaceType.Direct3D11:
-                case GraphicsSurfaceType.WebGPU:
                     break;
 
                 default:
@@ -60,8 +58,7 @@ namespace osu.Framework.Platform.SDL
 
         public Size GetDrawableSize()
         {
-            int width, height;
-            SDL3.SDL_GetWindowSizeInPixels(window.SDLWindowHandle, &width, &height);
+            SDL_GetWindowSizeInPixels(window.SDLWindowHandle, out int width, out int height);
             return new Size(width, height);
         }
 
@@ -71,27 +68,27 @@ namespace osu.Framework.Platform.SDL
         {
             if (RuntimeInfo.IsMobile)
             {
-                SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, (int)SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_ES);
+                SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_ES);
 
                 // Minimum OpenGL version for ES profile:
-                SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-                SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, 0);
+                SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+                SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, 0);
             }
             else
             {
-                SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, (int)SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_CORE);
+                SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_CORE);
 
                 // Minimum OpenGL version for core profile:
-                SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-                SDL3.SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, 2);
+                SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+                SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, 2);
             }
 
-            context = SDL3.SDL_GL_CreateContext(window.SDLWindowHandle);
+            context = SDL_GL_CreateContext(window.SDLWindowHandle);
 
             if (context == IntPtr.Zero)
-                throw new InvalidOperationException($"Failed to create an SDL3 GL context ({SDL3.SDL_GetError()})");
+                throw new InvalidOperationException($"Failed to create an SDL2 GL context ({SDL_GetError()})");
 
-            SDL3.SDL_GL_MakeCurrent(window.SDLWindowHandle, context);
+            SDL_GL_MakeCurrent(window.SDLWindowHandle, context);
 
             loadBindings();
         }
@@ -105,7 +102,7 @@ namespace osu.Framework.Platform.SDL
             loadEntryPoints(new GL());
         }
 
-        private void loadEntryPoints(GraphicsBindingsBase bindings)
+        private unsafe void loadEntryPoints(GraphicsBindingsBase bindings)
         {
             var type = bindings.GetType();
             var pointsInfo = type.GetRuntimeFields().First(x => x.Name == "_EntryPointsInstance");
@@ -136,16 +133,16 @@ namespace osu.Framework.Platform.SDL
 
         private IntPtr getProcAddress(string symbol)
         {
-            const SDL_LogCategory error_category = SDL_LogCategory.SDL_LOG_CATEGORY_ERROR;
-            SDL_LogPriority oldPriority = SDL3.SDL_LogGetPriority(error_category);
+            const int error_category = (int)SDL_LogCategory.SDL_LOG_CATEGORY_ERROR;
+            SDL_LogPriority oldPriority = SDL_LogGetPriority(error_category);
 
             // Prevent logging calls to SDL_GL_GetProcAddress() that fail on systems which don't have the requested symbol (typically macOS).
-            SDL3.SDL_LogSetPriority(error_category, SDL_LogPriority.SDL_LOG_PRIORITY_INFO);
+            SDL_LogSetPriority(error_category, SDL_LogPriority.SDL_LOG_PRIORITY_INFO);
 
-            IntPtr ret = SDL3.SDL_GL_GetProcAddress(symbol);
+            IntPtr ret = SDL_GL_GetProcAddress(symbol);
 
             // Reset the logging behaviour.
-            SDL3.SDL_LogSetPriority(error_category, oldPriority);
+            SDL_LogSetPriority(error_category, oldPriority);
 
             return ret;
         }
@@ -154,17 +151,16 @@ namespace osu.Framework.Platform.SDL
         {
             get
             {
-                if (window.SDLWindowHandle == null)
+                if (window.SDLWindowHandle == IntPtr.Zero)
                     return null;
 
-                // TODO: Migrate to SDL3 when https://github.com/libsdl-org/SDL/issues/9430 is resolved
-                // var wmInfo = window.GetWindowSystemInformation();
-                //
-                // switch (wmInfo.subsystem)
-                // {
-                //     case SDL_SYSWM_TYPE.SDL_SYSWM_UIKIT:
-                //         return (int)wmInfo.info.uikit.framebuffer;
-                // }
+                var wmInfo = window.GetWindowSystemInformation();
+
+                switch (wmInfo.subsystem)
+                {
+                    case SDL_SYSWM_TYPE.SDL_SYSWM_UIKIT:
+                        return (int)wmInfo.info.uikit.framebuffer;
+                }
 
                 return null;
             }
@@ -181,48 +177,39 @@ namespace osu.Framework.Platform.SDL
                 if (verticalSync != null)
                     return verticalSync.Value;
 
-                int interval;
-                SDL3.SDL_GL_GetSwapInterval(&interval);
-                return (verticalSync = interval != 0).Value;
+                return (verticalSync = SDL_GL_GetSwapInterval() != 0).Value;
             }
             set
             {
                 if (RuntimeInfo.IsDesktop)
                 {
-                    SDL3.SDL_GL_SetSwapInterval(value ? 1 : 0);
+                    SDL_GL_SetSwapInterval(value ? 1 : 0);
                     verticalSync = value;
                 }
             }
         }
 
         IntPtr IOpenGLGraphicsSurface.WindowContext => context;
-        IntPtr IOpenGLGraphicsSurface.CurrentContext => SDL3.SDL_GL_GetCurrentContext();
+        IntPtr IOpenGLGraphicsSurface.CurrentContext => SDL_GL_GetCurrentContext();
 
-        void IOpenGLGraphicsSurface.SwapBuffers() => SDL3.SDL_GL_SwapWindow(window.SDLWindowHandle);
-        void IOpenGLGraphicsSurface.CreateContext() => SDL3.SDL_GL_CreateContext(window.SDLWindowHandle);
-        void IOpenGLGraphicsSurface.DeleteContext(IntPtr context) => SDL3.SDL_GL_DeleteContext(context);
-        void IOpenGLGraphicsSurface.MakeCurrent(IntPtr context) => SDL3.SDL_GL_MakeCurrent(window.SDLWindowHandle, context);
-        void IOpenGLGraphicsSurface.ClearCurrent() => SDL3.SDL_GL_MakeCurrent(window.SDLWindowHandle, IntPtr.Zero);
+        void IOpenGLGraphicsSurface.SwapBuffers() => SDL_GL_SwapWindow(window.SDLWindowHandle);
+        void IOpenGLGraphicsSurface.CreateContext() => SDL_GL_CreateContext(window.SDLWindowHandle);
+        void IOpenGLGraphicsSurface.DeleteContext(IntPtr context) => SDL_GL_DeleteContext(context);
+        void IOpenGLGraphicsSurface.MakeCurrent(IntPtr context) => SDL_GL_MakeCurrent(window.SDLWindowHandle, context);
+        void IOpenGLGraphicsSurface.ClearCurrent() => SDL_GL_MakeCurrent(window.SDLWindowHandle, IntPtr.Zero);
         IntPtr IOpenGLGraphicsSurface.GetProcAddress(string symbol) => getProcAddress(symbol);
 
         #endregion
 
         #region Metal-specific implementation
 
-        IntPtr IMetalGraphicsSurface.CreateMetalView() => SDL3.SDL_Metal_CreateView(window.SDLWindowHandle);
+        IntPtr IMetalGraphicsSurface.CreateMetalView() => SDL_Metal_CreateView(window.SDLWindowHandle);
 
         #endregion
 
         #region Linux-specific implementation
 
         bool ILinuxGraphicsSurface.IsWayland => window.IsWayland;
-
-        #endregion
-
-        #region Android-specific implementation
-
-        [SupportedOSPlatform("android")]
-        IntPtr IAndroidGraphicsSurface.JniEnvHandle => SDL3.SDL_AndroidGetJNIEnv();
 
         #endregion
     }

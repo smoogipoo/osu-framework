@@ -477,7 +477,7 @@ namespace osu.Framework.Platform
             TypePerformanceMonitor.NewFrame();
 
             Root.UpdateSubTree();
-            Root.UpdateSubTreeMasking(Root, Root.ScreenSpaceDrawQuad.AABBFloat);
+            Root.UpdateSubTreeMasking();
 
             using (var buffer = DrawRoots.GetForWrite())
                 buffer.Object = Root.GenerateDrawNodeSubtree(frameCount, buffer.Index, false);
@@ -1020,6 +1020,14 @@ namespace osu.Framework.Platform
             }, true);
 
             IsActive.BindTo(Window.IsActive);
+
+            AllowScreenSuspension.Result.BindValueChanged(e =>
+            {
+                if (e.NewValue)
+                    Window.EnableScreenSuspension();
+                else
+                    Window.DisableScreenSuspension();
+            }, true);
         }
 
         /// <summary>
