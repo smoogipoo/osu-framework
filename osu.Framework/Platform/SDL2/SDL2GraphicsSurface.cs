@@ -43,6 +43,7 @@ namespace osu.Framework.Platform.SDL2
                 case GraphicsSurfaceType.Vulkan:
                 case GraphicsSurfaceType.Metal:
                 case GraphicsSurfaceType.Direct3D11:
+                case GraphicsSurfaceType.WebGPU:
                     break;
 
                 default:
