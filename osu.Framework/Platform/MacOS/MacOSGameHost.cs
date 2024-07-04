@@ -76,6 +76,7 @@ namespace osu.Framework.Platform.MacOS
             new KeyBinding(new KeyCombination(InputKey.Super, InputKey.C), PlatformAction.Copy),
             new KeyBinding(new KeyCombination(InputKey.Super, InputKey.V), PlatformAction.Paste),
             new KeyBinding(new KeyCombination(InputKey.Super, InputKey.A), PlatformAction.SelectAll),
+            new KeyBinding(new KeyCombination(InputKey.Super, InputKey.BackSpace), PlatformAction.Delete),
             new KeyBinding(InputKey.Left, PlatformAction.MoveBackwardChar),
             new KeyBinding(InputKey.Right, PlatformAction.MoveForwardChar),
             new KeyBinding(InputKey.BackSpace, PlatformAction.DeleteBackwardChar),
