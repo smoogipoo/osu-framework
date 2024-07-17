@@ -99,6 +99,9 @@ namespace osu.Framework.Tests.Platform
                 base.SetupConfig(defaultOverrides);
                 Config.SetValue(FrameworkSetting.ExecutionMode, threadMode);
             }
+
+            // Specify the non-headless thread runner to use true multi-threaded mode.
+            protected override ThreadRunner CreateThreadRunner(InputThread mainThread) => new ThreadRunner(mainThread);
         }
 
         private partial class TestTestGame : TestGame
