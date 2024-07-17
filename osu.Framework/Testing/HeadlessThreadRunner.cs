@@ -27,25 +27,30 @@ namespace osu.Framework.Testing
             // Run a simulated multi-threaded mode.
             // This is because the CI test runners are usually CPU-limited and may be preferring one thread (audio) over another (update).
 
-            ThreadSafety.ExecutionMode = ExecutionMode.SingleThread;
-
-            for (int i = 0; i < Threads.Count; i++)
+            try
             {
-                int from;
-                int to;
+                ThreadSafety.ExecutionMode = ExecutionMode.SingleThread;
 
-                do
+                for (int i = 0; i < Threads.Count; i++)
                 {
-                    from = RNG.Next(Threads.Count);
-                    to = RNG.Next(Threads.Count);
-                } while (from == to);
+                    int from;
+                    int to;
 
-                (Threads[from], Threads[to]) = (Threads[to], Threads[from]);
+                    do
+                    {
+                        from = RNG.Next(Threads.Count);
+                        to = RNG.Next(Threads.Count);
+                    } while (from == to);
+
+                    (Threads[from], Threads[to]) = (Threads[to], Threads[from]);
+                }
+
+                base.RunMainLoop();
             }
-
-            base.RunMainLoop();
-
-            ThreadSafety.ExecutionMode = ExecutionMode.MultiThreaded;
+            finally
+            {
+                ThreadSafety.ExecutionMode = ExecutionMode.MultiThreaded;
+            }
         }
     }
 }
