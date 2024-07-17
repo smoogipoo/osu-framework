@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Input.Handlers;
@@ -80,7 +78,7 @@ namespace osu.Framework.Platform
 
             if (!realtime)
             {
-                customClock = new FramedClock(new FastClock(CLOCK_RATE, Threads.ToArray()));
+                customClock = new FramedClock(new FastClock(CLOCK_RATE));
 
                 // time is incremented per frame, rather than based on the real-world time.
                 // therefore our goal is to run frames as fast as possible.
@@ -113,11 +111,6 @@ namespace osu.Framework.Platform
         {
             private readonly double increment;
 
-            private readonly GameThread[] gameThreads;
-            private readonly ulong[] gameThreadLastFrames;
-
-            private readonly Stopwatch stopwatch = new Stopwatch();
-
             private double time;
 
             /// <summary>
@@ -125,48 +118,12 @@ namespace osu.Framework.Platform
             /// Run fast. Run consistent.
             /// </summary>
             /// <param name="increment">Milliseconds we should increment the clock by each time the time is requested.</param>
-            /// <param name="gameThreads">The game threads.</param>
-            public FastClock(double increment, GameThread[] gameThreads)
+            public FastClock(double increment)
             {
                 this.increment = increment;
-                this.gameThreads = gameThreads;
-                gameThreadLastFrames = new ulong[gameThreads.Length];
             }
 
-            public double CurrentTime
-            {
-                get
-                {
-                    double realElapsedTime = stopwatch.Elapsed.TotalMilliseconds;
-                    stopwatch.Restart();
-
-                    if (allThreadsHaveProgressed)
-                    {
-                        for (int i = 0; i < gameThreads.Length; i++)
-                            gameThreadLastFrames[i] = gameThreads[i].FrameIndex;
-
-                        // Increment time at the expedited rate.
-                        return time += increment;
-                    }
-
-                    // Fall back to real time to ensure we don't break random tests that expect threads to be running.
-                    return time += realElapsedTime;
-                }
-            }
-
-            private bool allThreadsHaveProgressed
-            {
-                get
-                {
-                    for (int i = 0; i < gameThreads.Length; i++)
-                    {
-                        if (gameThreads[i].FrameIndex == gameThreadLastFrames[i])
-                            return false;
-                    }
-
-                    return true;
-                }
-            }
+            public double CurrentTime => time += increment;
 
             public double Rate => 1;
             public bool IsRunning => true;
