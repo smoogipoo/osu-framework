@@ -9,6 +9,7 @@ using osu.Framework.Configuration;
 using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Input.Handlers;
 using osu.Framework.Logging;
+using osu.Framework.Testing;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
 
@@ -105,6 +106,8 @@ namespace osu.Framework.Platform
         }
 
         protected override IEnumerable<InputHandler> CreateAvailableInputHandlers() => Array.Empty<InputHandler>();
+
+        protected override ThreadRunner CreateThreadRunner(InputThread mainThread) => new HeadlessThreadRunner(mainThread);
 
         private class FastClock : IClock
         {
