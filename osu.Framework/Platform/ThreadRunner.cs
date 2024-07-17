@@ -81,7 +81,7 @@ namespace osu.Framework.Platform
 
         private ExecutionMode? activeExecutionMode;
 
-        public ExecutionMode ExecutionMode { private get; set; } = ExecutionMode.MultiThreaded;
+        public ExecutionMode ExecutionMode { get; set; } = ExecutionMode.MultiThreaded;
 
         public virtual void RunMainLoop()
         {
