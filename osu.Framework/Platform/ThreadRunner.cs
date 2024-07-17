@@ -8,9 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using osu.Framework.Development;
-using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Logging;
 using osu.Framework.Threading;
 
@@ -23,16 +21,7 @@ namespace osu.Framework.Platform
     {
         private readonly InputThread mainThread;
 
-        private readonly List<GameThread> threads = new List<GameThread>();
-
-        public IReadOnlyCollection<GameThread> Threads
-        {
-            get
-            {
-                lock (threads)
-                    return threads.ToArray();
-            }
-        }
+        private protected readonly List<GameThread> Threads = new List<GameThread>();
 
         private double maximumUpdateHz = GameThread.DEFAULT_ACTIVE_HZ;
 
@@ -74,10 +63,10 @@ namespace osu.Framework.Platform
         /// </summary>
         public void AddThread(GameThread thread)
         {
-            lock (threads)
+            lock (Threads)
             {
-                if (!threads.Contains(thread))
-                    threads.Add(thread);
+                if (!Threads.Contains(thread))
+                    Threads.Add(thread);
             }
         }
 
@@ -86,8 +75,8 @@ namespace osu.Framework.Platform
         /// </summary>
         public void RemoveThread(GameThread thread)
         {
-            lock (threads)
-                threads.Remove(thread);
+            lock (Threads)
+                Threads.Remove(thread);
         }
 
         private ExecutionMode? activeExecutionMode;
@@ -105,9 +94,9 @@ namespace osu.Framework.Platform
             {
                 case ExecutionMode.SingleThread:
                 {
-                    lock (threads)
+                    lock (Threads)
                     {
-                        foreach (var t in threads)
+                        foreach (var t in Threads)
                             t.RunSingleFrame();
                     }
 
@@ -139,26 +128,31 @@ namespace osu.Framework.Platform
             const int thread_join_timeout = 30000;
 
             // exit in reverse order so AudioThread is exited last (UpdateThread depends on AudioThread)
-            Threads.Reverse().ForEach(t =>
+            lock (Threads)
             {
-                // save the native thread to a local variable as Thread gets set to null when exiting.
-                // WaitForState(Exited) appears to be unsafe in multithreaded.
-                var thread = t.Thread;
-
-                t.Exit();
-
-                if (thread != null)
+                for (int i = Threads.Count - 1; i >= 0; i--)
                 {
-                    if (!thread.Join(thread_join_timeout))
-                        throw new TimeoutException($"Thread {t.Name} failed to exit in allocated time ({thread_join_timeout}ms).");
-                }
-                else
-                {
-                    t.WaitForState(GameThreadState.Exited);
-                }
+                    GameThread t = Threads[i];
 
-                Debug.Assert(t.Exited);
-            });
+                    // save the native thread to a local variable as Thread gets set to null when exiting.
+                    // WaitForState(Exited) appears to be unsafe in multithreaded.
+                    var thread = t.Thread;
+
+                    t.Exit();
+
+                    if (thread != null)
+                    {
+                        if (!thread.Join(thread_join_timeout))
+                            throw new TimeoutException($"Thread {t.Name} failed to exit in allocated time ({thread_join_timeout}ms).");
+                    }
+                    else
+                    {
+                        t.WaitForState(GameThreadState.Exited);
+                    }
+
+                    Debug.Assert(t.Exited);
+                }
+            }
 
             ThreadSafety.ResetAllForCurrentThread();
         }
@@ -185,8 +179,11 @@ namespace osu.Framework.Platform
                 case ExecutionMode.MultiThreaded:
                 {
                     // switch to multi-threaded
-                    foreach (var t in Threads)
-                        t.Start();
+                    lock (Threads)
+                    {
+                        foreach (var t in Threads)
+                            t.Start();
+                    }
 
                     break;
                 }
@@ -194,10 +191,13 @@ namespace osu.Framework.Platform
                 case ExecutionMode.SingleThread:
                 {
                     // switch to single-threaded.
-                    foreach (var t in Threads)
+                    lock (Threads)
                     {
-                        // only throttle for the main thread
-                        t.Initialize(withThrottling: t == mainThread);
+                        foreach (var t in Threads)
+                        {
+                            // only throttle for the main thread
+                            t.Initialize(withThrottling: t == mainThread);
+                        }
                     }
 
                     // this is usually done in the execution loop, but required here for the initial game startup,
@@ -213,8 +213,11 @@ namespace osu.Framework.Platform
         private void pauseAllThreads()
         {
             // shut down threads in reverse to ensure audio stops last (other threads may be waiting on a queued event otherwise)
-            foreach (var t in Threads.Reverse())
-                t.Pause();
+            lock (Threads)
+            {
+                for (int i = Threads.Count - 1; i >= 0; i--)
+                    Threads[i].Pause();
+            }
         }
 
         private void updateMainThreadRates()
@@ -243,10 +246,17 @@ namespace osu.Framework.Platform
             // for multi-threaded mode, schedule the culture change on all threads.
             // note that if the threads haven't been created yet (e.g. if the game started single-threaded), this will only store the culture in GameThread.CurrentCulture.
             // in that case, the stored value will be set on the actual threads after the next Start() call.
-            foreach (var t in Threads)
+            lock (Threads)
             {
-                t.Scheduler.Add(() => t.CurrentCulture = culture);
+                foreach (var t in Threads)
+                    t.Scheduler.Add(() => t.CurrentCulture = culture);
             }
+        }
+
+        public GameThread[] EnumerateThreads()
+        {
+            lock (Threads)
+                return Threads.ToArray();
         }
     }
 }

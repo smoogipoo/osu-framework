@@ -228,7 +228,7 @@ namespace osu.Framework.Platform
         /// </summary>
         public virtual bool CapsLockEnabled => false;
 
-        public IEnumerable<GameThread> Threads => threadRunner.Threads;
+        public IEnumerable<GameThread> Threads => threadRunner.EnumerateThreads();
 
         /// <summary>
         /// Register a thread to be monitored and tracked by this <see cref="GameHost"/>
