@@ -9,7 +9,7 @@ namespace osu.Framework
 {
     public static class FrameworkEnvironment
     {
-        public static ExecutionMode? StartupExecutionMode { get; }
+        public static ExecutionMode? TestExecutionMode { get; }
         public static bool NoTestTimeout { get; }
         public static bool ForceTestGC { get; }
         public static bool FailFlakyTests { get; }
@@ -30,8 +30,7 @@ namespace osu.Framework
 
         static FrameworkEnvironment()
         {
-            StartupExecutionMode = Enum.TryParse<ExecutionMode>(Environment.GetEnvironmentVariable("OSU_EXECUTION_MODE"), true, out var mode) ? mode : null;
-
+            TestExecutionMode = Enum.TryParse<ExecutionMode>(Environment.GetEnvironmentVariable("OSU_TESTS_EXECUTION_MODE"), true, out var mode) ? mode : null;
             NoTestTimeout = parseBool(Environment.GetEnvironmentVariable("OSU_TESTS_NO_TIMEOUT")) ?? false;
             ForceTestGC = parseBool(Environment.GetEnvironmentVariable("OSU_TESTS_FORCED_GC")) ?? false;
             FailFlakyTests = Environment.GetEnvironmentVariable("OSU_TESTS_FAIL_FLAKY") == "1";

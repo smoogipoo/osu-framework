@@ -52,7 +52,7 @@ jobs:
     name: Test
     runs-on: ${{matrix.os.fullname}}
     env:
-      OSU_EXECUTION_MODE: ${{matrix.threadingMode}}
+      OSU_TESTS_EXECUTION_MODE: ${{matrix.threadingMode}}
       OSU_TESTS_LOCAL_HTTPBIN: 1
     strategy:
        fail-fast: false

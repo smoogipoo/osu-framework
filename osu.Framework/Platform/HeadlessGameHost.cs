@@ -58,14 +58,9 @@ namespace osu.Framework.Platform
         protected override void SetupConfig(IDictionary<FrameworkSetting, object> defaultOverrides)
         {
             defaultOverrides[FrameworkSetting.AudioDevice] = "No sound";
+            defaultOverrides[FrameworkSetting.ExecutionMode] = ExecutionMode.SingleThread;
 
             base.SetupConfig(defaultOverrides);
-
-            if (FrameworkEnvironment.StartupExecutionMode != null)
-            {
-                Config.SetValue(FrameworkSetting.ExecutionMode, FrameworkEnvironment.StartupExecutionMode.Value);
-                Logger.Log($"Startup execution mode set to {FrameworkEnvironment.StartupExecutionMode} from envvar");
-            }
         }
 
         protected override void SetupForRun()
