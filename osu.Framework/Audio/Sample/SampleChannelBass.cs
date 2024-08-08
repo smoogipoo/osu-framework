@@ -11,6 +11,7 @@ namespace osu.Framework.Audio.Sample
     internal sealed class SampleChannelBass : SampleChannel, IBassAudioChannel
     {
         private readonly SampleBass sample;
+        private readonly BassFlags creationFlags;
         private volatile int channel;
 
         /// <summary>
@@ -66,10 +67,12 @@ namespace osu.Framework.Audio.Sample
         /// Creates a new <see cref="SampleChannelBass"/>.
         /// </summary>
         /// <param name="sample">The <see cref="SampleBass"/> to create the channel from.</param>
-        public SampleChannelBass(SampleBass sample)
+        /// <param name="creationFlags"></param>
+        public SampleChannelBass(SampleBass sample, BassFlags creationFlags)
             : base(sample.Name)
         {
             this.sample = sample;
+            this.creationFlags = creationFlags;
 
             relativeFrequencyHandler = new BassRelativeFrequencyHandler
             {
@@ -199,7 +202,7 @@ namespace osu.Framework.Audio.Sample
             if (hasChannel)
                 return;
 
-            BassFlags flags = BassFlags.SampleChannelStream | BassFlags.Decode;
+            BassFlags flags = creationFlags;
 
             // While this shouldn't cause issues, we've had a small subset of users reporting issues on windows.
             // To keep things working let's only apply to other platforms until we know more.
@@ -219,7 +222,7 @@ namespace osu.Framework.Audio.Sample
 
         #region Mixing
 
-        private BassAudioMixer bassMixer => (BassAudioMixer)Mixer.AsNonNull();
+        private IBassAudioMixer bassMixer => (IBassAudioMixer)Mixer.AsNonNull();
 
         bool IBassAudioChannel.IsActive => IsAlive;
 
@@ -227,7 +230,7 @@ namespace osu.Framework.Audio.Sample
 
         bool IBassAudioChannel.MixerChannelPaused { get; set; } = true;
 
-        BassAudioMixer IBassAudioChannel.Mixer => bassMixer;
+        IBassAudioMixer IBassAudioChannel.Mixer => bassMixer;
 
         #endregion
 

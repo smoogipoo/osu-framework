@@ -14,7 +14,7 @@ namespace osu.Framework.Audio.Mixing.Bass
     /// <summary>
     /// Mixes together multiple <see cref="IAudioChannel"/> into one output via BASSmix.
     /// </summary>
-    internal class BassAudioMixer : AudioMixer, IBassAudio
+    internal class BassAudioMixer : AudioMixer, IBassAudio, IBassAudioMixer
     {
         private readonly AudioManager? manager;
 
@@ -99,6 +99,9 @@ namespace osu.Framework.Audio.Mixing.Bass
             if (activeChannels.Remove(bassChannel))
                 removeChannelFromBassMix(bassChannel);
         }
+
+        public BassFlags SampleFlags => BassFlags.SampleChannelStream | BassFlags.Decode;
+        public BassFlags TrackFlags => BassFlags.Decode;
 
         /// <summary>
         /// Plays a channel.

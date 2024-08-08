@@ -12,9 +12,9 @@ namespace osu.Framework.Audio.Sample
         public override bool IsLoaded => factory.IsLoaded;
 
         private readonly SampleBassFactory factory;
-        private readonly BassAudioMixer mixer;
+        private readonly IBassAudioMixer mixer;
 
-        internal SampleBass(SampleBassFactory factory, BassAudioMixer mixer)
+        internal SampleBass(SampleBassFactory factory, IBassAudioMixer mixer)
             : base(factory.Name)
         {
             this.factory = factory;
@@ -25,7 +25,7 @@ namespace osu.Framework.Audio.Sample
 
         protected override SampleChannel CreateChannel()
         {
-            var channel = new SampleChannelBass(this);
+            var channel = new SampleChannelBass(this, mixer.SampleFlags);
             mixer.Add(channel);
             return channel;
         }

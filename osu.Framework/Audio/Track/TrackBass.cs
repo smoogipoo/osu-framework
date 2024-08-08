@@ -20,6 +20,7 @@ namespace osu.Framework.Audio.Track
 {
     public sealed class TrackBass : Track, IBassAudio, IBassAudioChannel
     {
+        private readonly BassFlags creationFlags;
         private Stream? dataStream;
 
         /// <summary>
@@ -66,10 +67,12 @@ namespace osu.Framework.Audio.Track
         /// </summary>
         /// <param name="data">The sample data stream.</param>
         /// <param name="name">A name identifying the track internally.</param>
+        /// <param name="creationFlags"></param>
         /// <param name="quick">If true, the track will not be fully loaded, and should only be used for preview purposes.  Defaults to false.</param>
-        internal TrackBass(Stream data, string name, bool quick = false)
+        internal TrackBass(Stream data, string name, BassFlags creationFlags, bool quick = false)
             : base(name)
         {
+            this.creationFlags = creationFlags;
             ArgumentNullException.ThrowIfNull(data);
 
             relativeFrequencyHandler = new BassRelativeFrequencyHandler
@@ -179,7 +182,7 @@ namespace osu.Framework.Audio.Track
                 Bass.ChannelSetDevice(stream, bass_nodevice);
                 tempoAdjustStream = BassFx.TempoCreate(stream, BassFlags.Decode | BassFlags.FxFreeSource);
                 Bass.ChannelSetDevice(tempoAdjustStream, bass_nodevice);
-                stream = BassFx.ReverseCreate(tempoAdjustStream, 5f, BassFlags.Default | BassFlags.FxFreeSource | BassFlags.Decode);
+                stream = BassFx.ReverseCreate(tempoAdjustStream, 5f, BassFlags.Default | BassFlags.FxFreeSource | creationFlags);
 
                 Bass.ChannelSetAttribute(stream, ChannelAttribute.TempoUseQuickAlgorithm, 1);
                 Bass.ChannelSetAttribute(stream, ChannelAttribute.TempoOverlapMilliseconds, 4);
@@ -439,7 +442,7 @@ namespace osu.Framework.Audio.Track
             }
         }
 
-        private BassAudioMixer bassMixer => (BassAudioMixer)Mixer.AsNonNull();
+        private IBassAudioMixer bassMixer => (IBassAudioMixer)Mixer.AsNonNull();
 
         bool IBassAudioChannel.IsActive => !IsDisposed;
 
@@ -447,7 +450,7 @@ namespace osu.Framework.Audio.Track
 
         bool IBassAudioChannel.MixerChannelPaused { get; set; } = true;
 
-        BassAudioMixer IBassAudioChannel.Mixer => bassMixer;
+        IBassAudioMixer IBassAudioChannel.Mixer => bassMixer;
 
         #endregion
 

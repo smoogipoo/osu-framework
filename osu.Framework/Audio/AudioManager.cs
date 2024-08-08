@@ -265,7 +265,7 @@ namespace osu.Framework.Audio
 
         private AudioMixer createAudioMixer(AudioMixer fallbackMixer, string identifier)
         {
-            var mixer = new BassAudioMixer(this, fallbackMixer, identifier);
+            var mixer = new PassthroughBassAudioMixer(this, fallbackMixer, identifier);
             AddItem(mixer);
             return mixer;
         }
