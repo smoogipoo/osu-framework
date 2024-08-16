@@ -4,11 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Abstractions.TestingHelpers;
 using System.Linq;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics.Rendering.Dummy;
 using osu.Framework.Input.Handlers;
 using osu.Framework.Logging;
+using osu.Framework.Testing;
 using osu.Framework.Threading;
 using osu.Framework.Timing;
 
@@ -21,6 +23,7 @@ namespace osu.Framework.Platform
     {
         public const double CLOCK_RATE = 1000.0 / 30;
 
+        private readonly MockFileSystem fs = new MockFileSystem();
         private readonly bool realtime;
         private IFrameBasedClock? customClock;
 
@@ -41,6 +44,8 @@ namespace osu.Framework.Platform
         public override void OpenUrlExternally(string url) => Logger.Log($"Application has requested URL \"{url}\" to be opened.");
 
         public override IEnumerable<string> UserStoragePaths => new[] { "./headless/" };
+
+        public override Storage GetStorage(string path) => new InMemoryStorage(path, this, fs);
 
         public HeadlessGameHost(string? gameName = null, HostOptions? options = null, bool realtime = true)
             : base(gameName ?? Guid.NewGuid().ToString(), options)

@@ -33,7 +33,7 @@ namespace osu.Framework.Platform
             return base.GetDefaultGameStorage();
         }
 
-        public sealed override Storage GetStorage(string path) => new DesktopStorage(path, this);
+        public override Storage GetStorage(string path) => new DesktopStorage(path, this);
 
         public override bool IsPrimaryInstance
         {

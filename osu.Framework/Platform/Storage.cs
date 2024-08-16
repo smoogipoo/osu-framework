@@ -7,19 +7,21 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.IO.Abstractions;
 using osu.Framework.Extensions.ObjectExtensions;
 
 namespace osu.Framework.Platform
 {
     public abstract class Storage
     {
+        protected virtual IFileSystem FileSystem { get; } = new FileSystem();
         protected string BasePath { get; }
 
         protected Storage(string path, string subfolder = null)
         {
-            static string filenameStrip(string entry)
+            string filenameStrip(string entry)
             {
-                foreach (char c in Path.GetInvalidFileNameChars())
+                foreach (char c in FileSystem.Path.GetInvalidFileNameChars())
                     entry = entry.Replace(c.ToString(), string.Empty);
                 return entry;
             }
@@ -30,7 +32,7 @@ namespace osu.Framework.Platform
                 throw new InvalidOperationException($"{nameof(BasePath)} not correctly initialized!");
 
             if (!string.IsNullOrEmpty(subfolder))
-                BasePath = Path.Combine(BasePath, filenameStrip(subfolder));
+                BasePath = FileSystem.Path.Combine(BasePath, filenameStrip(subfolder));
         }
 
         /// <summary>
@@ -93,8 +95,8 @@ namespace osu.Framework.Platform
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("Must be non-null and not empty string", nameof(path));
 
-            if (!path.EndsWith(Path.DirectorySeparatorChar))
-                path += Path.DirectorySeparatorChar;
+            if (!path.EndsWith(FileSystem.Path.DirectorySeparatorChar))
+                path += FileSystem.Path.DirectorySeparatorChar;
 
             // create non-existing path.
             string fullPath = GetFullPath(path, true);
@@ -120,9 +122,9 @@ namespace osu.Framework.Platform
         [Pure]
         public Stream CreateFileSafely(string path)
         {
-            string temporaryPath = Path.Combine(Path.GetDirectoryName(path).AsNonNull(), $"_{Path.GetFileName(path)}_{Guid.NewGuid()}");
+            string temporaryPath = FileSystem.Path.Combine(FileSystem.Path.GetDirectoryName(path).AsNonNull(), $"_{FileSystem.Path.GetFileName(path)}_{Guid.NewGuid()}");
 
-            return new SafeWriteStream(temporaryPath, path, this);
+            return new SafeWriteStream(FileSystem, temporaryPath, path, this);
         }
 
         /// <summary>
@@ -161,14 +163,16 @@ namespace osu.Framework.Platform
         /// <summary>
         /// Uses a temporary file to ensure a file is written to completion before existing at its specified location.
         /// </summary>
-        private class SafeWriteStream : FileStream
+        private class SafeWriteStream : FileSystemStream
         {
             private readonly string temporaryPath;
             private readonly string finalPath;
             private readonly Storage storage;
 
-            public SafeWriteStream(string temporaryPath, string finalPath, Storage storage)
-                : base(storage.GetFullPath(temporaryPath, true), FileMode.Create, FileAccess.Write)
+            public SafeWriteStream(IFileSystem fileSystem, string temporaryPath, string finalPath, Storage storage)
+                : base(fileSystem.FileStream.New(storage.GetFullPath(temporaryPath, true), FileMode.Create, FileAccess.Write),
+                    storage.GetFullPath(temporaryPath, true),
+                    false)
             {
                 this.temporaryPath = temporaryPath;
                 this.finalPath = finalPath;
