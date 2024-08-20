@@ -2,31 +2,27 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using osu.Framework.Graphics.Containers;
-using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Transforms;
 using osu.Framework.Timing;
 using osuTK;
 
 namespace osu.Framework.Graphics._3D
 {
-    public partial class Model : Transformable, IDisposable, IDrawable
+    public partial class Model : Transformable, IDisposable
     {
-        public Vector3 DrawSize => throw new NotImplementedException();
+        public Vector3 Position;
+        public Quaternion Rotation;
+        public Vector3 Scale;
 
-        public BoxF DrawRectangle => throw new NotImplementedException();
+        public DrawInfo DrawInfo => throw new NotImplementedException();
 
-        Vector2 IDrawable.DrawSize => DrawSize.Xy;
+        public DrawColourInfo DrawColourInfo => throw new NotImplementedException();
 
-        RectangleF IDrawable.DrawRectangle => new RectangleF(DrawRectangle.Location.Xy, DrawRectangle.Size.Xy);
-
-        DrawInfo IDrawable.DrawInfo => drawInfo;
-
-        DrawColourInfo IDrawable.DrawColourInfo => drawColourInfo;
-
-        Quad IDrawable.ScreenSpaceDrawQuad => screenSpaceDrawQuad;
-
-        CompositeDrawable? IDrawable.Parent => parent;
+        public World Parent
+        {
+            get => throw new NotImplementedException();
+            set => throw new NotImplementedException();
+        }
 
         public bool IsPresent => throw new NotImplementedException();
 
@@ -36,9 +32,13 @@ namespace osu.Framework.Graphics._3D
             set => throw new NotImplementedException();
         }
 
-        Vector2 IDrawable.ToSpaceOfOtherDrawable(Vector2 input, IDrawable other) => throw new NotImplementedException();
+        public Vector3 ToSpaceOfOtherModel(Vector3 input, Model other) => throw new NotImplementedException();
 
-        Vector2 IDrawable.ToLocalSpace(Vector2 screenSpacePos) => throw new NotImplementedException();
+        public Vector2 ToSpaceOfOtherDrawable(Vector3 input, IDrawable other) => throw new NotImplementedException();
+
+        public Vector3 ToLocalSpace(Vector3 screenSpacePos) => throw new NotImplementedException();
+
+        public Vector3 ToLocalSpace(Vector2 screenSpacePos) => throw new NotImplementedException();
 
         public BlendingParameters Blending => throw new NotImplementedException();
 
@@ -48,18 +48,18 @@ namespace osu.Framework.Graphics._3D
 
         public float Alpha => throw new NotImplementedException();
 
-        void IDrawable.Show() => throw new NotImplementedException();
+        public void Show() => throw new NotImplementedException();
 
-        void IDrawable.Hide() => throw new NotImplementedException();
+        public void Hide() => throw new NotImplementedException();
 
         public long InvalidationID { get; private set; } = 1;
 
-        internal override void EnsureTransformMutationAllowed()
-        {
-        }
+        internal ulong ChildID { get; set; }
 
-        public void Dispose()
-        {
-        }
+        internal override void EnsureTransformMutationAllowed() => throw new NotImplementedException();
+
+        public void Dispose() => throw new NotImplementedException();
+
+        protected virtual void Dispose(bool disposing) => throw new NotImplementedException();
     }
 }

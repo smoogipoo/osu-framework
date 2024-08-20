@@ -3,7 +3,13 @@
 
 namespace osu.Framework.Graphics._3D
 {
-    public class DrawableModel : Model
+    public partial class DrawableModel : Model
     {
+        private readonly Drawable drawable;
+
+        public DrawableModel(Drawable drawable)
+        {
+            this.drawable = drawable;
+        }
     }
 }

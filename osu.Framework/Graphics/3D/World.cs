@@ -3,11 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using osu.Framework.Lists;
 
 namespace osu.Framework.Graphics._3D
 {
-    public partial class WorldContainer : Drawable
+    public partial class World : Drawable
     {
         private readonly SortedList<Model> children = new SortedList<Model>();
 
@@ -17,17 +18,41 @@ namespace osu.Framework.Graphics._3D
             set => ChildrenEnumerable = value;
         }
 
-        public Model Child { set; }
-
-        public IEnumerable<Model> ChildrenEnumerable { set; }
-
-        public void Add(Model model)
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public Model Child
         {
+            get
+            {
+                if (Children.Count != 1)
+                    throw new InvalidOperationException($"Cannot call {nameof(Child)} unless there's exactly one {nameof(Model)} in {nameof(Children)} (currently {Children.Count})!");
+
+                return Children[0];
+            }
+            set
+            {
+                if (IsDisposed)
+                    return;
+
+                Clear();
+                Add(value);
+            }
         }
 
-        public void AddRange(IEnumerable<Model> collection)
+        public IEnumerable<Model> ChildrenEnumerable
         {
+            set
+            {
+                if (IsDisposed)
+                    return;
+
+                Clear();
+                AddRange(value);
+            }
         }
+
+        public void Add(Model model) => throw new NotImplementedException();
+
+        public void AddRange(IEnumerable<Model> collection) => throw new NotImplementedException();
 
         /// <summary>
         /// Remove the provided model from this container's children.
@@ -40,9 +65,7 @@ namespace osu.Framework.Graphics._3D
         /// object leakage may occur.
         /// </remarks>
         /// <returns>Whether the model was removed.</returns>
-        public bool Remove(Model model, bool disposeImmediately)
-        {
-        }
+        public bool Remove(Model model, bool disposeImmediately) => throw new NotImplementedException();
 
         /// <summary>
         /// Remove all matching children from this container.
@@ -53,9 +76,7 @@ namespace osu.Framework.Graphics._3D
         /// <paramref name="disposeImmediately"/> should be <c>true</c> unless the removed items are to be re-used in the future.
         /// If <c>false</c>, ensure removed items are manually disposed else object leakage may occur.
         /// </remarks>
-        public void RemoveRange(IEnumerable<Model> range, bool disposeImmediately)
-        {
-        }
+        public void RemoveRange(IEnumerable<Model> range, bool disposeImmediately) => throw new NotImplementedException();
 
         /// <summary>
         /// Remove all matching children from this container.
@@ -67,15 +88,27 @@ namespace osu.Framework.Graphics._3D
         /// If <c>false</c>, ensure removed items are manually disposed else object leakage may occur.
         /// </remarks>
         /// <returns>The number of matching items removed.</returns>
-        public int RemoveAll(Predicate<Model> match, bool disposeImmediately)
-        {
-        }
+        public int RemoveAll(Predicate<Model> match, bool disposeImmediately) => throw new NotImplementedException();
+
+        /// <summary>
+        /// Removes all children.
+        /// </summary>
+        public void Clear() => Clear(true);
+
+        /// <summary>
+        /// Removes all children.
+        /// </summary>
+        /// <param name="disposeChildren">
+        /// Whether removed children should also get disposed.
+        /// Disposal will be recursive.
+        /// </param>
+        public void Clear(bool disposeChildren) => throw new NotImplementedException();
 
         protected class ChildComparer : IComparer<Model>
         {
-            private readonly WorldContainer owner;
+            private readonly World owner;
 
-            public ChildComparer(WorldContainer owner)
+            public ChildComparer(World owner)
             {
                 this.owner = owner;
             }
