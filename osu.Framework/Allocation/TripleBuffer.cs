@@ -13,7 +13,7 @@ namespace osu.Framework.Allocation
     /// Comes with the added assurance that the most recent <see cref="GetForRead"/> object is not written to.
     /// </summary>
     internal class TripleBuffer<T>
-        where T : class
+        where T : notnull
     {
         private const int buffer_count = 3;
         private const int read_timeout_milliseconds = 100;
