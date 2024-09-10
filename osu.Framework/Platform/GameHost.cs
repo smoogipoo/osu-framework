@@ -502,7 +502,7 @@ namespace osu.Framework.Platform
 
             Renderer.AllowTearing = windowMode.Value == WindowMode.Fullscreen;
 
-            TripleBuffer<DrawNode>.Buffer buffer;
+            TripleBuffer<DrawNode>.ReadUsage buffer;
 
             using (drawMonitor.BeginCollecting(PerformanceCollectionType.Sleep))
             {
@@ -516,7 +516,7 @@ namespace osu.Framework.Platform
                 buffer = drawRoots.GetForRead();
             }
 
-            if (buffer == null)
+            if (!buffer.IsValid)
                 return;
 
             Debug.Assert(buffer.Object != null);

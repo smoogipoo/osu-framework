@@ -1,8 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace osu.Framework.Allocation
@@ -16,54 +16,46 @@ namespace osu.Framework.Allocation
         where T : class
     {
         private const int buffer_count = 3;
-        private const long read_timeout_milliseconds = 100;
+        private const int read_timeout_milliseconds = 100;
 
-        private readonly Buffer[] buffers = new Buffer[buffer_count];
-
-        private readonly Stopwatch stopwatch = new Stopwatch();
-
+        private BufferArray buffers;
         private int writeIndex;
         private int flipIndex = 1;
         private int readIndex = 2;
 
         public TripleBuffer()
         {
-            for (int i = 0; i < buffer_count; i++)
-                buffers[i] = new Buffer(i, finishUsage);
+            buffers[writeIndex] = new Buffer(writeIndex);
+            buffers[flipIndex] = new Buffer(flipIndex);
+            buffers[readIndex] = new Buffer(readIndex);
         }
 
-        public Buffer GetForWrite()
+        public WriteUsage GetForWrite()
         {
-            Buffer usage = buffers[writeIndex];
-            usage.LastUsage = UsageType.Write;
-            return usage;
+            ref Buffer buffer = ref buffers[writeIndex];
+            buffer.LastUsage = UsageType.Write;
+            return new WriteUsage(this, ref buffer);
         }
 
-        public Buffer? GetForRead()
+        public ReadUsage GetForRead()
         {
-            stopwatch.Restart();
+            const int estimate_nanoseconds_per_cycle = 5;
+            const int estimate_cycles_to_timeout = read_timeout_milliseconds * 1000 * 1000 / estimate_nanoseconds_per_cycle;
 
-            do
+            // This should really never happen, but prevents a potential infinite loop if the usage can never be retrieved.
+            for (int i = 0; i < estimate_cycles_to_timeout; i++)
             {
                 flip(ref readIndex);
 
-                // This should really never happen, but prevents a potential infinite loop if the usage can never be retrieved.
-                if (stopwatch.ElapsedMilliseconds > read_timeout_milliseconds)
-                    return null;
-            } while (buffers[readIndex].LastUsage == UsageType.Read);
+                ref Buffer buffer = ref buffers[readIndex];
+                if (buffer.LastUsage == UsageType.Read)
+                    continue;
 
-            Buffer usage = buffers[readIndex];
+                buffer.LastUsage = UsageType.Read;
+                return new ReadUsage(ref buffer);
+            }
 
-            Debug.Assert(usage.LastUsage == UsageType.Write);
-            usage.LastUsage = UsageType.Read;
-
-            return usage;
-        }
-
-        private void finishUsage(Buffer usage)
-        {
-            if (usage.LastUsage == UsageType.Write)
-                flip(ref writeIndex);
+            return default;
         }
 
         private void flip(ref int localIndex)
@@ -71,32 +63,65 @@ namespace osu.Framework.Allocation
             localIndex = Interlocked.Exchange(ref flipIndex, localIndex);
         }
 
-        public class Buffer : IDisposable
+        public readonly ref struct WriteUsage
         {
-            public T? Object;
+            private readonly TripleBuffer<T> tripleBuffer;
+            private readonly ref Buffer buffer;
 
-            public volatile UsageType LastUsage;
-
-            public readonly int Index;
-
-            private readonly Action<Buffer>? finish;
-
-            public Buffer(int index, Action<Buffer>? finish)
+            public WriteUsage(TripleBuffer<T> tripleBuffer, ref Buffer buffer)
             {
-                Index = index;
-                this.finish = finish;
+                this.tripleBuffer = tripleBuffer;
+                this.buffer = ref buffer;
             }
+
+            public T? Object
+            {
+                get => buffer.Object;
+                set => buffer.Object = value;
+            }
+
+            public int Index => buffer.Index;
+
+            public void Dispose() => tripleBuffer.flip(ref tripleBuffer.writeIndex);
+        }
+
+        public readonly ref struct ReadUsage
+        {
+            private readonly ref Buffer buffer;
+
+            public ReadUsage(ref Buffer buffer)
+            {
+                this.buffer = ref buffer;
+            }
+
+            [MemberNotNullWhen(true, nameof(Object))]
+            public bool IsValid => !Unsafe.IsNullRef(ref buffer);
+
+            public T? Object => buffer.Object;
+
+            public int Index => buffer.Index;
 
             public void Dispose()
             {
-                finish?.Invoke(this);
             }
+        }
+
+        public record struct Buffer(int Index)
+        {
+            public T? Object;
+            public volatile UsageType LastUsage;
         }
 
         public enum UsageType
         {
             Read,
             Write
+        }
+
+        [InlineArray(buffer_count)]
+        private struct BufferArray
+        {
+            private Buffer buffer;
         }
     }
 }

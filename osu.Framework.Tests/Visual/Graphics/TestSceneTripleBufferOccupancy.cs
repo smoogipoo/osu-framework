@@ -58,7 +58,7 @@ namespace osu.Framework.Tests.Visual.Graphics
                 {
                     using (var read = tripleBuffer.GetForRead())
                     {
-                        if (read != null)
+                        if (read.IsValid)
                             reads[read.Index]++;
                     }
 

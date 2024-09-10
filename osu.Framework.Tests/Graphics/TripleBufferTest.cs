@@ -32,7 +32,7 @@ namespace osu.Framework.Tests.Graphics
             var tripleBuffer = new TripleBuffer<TestObject>();
 
             using (var buffer = tripleBuffer.GetForRead())
-                Assert.That(buffer, Is.Null);
+                Assert.That(!buffer.IsValid);
         }
 
         [Test]
@@ -51,7 +51,7 @@ namespace osu.Framework.Tests.Graphics
                 }
 
                 using (var buffer = tripleBuffer.GetForRead())
-                    Assert.That(buffer!.Object!.ID, Is.EqualTo(lastWrite));
+                    Assert.That(buffer.Object!.ID, Is.EqualTo(lastWrite));
             }
         }
 
@@ -72,7 +72,7 @@ namespace osu.Framework.Tests.Graphics
             {
                 using (var read = tripleBuffer.GetForRead())
                 {
-                    Assert.That(read!.Object!.ID, Is.Not.EqualTo(lastRead));
+                    Assert.That(read.Object!.ID, Is.Not.EqualTo(lastRead));
 
                     for (int j = 0; j < 3; j++)
                     {
@@ -100,11 +100,11 @@ namespace osu.Framework.Tests.Graphics
                     write.Object = obj;
 
                 using (var buffer = tripleBuffer.GetForRead())
-                    Assert.That(buffer?.Object, Is.EqualTo(obj));
+                    Assert.That(buffer.Object, Is.EqualTo(obj));
             }
 
             using (var buffer = tripleBuffer.GetForRead())
-                Assert.That(buffer, Is.Null);
+                Assert.That(!buffer.IsValid);
         }
 
         [Test]
@@ -121,7 +121,7 @@ namespace osu.Framework.Tests.Graphics
                 {
                     resetEventSlim.Set();
                     using (var buffer = tripleBuffer.GetForRead())
-                        Assert.That(buffer?.Object, Is.EqualTo(obj));
+                        Assert.That(buffer.Object, Is.EqualTo(obj));
                 }, TaskCreationOptions.LongRunning);
 
                 Task.Factory.StartNew(() =>
