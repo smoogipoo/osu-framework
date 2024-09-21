@@ -38,7 +38,7 @@ namespace osu.Framework.Testing
         /// <summary>
         /// Delay between invoking two <see cref="StepButton"/>s in automatic runs.
         /// </summary>
-        protected virtual double TimePerAction => 200;
+        protected internal virtual double TimePerAction => 200;
 
         /// <summary>
         /// Whether to automatically run the the first actual <see cref="StepButton"/> (one that is not part of <see cref="SetUpAttribute">[SetUp]</see> or <see cref="SetUpStepsAttribute">[SetUpSteps]</see>)

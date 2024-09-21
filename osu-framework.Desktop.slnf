@@ -17,7 +17,7 @@
       "osu.Framework.Testing.NUnit\\osu.Framework.Testing.NUnit.csproj",
       "osu.Framework.Testing.TUnit\\osu.Framework.Testing.TUnit.csproj",
       "osu.Framework.Testing\\osu.Framework.Testing.csproj",
-      "osu.Framework.Tests.Wangs\\osu.Framework.Tests.Wangs.csproj",
+      "osu.Framework.Tests.TUnit\\osu.Framework.Tests.TUnit.csproj",
       "osu.Framework.Tests\\osu.Framework.Tests.csproj",
       "osu.Framework\\osu.Framework.csproj",
       "SampleGame.Desktop\\SampleGame.Desktop.csproj",

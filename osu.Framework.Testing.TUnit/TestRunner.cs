@@ -13,7 +13,7 @@ using TUnit.Core.Interfaces;
 
 namespace osu.Framework.Testing
 {
-    internal static class Module
+    internal static class TestRunner
     {
         private static readonly ConcurrentDictionary<TestContext, HostContext> host_contexts = new ConcurrentDictionary<TestContext, HostContext>();
 
@@ -88,6 +88,8 @@ namespace osu.Framework.Testing
                     throw new InvalidCastException($"The test runner must be a {nameof(Game)}.");
 
                 game = (Game)Runner;
+                game.OnLoadComplete += _ => game.Add(testScene);
+
                 thread = new Thread(runHost);
             }
 
@@ -157,6 +159,8 @@ namespace osu.Framework.Testing
 
             public async Task RunOnUpdateThread(Func<Task> action)
             {
+                await Task.Delay(200).ConfigureAwait(false);
+
                 SynchronizationContext.SetSynchronizationContext(Host.UpdateThread.SynchronizationContext);
                 await Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
             }

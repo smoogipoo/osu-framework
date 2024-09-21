@@ -43,7 +43,7 @@ namespace osu.Framework.Tests.Visual.Performance
             AddToggleStep("unique textures", v => uniqueTextures.Value = v);
         }
 
-        protected override double TimePerAction => 100;
+        protected internal override double TimePerAction => 100;
 
         protected override Drawable CreateDrawable() => new TestSprite(mipmappedSampleTexture, nonMipmappedSampleTexture)
         {

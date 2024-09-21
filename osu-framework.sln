@@ -83,7 +83,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu.Framework.Testing.NUnit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu.Framework.Testing.TUnit", "osu.Framework.Testing.TUnit\osu.Framework.Testing.TUnit.csproj", "{2F114397-93D8-4199-9EC8-BBD82AED598D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu.Framework.Tests.Wangs", "osu.Framework.Tests.Wangs\osu.Framework.Tests.Wangs.csproj", "{8AB24981-878F-4FA7-A6CF-20C9B04BDF0D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu.Framework.Tests.TUnit", "osu.Framework.Tests.TUnit\osu.Framework.Tests.TUnit.csproj", "{8AB24981-878F-4FA7-A6CF-20C9B04BDF0D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

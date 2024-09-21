@@ -17,7 +17,7 @@ namespace osu.Framework.Tests.Visual.Drawables
     {
         private FillFlowContainer fillFlow;
 
-        protected override double TimePerAction => 0.001;
+        protected internal override double TimePerAction => 0.001;
 
         [SetUp]
         public void SetUp() => Schedule(() =>
