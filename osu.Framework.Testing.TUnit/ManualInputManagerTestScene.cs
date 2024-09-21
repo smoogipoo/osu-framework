@@ -11,12 +11,14 @@ using osu.Framework.Input;
 using osu.Framework.Testing.Input;
 using osuTK;
 using osuTK.Graphics;
+using TUnit.Core.Executors;
 
 namespace osu.Framework.Testing
 {
     /// <summary>
     /// An abstract test case which is tested with manual input management.
     /// </summary>
+    [HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
     public abstract partial class ManualInputManagerTestScene : TestScene
     {
         protected override Container<Drawable> Content { get; } = new Container { RelativeSizeAxes = Axes.Both };

@@ -8,9 +8,11 @@ using osu.Framework.Testing;
 using osuTK;
 using osuTK.Input;
 using TUnit.Assertions.Extensions.Numbers;
+using TUnit.Core.Executors;
 
 namespace osu.Framework.Tests.Visual.UserInterface
 {
+    [HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
     public partial class TestSceneButton : ManualInputManagerTestScene
     {
         private int clickCount;
@@ -30,14 +32,15 @@ namespace osu.Framework.Tests.Visual.UserInterface
             });
         }
 
-        [Before(Test)]
-        public new void SetUp()
+        [Before(Test), HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
+        public new Task SetUp()
         {
             clickCount = 0;
             button.Enabled.Value = true;
+            return Task.CompletedTask;
         }
 
-        [Test]
+        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
         public async Task Button()
         {
             InputManager.MoveMouseTo(button.ScreenSpaceDrawQuad.Centre);
@@ -46,7 +49,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
             await Assert.That(() => clickCount).IsEqualTo(1).AtSomePoint();
         }
 
-        [Test]
+        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
         public async Task DisabledButton()
         {
             button.Enabled.Value = false;

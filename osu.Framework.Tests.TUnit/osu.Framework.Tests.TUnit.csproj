@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>osu.Framework.Tests</RootNamespace>
     <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);TUnit0023</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

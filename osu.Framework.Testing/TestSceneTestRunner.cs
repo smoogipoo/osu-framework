@@ -15,7 +15,7 @@ using osu.Framework.Platform;
 
 namespace osu.Framework.Testing
 {
-    internal partial class TestSceneTestRunner : Game, ITestSceneTestRunner
+    public partial class TestSceneTestRunner : Game, ITestSceneTestRunner
     {
         private readonly TestRunner runner;
 

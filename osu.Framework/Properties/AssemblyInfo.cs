@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("osu.Framework.Benchmarks")]
 [assembly: InternalsVisibleTo("osu.Framework.iOS")]
 [assembly: InternalsVisibleTo("osu.Framework.Tests")]
+[assembly: InternalsVisibleTo("osu.Framework.Tests.TUnit")]
 [assembly: InternalsVisibleTo("osu.Framework.Tests.iOS")]
 [assembly: InternalsVisibleTo("osu.Framework.Tests.Android")]
 [assembly: InternalsVisibleTo("osu.Framework.Testing")]
