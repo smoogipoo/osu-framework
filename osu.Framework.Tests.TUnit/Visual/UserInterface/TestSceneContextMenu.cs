@@ -1,9 +1,10 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -15,7 +16,6 @@ using osu.Framework.Testing;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Input;
-using TUnit.Core.Executors;
 
 namespace osu.Framework.Tests.Visual.UserInterface
 {
@@ -30,121 +30,132 @@ namespace osu.Framework.Tests.Visual.UserInterface
             base.Content.Add(contextMenuContainer = new TestContextMenuContainer { RelativeSizeAxes = Axes.Both });
         }
 
-        [Before(Test), HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public Task Setup()
-        {
-            Clear();
-            return Task.CompletedTask;
-        }
+        [Before(Test)]
+        public void Setup() => Schedule(Clear);
 
         /// <summary>
         /// Tests an edge case where the submenu is visible and continues updating for a short period of time after right clicking another item.
         /// In such a case, the submenu should not update its position unless it's open.
         /// </summary>
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestNestedMenuTransferredWithFadeOut()
+        [Test]
+        public void TestNestedMenuTransferredWithFadeOut()
         {
-            TestContextMenuContainerWithFade fadingMenuContainer;
-            BoxWithNestedContextMenuItems box1;
-            BoxWithNestedContextMenuItems box2;
+            TestContextMenuContainerWithFade fadingMenuContainer = null;
+            BoxWithNestedContextMenuItems box1 = null;
+            BoxWithNestedContextMenuItems box2 = null;
 
-            Child = fadingMenuContainer = new TestContextMenuContainerWithFade
+            AddStep("setup", () =>
             {
-                RelativeSizeAxes = Axes.Both,
-                Child = new FillFlowContainer
+                Child = fadingMenuContainer = new TestContextMenuContainerWithFade
                 {
-                    AutoSizeAxes = Axes.Both,
-                    Direction = FillDirection.Horizontal,
-                    Spacing = new Vector2(10),
-                    Children = new[]
+                    RelativeSizeAxes = Axes.Both,
+                    Child = new FillFlowContainer
                     {
-                        box1 = new BoxWithNestedContextMenuItems { Size = new Vector2(100) },
-                        box2 = new BoxWithNestedContextMenuItems { Size = new Vector2(100) }
+                        AutoSizeAxes = Axes.Both,
+                        Direction = FillDirection.Horizontal,
+                        Spacing = new Vector2(10),
+                        Children = new[]
+                        {
+                            box1 = new BoxWithNestedContextMenuItems { Size = new Vector2(100) },
+                            box2 = new BoxWithNestedContextMenuItems { Size = new Vector2(100) }
+                        }
                     }
-                }
-            };
+                };
+            });
 
-            clickBoxStep(box1);
-            InputManager.MoveMouseTo(fadingMenuContainer.ChildrenOfType<Menu.DrawableMenuItem>().First());
+            clickBoxStep(() => box1);
+            AddStep("hover over menu item", () => InputManager.MoveMouseTo(fadingMenuContainer.ChildrenOfType<Menu.DrawableMenuItem>().First()));
 
-            clickBoxStep(box2);
-            InputManager.MoveMouseTo(fadingMenuContainer.ChildrenOfType<Menu.DrawableMenuItem>().First());
+            clickBoxStep(() => box2);
+            AddStep("hover over menu item", () => InputManager.MoveMouseTo(fadingMenuContainer.ChildrenOfType<Menu.DrawableMenuItem>().First()));
 
-            var targetItem = fadingMenuContainer.ChildrenOfType<Menu.DrawableMenuItem>().First();
-            var subMenu = fadingMenuContainer.ChildrenOfType<Menu>().Last();
+            AddAssert("submenu opened and visible", () =>
+            {
+                var targetItem = fadingMenuContainer.ChildrenOfType<Menu.DrawableMenuItem>().First();
+                var subMenu = fadingMenuContainer.ChildrenOfType<Menu>().Last();
 
-            await Assert.That(subMenu.State).IsEqualTo(MenuState.Open);
-            await Assert.That(subMenu.IsPresent).IsTrue();
-            await Assert.That(subMenu.IsMaskedAway).IsFalse();
-            await Assert.That(subMenu.ScreenSpaceDrawQuad.TopLeft.X).IsGreaterThan(targetItem.ScreenSpaceDrawQuad.TopLeft.X);
+                return subMenu.State == MenuState.Open && subMenu.IsPresent && !subMenu.IsMaskedAway && subMenu.ScreenSpaceDrawQuad.TopLeft.X < targetItem.ScreenSpaceDrawQuad.TopLeft.X;
+            });
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestMenuOpenedOnClick()
+        [Test]
+        public void TestMenuOpenedOnClick()
         {
-            Drawable box = addBoxStep(1);
+            Drawable box = null;
 
-            clickBoxStep(box);
+            addBoxStep(b => box = b, 1);
+            clickBoxStep(() => box);
 
-            await assertMenuState(true);
+            assertMenuState(true);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestMenuClosedOnClickOutside()
+        [Test]
+        public void TestMenuClosedOnClickOutside()
         {
-            var box = addBoxStep(1);
+            Drawable box = null;
 
-            clickBoxStep(box);
+            addBoxStep(b => box = b, 1);
+            clickBoxStep(() => box);
+
             clickOutsideStep();
-
-            await assertMenuState(false);
+            assertMenuState(false);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestMenuTransferredToNewTarget()
+        [Test]
+        public void TestMenuTransferredToNewTarget()
         {
-            var box1 = addBoxStep(1).With(d =>
+            Drawable box1 = null;
+            Drawable box2 = null;
+
+            addBoxStep(b =>
             {
-                d.X = -100;
-                d.Colour = Color4.Green;
-            });
-
-            var box2 = addBoxStep(1).With(d =>
+                box1 = b.With(d =>
+                {
+                    d.X = -100;
+                    d.Colour = Color4.Green;
+                });
+            }, 1);
+            addBoxStep(b =>
             {
-                d.X = -100;
-                d.Colour = Color4.Red;
-            });
+                box2 = b.With(d =>
+                {
+                    d.X = 100;
+                    d.Colour = Color4.Red;
+                });
+            }, 1);
 
-            clickBoxStep(box1);
-            clickBoxStep(box2);
+            clickBoxStep(() => box1);
+            clickBoxStep(() => box2);
 
-            await assertMenuState(true);
-            await assertMenuInCentre(box2);
+            assertMenuState(true);
+            assertMenuInCentre(() => box2);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestMenuHiddenWhenTargetHidden()
+        [Test]
+        public void TestMenuHiddenWhenTargetHidden()
         {
-            Drawable box = addBoxStep(1);
+            Drawable box = null;
 
-            clickBoxStep(box);
-            box.Hide();
+            addBoxStep(b => box = b, 1);
+            clickBoxStep(() => box);
 
-            await assertMenuState(false);
+            AddStep("hide box", () => box.Hide());
+            assertMenuState(false);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestMenuTracksMovement()
+        [Test]
+        public void TestMenuTracksMovement()
         {
-            Drawable box = addBoxStep(1);
+            Drawable box = null;
 
-            clickBoxStep(box);
-            box.X += 100;
+            addBoxStep(b => box = b, 1);
+            clickBoxStep(() => box);
 
-            await assertMenuInCentre(box);
+            AddStep("move box", () => box.X += 100);
+            assertMenuInCentre(() => box);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
+        [Test]
         [Arguments(Anchor.TopLeft)]
         [Arguments(Anchor.TopCentre)]
         [Arguments(Anchor.TopRight)]
@@ -153,19 +164,24 @@ namespace osu.Framework.Tests.Visual.UserInterface
         [Arguments(Anchor.BottomLeft)]
         [Arguments(Anchor.BottomCentre)]
         [Arguments(Anchor.BottomRight)]
-        public async Task TestMenuOnScreenWhenTargetPartlyOffScreen(Anchor anchor)
+        public void TestMenuOnScreenWhenTargetPartlyOffScreen(Anchor anchor)
         {
-            Drawable box = addBoxStep(5);
+            Drawable box = null;
 
-            clickBoxStep(box);
-            box.Anchor = anchor;
-            box.X -= 5;
-            box.Y -= 5;
+            addBoxStep(b => box = b, 5);
+            clickBoxStep(() => box);
 
-            await assertMenuOnScreen(true);
+            AddStep($"move box to {anchor.ToString()}", () =>
+            {
+                box.Anchor = anchor;
+                box.X -= 5;
+                box.Y -= 5;
+            });
+
+            assertMenuOnScreen(true);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
+        [Test]
         [Arguments(Anchor.TopLeft)]
         [Arguments(Anchor.TopCentre)]
         [Arguments(Anchor.TopRight)]
@@ -174,103 +190,125 @@ namespace osu.Framework.Tests.Visual.UserInterface
         [Arguments(Anchor.BottomLeft)]
         [Arguments(Anchor.BottomCentre)]
         [Arguments(Anchor.BottomRight)]
-        public async Task TestMenuNotOnScreenWhenTargetSignificantlyOffScreen(Anchor anchor)
+        public void TestMenuNotOnScreenWhenTargetSignificantlyOffScreen(Anchor anchor)
         {
-            Drawable box = addBoxStep(5);
+            Drawable box = null;
 
-            clickBoxStep(box);
-            box.Anchor = anchor;
+            addBoxStep(b => box = b, 5);
+            clickBoxStep(() => box);
 
-            if (anchor.HasFlagFast(Anchor.x0))
-                box.X -= contextMenuContainer.CurrentMenu.DrawWidth + 10;
-            else if (anchor.HasFlagFast(Anchor.x2))
-                box.X += 10;
+            AddStep($"move box to {anchor.ToString()}", () =>
+            {
+                box.Anchor = anchor;
 
-            if (anchor.HasFlagFast(Anchor.y0))
-                box.Y -= contextMenuContainer.CurrentMenu.DrawHeight + 10;
-            else if (anchor.HasFlagFast(Anchor.y2))
-                box.Y += 10;
+                if (anchor.HasFlagFast(Anchor.x0))
+                    box.X -= contextMenuContainer.CurrentMenu.DrawWidth + 10;
+                else if (anchor.HasFlagFast(Anchor.x2))
+                    box.X += 10;
 
-            await assertMenuOnScreen(false);
+                if (anchor.HasFlagFast(Anchor.y0))
+                    box.Y -= contextMenuContainer.CurrentMenu.DrawHeight + 10;
+                else if (anchor.HasFlagFast(Anchor.y2))
+                    box.Y += 10;
+            });
+
+            assertMenuOnScreen(false);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestReturnNullInNestedDrawableOpensParentMenu()
+        [Test]
+        public void TestReturnNullInNestedDrawableOpensParentMenu()
         {
-            addBoxStep(2);
-            Drawable box2 = addBoxStep();
+            Drawable box2 = null;
 
-            clickBoxStep(box2);
+            addBoxStep(_ => { }, 2);
+            addBoxStep(b => box2 = b, null);
 
-            await assertMenuState(true);
-            await assertMenuItems(2);
+            clickBoxStep(() => box2);
+            assertMenuState(true);
+            assertMenuItems(2);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestReturnEmptyInNestedDrawableBlocksMenuOpening()
+        [Test]
+        public void TestReturnEmptyInNestedDrawableBlocksMenuOpening()
         {
-            addBoxStep(2);
-            Drawable box2 = addBoxStep();
+            Drawable box2 = null;
 
-            clickBoxStep(box2);
+            addBoxStep(_ => { }, 2);
+            addBoxStep(b => box2 = b);
 
-            await assertMenuState(false);
+            clickBoxStep(() => box2);
+            assertMenuState(false);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestHideWhileScrolledAndShow()
+        [Test]
+        public void TestHideWhileScrolledAndShow()
         {
-            var box = addBoxStep(1);
+            Drawable box = null;
 
-            clickBoxStep(box);
-            await assertMenuState(true);
+            addBoxStep(b => box = b, 1);
+            clickBoxStep(() => box);
+            assertMenuState(true);
 
-            InputManager.MoveMouseTo(contextMenuContainer.CurrentMenu);
-            InputManager.PressButton(MouseButton.Left);
-            InputManager.MoveMouseTo(contextMenuContainer.CurrentMenu, new Vector2(0, 150));
+            AddStep("drag menu offscreen", () =>
+            {
+                InputManager.MoveMouseTo(contextMenuContainer.CurrentMenu);
+                InputManager.PressButton(MouseButton.Left);
+                InputManager.MoveMouseTo(contextMenuContainer.CurrentMenu, new Vector2(0, 150));
+            });
 
-            InputManager.Key(Key.Escape);
-            InputManager.ReleaseButton(MouseButton.Left);
+            AddStep("hide menu", () =>
+            {
+                InputManager.Key(Key.Escape);
+                InputManager.ReleaseButton(MouseButton.Left);
+            });
 
-            clickBoxStep(box);
-            await Assert.That(contextMenuContainer.CurrentMenu.DrawSize.Y).IsGreaterThan(10);
+            clickBoxStep(() => box);
+            AddAssert("menu has correct size", () => contextMenuContainer.CurrentMenu.DrawSize.Y > 10);
         }
 
-        private void clickBoxStep(Drawable box)
+        private void clickBoxStep(Func<Drawable> getBoxFunc)
         {
-            InputManager.MoveMouseTo(box);
-            InputManager.Click(MouseButton.Right);
+            AddStep("right-click box", () =>
+            {
+                InputManager.MoveMouseTo(getBoxFunc());
+                InputManager.Click(MouseButton.Right);
+            });
         }
 
         private void clickOutsideStep()
         {
-            InputManager.MoveMouseTo(InputManager.ScreenSpaceDrawQuad.TopLeft);
-            InputManager.Click(MouseButton.Right);
-        }
-
-        private Drawable addBoxStep(int actionCount) => addBoxStep(Enumerable.Repeat(() => { }, actionCount).ToArray());
-
-        private Drawable addBoxStep(params Action[] actions)
-        {
-            var box = new BoxWithContextMenu(actions)
+            AddStep("click outside", () =>
             {
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Size = new Vector2(200),
-            };
-
-            Add(box);
-
-            return box;
+                InputManager.MoveMouseTo(InputManager.ScreenSpaceDrawQuad.TopLeft);
+                InputManager.Click(MouseButton.Right);
+            });
         }
 
-        private async Task assertMenuState(bool opened)
-            => await Assert.That(contextMenuContainer.CurrentMenu.State).IsEqualTo(opened ? MenuState.Open : MenuState.Closed);
+        private void addBoxStep(Action<Drawable> boxFunc, int actionCount) => addBoxStep(boxFunc, Enumerable.Repeat(() => { }, actionCount).ToArray());
 
-        private async Task assertMenuInCentre(Drawable box)
-            => await Assert.That(Precision.AlmostEquals(contextMenuContainer.CurrentMenu.ScreenSpaceDrawQuad.TopLeft, box.ScreenSpaceDrawQuad.Centre)).IsTrue();
+        private void addBoxStep(Action<Drawable> boxFunc, params Action[] actions)
+        {
+            AddStep("add box", () =>
+            {
+                var box = new BoxWithContextMenu(actions)
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Size = new Vector2(200),
+                };
 
-        private async Task assertMenuOnScreen(bool expected)
+                Add(box);
+                boxFunc?.Invoke(box);
+            });
+        }
+
+        private void assertMenuState(bool opened)
+            => AddAssert($"menu {(opened ? "opened" : "closed")}", () => (contextMenuContainer.CurrentMenu?.State == MenuState.Open) == opened);
+
+        private void assertMenuInCentre(Func<Drawable> getBoxFunc)
+            => AddAssert("menu in centre of box", () => Precision.AlmostEquals(contextMenuContainer.CurrentMenu.ScreenSpaceDrawQuad.TopLeft, getBoxFunc().ScreenSpaceDrawQuad.Centre));
+
+        private void assertMenuOnScreen(bool expected) => AddAssert($"menu {(expected ? "on" : "off")} screen", () =>
         {
             var inputQuad = InputManager.ScreenSpaceDrawQuad;
             var menuQuad = contextMenuContainer.CurrentMenu.ScreenSpaceDrawQuad;
@@ -280,11 +318,10 @@ namespace osu.Framework.Tests.Visual.UserInterface
                           && inputQuad.Contains(menuQuad.BottomLeft + new Vector2(1, -1))
                           && inputQuad.Contains(menuQuad.BottomRight + new Vector2(-1, -1));
 
-            await Assert.That(result).IsEqualTo(expected);
-        }
+            return result == expected;
+        });
 
-        private async Task assertMenuItems(int expectedCount)
-            => await Assert.That(contextMenuContainer.CurrentMenu.Items.Count).IsEqualTo(expectedCount);
+        private void assertMenuItems(int expectedCount) => AddAssert($"menu contains {expectedCount} item(s)", () => contextMenuContainer.CurrentMenu.Items.Count == expectedCount);
 
         private partial class BoxWithContextMenu : Box, IHasContextMenu
         {
@@ -295,7 +332,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
                 this.actions = actions;
             }
 
-            public MenuItem[] ContextMenuItems => actions.Select((a, i) => new MenuItem($"Item {i}", a)).ToArray();
+            public MenuItem[] ContextMenuItems => actions?.Select((a, i) => new MenuItem($"Item {i}", a)).ToArray();
         }
 
         private partial class BoxWithNestedContextMenuItems : Box, IHasContextMenu
@@ -314,7 +351,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
         private partial class TestContextMenuContainer : BasicContextMenuContainer
         {
-            public Menu CurrentMenu { get; private set; } = null!;
+            public Menu CurrentMenu { get; private set; }
 
             protected override Menu CreateMenu() => CurrentMenu = base.CreateMenu();
         }

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions.IEnumerableExtensions;
@@ -23,7 +22,6 @@ using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osuTK;
 using osuTK.Input;
-using TUnit.Core.Executors;
 
 namespace osu.Framework.Tests.Visual.UserInterface
 {
@@ -31,311 +29,376 @@ namespace osu.Framework.Tests.Visual.UserInterface
     {
         private const int items_to_add = 10;
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public Task TestBasic()
+        [Test]
+        public void TestBasic()
         {
-            TestDropdown[] dropdowns = createDropdowns(2);
-            dropdowns[1].AlwaysShowSearchBar = true;
-            return Task.CompletedTask;
+            AddStep("setup dropdowns", () =>
+            {
+                TestDropdown[] dropdowns = createDropdowns(2);
+                dropdowns[1].AlwaysShowSearchBar = true;
+            });
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestSelectByUserInteraction()
+        [Test]
+        public void TestSelectByUserInteraction()
         {
-            var testDropdown = createDropdown();
+            TestDropdown testDropdown = null!;
 
-            toggleDropdownViaClick(testDropdown);
-            await assertDropdownIsOpen(testDropdown);
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
 
-            InputManager.MoveMouseTo(testDropdown.Menu.Children[2]);
-            InputManager.Click(MouseButton.Left);
+            toggleDropdownViaClick(() => testDropdown);
+            assertDropdownIsOpen(() => testDropdown);
 
-            await assertDropdownIsClosed(testDropdown);
+            AddStep("click item 2", () =>
+            {
+                InputManager.MoveMouseTo(testDropdown.Menu.Children[2]);
+                InputManager.Click(MouseButton.Left);
+            });
 
-            await Assert.That(testDropdown.Current.Value).IsEqualTo(testDropdown.Items.ElementAt(2));
-            await Assert.That(testDropdown.SelectedItem.Value?.Identifier).IsEqualTo("test 2");
-            await Assert.That((testDropdown.ChildrenOfType<Dropdown<TestModel?>.DropdownMenu.DrawableDropdownMenuItem>()
-                                           .SingleOrDefault(i => i.IsSelected)?
-                                           .Item as DropdownMenuItem<TestModel?>)?.Value?.Identifier)
-                        .IsEqualTo("test 2");
+            assertDropdownIsClosed(() => testDropdown);
+
+            AddAssert("item 2 is selected", () => testDropdown.Current.Value?.Equals(testDropdown.Items.ElementAt(2)) == true);
+            AddAssert("item 2 is selected item", () => testDropdown.SelectedItem.Value?.Identifier == "test 2");
+            AddAssert("item 2 is visually selected", () => (testDropdown.ChildrenOfType<Dropdown<TestModel?>.DropdownMenu.DrawableDropdownMenuItem>()
+                                                                        .SingleOrDefault(i => i.IsSelected)?
+                                                                        .Item as DropdownMenuItem<TestModel?>)?.Value?.Identifier == "test 2");
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestSelectByCurrent()
+        [Test]
+        public void TestSelectByCurrent()
         {
-            var testDropdown = createDropdown();
+            TestDropdown testDropdown = null!;
 
-            await assertDropdownIsClosed(testDropdown);
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
 
-            testDropdown.Current.Value = testDropdown.Items.ElementAt(3);
+            assertDropdownIsClosed(() => testDropdown);
 
-            await Assert.That(testDropdown.Current.Value).IsEqualTo(testDropdown.Items.ElementAt(3));
-            await Assert.That(testDropdown.SelectedItem.Value?.Identifier).IsEqualTo("test 3");
-            await Assert.That((testDropdown.ChildrenOfType<Dropdown<TestModel?>.DropdownMenu.DrawableDropdownMenuItem>()
-                                           .SingleOrDefault(i => i.IsSelected)?
-                                           .Item as DropdownMenuItem<TestModel?>)?.Value?.Identifier)
-                        .IsEqualTo("test 3");
+            AddStep("update current to item 3", () => testDropdown.Current.Value = testDropdown.Items.ElementAt(3));
+
+            AddAssert("item 3 is selected", () => testDropdown.Current.Value?.Equals(testDropdown.Items.ElementAt(3)) == true);
+            AddAssert("item 3 is selected item", () => testDropdown.SelectedItem.Value?.Identifier == "test 3");
+            AddAssert("item 3 is visually selected", () => (testDropdown.ChildrenOfType<Dropdown<TestModel?>.DropdownMenu.DrawableDropdownMenuItem>()
+                                                                        .SingleOrDefault(i => i.IsSelected)?
+                                                                        .Item as DropdownMenuItem<TestModel?>)?.Value?.Identifier == "test 3");
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestClickingDropdownClosesOthers()
+        [Test]
+        public void TestClickingDropdownClosesOthers()
         {
-            TestDropdown[] dropdowns = createDropdowns(2);
+            TestDropdown[] dropdowns = null!;
 
-            toggleDropdownViaClick(dropdowns[0], "dropdown 1");
-            await assertDropdownIsOpen(dropdowns[0]);
+            AddStep("create two dropdowns", () => dropdowns = createDropdowns(2));
 
-            toggleDropdownViaClick(dropdowns[1], "dropdown 2");
-            await assertDropdownIsClosed(dropdowns[0]);
-            await assertDropdownIsOpen(dropdowns[1]);
+            toggleDropdownViaClick(() => dropdowns[0], "dropdown 1");
+            AddAssert("dropdown 1 is open", () => dropdowns[0].Menu.State == MenuState.Open);
+
+            toggleDropdownViaClick(() => dropdowns[1], "dropdown 2");
+            AddAssert("dropdown 1 is closed", () => dropdowns[0].Menu.State == MenuState.Closed);
+            AddAssert("dropdown 2 is open", () => dropdowns[1].Menu.State == MenuState.Open);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestDropdownHeight()
+        [Test]
+        public void TestDropdownHeight()
         {
             const float explicit_height = 100;
+            float calculatedHeight = 0;
 
-            var testDropdown = createDropdown();
-            toggleDropdownViaClick(testDropdown);
+            TestDropdown testDropdown = null!;
 
-            for (int i = 0; i < 10; i++)
-                testDropdown.AddDropdownItem("test " + (items_to_add + i));
-            await Assert.That(testDropdown.Items.Count()).IsEqualTo(items_to_add * 2);
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
 
-            float calculatedHeight = testDropdown.Menu.Height;
-            testDropdown.Menu.MaxHeight = explicit_height;
-            await Assert.That(testDropdown.Menu.Height).IsEqualTo(explicit_height);
+            toggleDropdownViaClick(() => testDropdown);
 
-            testDropdown.Menu.MaxHeight = float.PositiveInfinity;
-            await Assert.That(testDropdown.Menu.Height).IsEqualTo(calculatedHeight);
+            AddStep("add items", () =>
+            {
+                for (int i = 0; i < 10; i++)
+                    testDropdown.AddDropdownItem("test " + (items_to_add + i));
+            });
+
+            AddAssert("item count is correct", () => testDropdown.Items.Count() == items_to_add * 2);
+
+            AddStep($"Set dropdown1 height to {explicit_height}", () =>
+            {
+                calculatedHeight = testDropdown.Menu.Height;
+                testDropdown.Menu.MaxHeight = explicit_height;
+            });
+            AddAssert($"dropdown1 height is {explicit_height}", () => testDropdown.Menu.Height == explicit_height);
+
+            AddStep($"Set dropdown1 height to {float.PositiveInfinity}", () => testDropdown.Menu.MaxHeight = float.PositiveInfinity);
+            AddAssert("dropdown1 height is calculated automatically", () => testDropdown.Menu.Height == calculatedHeight);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
+        [Test]
         [Arguments(false)]
         [Arguments(true)]
-        public async Task TestKeyboardSelection(bool cleanSelection)
+        public void TestKeyboardSelection(bool cleanSelection)
         {
-            var testDropdown = createDropdown();
+            int previousIndex = 0;
 
-            InputManager.MoveMouseTo(testDropdown.Header);
+            TestDropdown testDropdown = null!;
+
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
+
+            AddStep("hover dropdown", () => InputManager.MoveMouseTo(testDropdown.Header));
 
             if (cleanSelection)
-                testDropdown.Current.Value = null;
+                AddStep("clean selection", () => testDropdown.Current.Value = null);
 
-            int previousIndex = testDropdown.SelectedIndex;
-            InputManager.Key(Key.Down);
-            await Assert.That(testDropdown.SelectedIndex).IsEqualTo(previousIndex + 1);
-
-            previousIndex = testDropdown.SelectedIndex;
-            InputManager.Key(Key.Up);
-            await Assert.That(testDropdown.SelectedIndex).IsEqualTo(Math.Max(0, previousIndex - 1));
-
-            InputManager.Keys(PlatformAction.MoveToListEnd);
-            await Assert.That<MenuItem>(testDropdown.SelectedItem).IsEqualTo(testDropdown.Menu.VisibleMenuItems.Last().Item);
-
-            InputManager.Keys(PlatformAction.MoveToListStart);
-            await Assert.That<MenuItem>(testDropdown.SelectedItem).IsEqualTo(testDropdown.Menu.VisibleMenuItems.First().Item);
-
-            InputManager.Key(Key.Up);
-            InputManager.Key(Key.Down);
-            InputManager.Key(Key.PageUp);
-            InputManager.Key(Key.PageDown);
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestReplaceItems()
-        {
-            var testDropdown = createDropdown();
-
-            toggleDropdownViaClick(testDropdown);
-
-            InputManager.MoveMouseTo(testDropdown.Menu.Children[4]);
-            InputManager.Click(MouseButton.Left);
-            await Assert.That(testDropdown.Current.Value?.Identifier).IsEqualTo("test 4");
-
-            testDropdown.Items = testDropdown.Items.Select(i => new TestModel(i.AsNonNull().ToString())).ToArray();
-
-            await Assert.That(testDropdown.Current.Value?.Identifier).IsEqualTo("test 4");
-            await Assert.That(testDropdown.SelectedItem.Value?.Identifier).IsEqualTo("test 4");
-            await Assert.That((testDropdown.ChildrenOfType<Dropdown<TestModel?>.DropdownMenu.DrawableDropdownMenuItem>()
-                                           .SingleOrDefault(i => i.IsSelected)?
-                                           .Item as DropdownMenuItem<TestModel?>)?.Value?.Identifier)
-                        .IsEqualTo("test 4");
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestInvalidCurrent()
-        {
-            var testDropdown = createDropdown();
-
-            toggleDropdownViaClick(testDropdown);
-            testDropdown.Current.Value = "invalid";
-
-            await Assert.That(testDropdown.Current.Value?.Identifier).IsEqualTo("invalid");
-            await Assert.That(testDropdown.Header.Label.ToString()).IsEqualTo("invalid");
-
-            testDropdown.Current.Value = testDropdown.Items.ElementAt(2);
-            await Assert.That(testDropdown.Current.Value).IsEqualTo(testDropdown.Items.ElementAt(2));
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestNullCurrent()
-        {
-            var testDropdown = createDropdown();
-
-            testDropdown.Current.Value = testDropdown.Items.ElementAt(1);
-            await Assert.That(testDropdown.Current.Value).IsEqualTo(testDropdown.Items.ElementAt(1));
-
-            testDropdown.Current.Value = null;
-            await Assert.That(testDropdown.Current.Value).IsEqualTo(null);
-            await Assert.That(testDropdown.Header.Label.ToString()).IsNullOrEmpty();
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestDisabledCurrent()
-        {
-            var testDropdown = createDropdown();
-            testDropdown.Current.Disabled = true;
-
-            var originalValue = testDropdown.Current.Value.AsNonNull();
-
-            toggleDropdownViaClick(testDropdown);
-            await assertDropdownIsClosed(testDropdown);
-
-            InputManager.Key(Key.Down);
-            await valueIsUnchanged();
-
-            InputManager.Key(Key.Up);
-            await valueIsUnchanged();
-
-            InputManager.Keys(PlatformAction.MoveToListStart);
-            await valueIsUnchanged();
-
-            InputManager.Keys(PlatformAction.MoveToListEnd);
-            await valueIsUnchanged();
-
-            testDropdown.Current.Disabled = false;
-            toggleDropdownViaClick(testDropdown);
-            await assertDropdownIsOpen(testDropdown);
-
-            testDropdown.Current.Disabled = true;
-            await assertDropdownIsClosed(testDropdown);
-
-            async Task valueIsUnchanged() => await Assert.That(testDropdown.Current.Value).IsEqualTo(originalValue);
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestItemSource()
-        {
-            var testDropdown = createDropdown();
-
-            BindableList<TestModel?> bindableList;
-            testDropdown.ItemSource = bindableList = new BindableList<TestModel?>();
-
-            toggleDropdownViaClick(testDropdown);
-            await Assert.That(testDropdown.Items).IsEmpty();
-
-            bindableList.AddRange(new[] { "one", "2", "three" }.Select(s => new TestModel(s)));
-            testDropdown.Current.Value = "three";
-
-            bindableList.ReplaceRange(1, 1, new TestModel[] { "two" });
-            await checkOrder(1, "two");
-
-            bindableList.RemoveAt(0);
-            await Assert.That(testDropdown.Items).HasCount().EqualTo(2);
-            await Assert.That(testDropdown.Current.Value?.Identifier).IsEqualTo("three");
-
-            bindableList.Remove("three");
-            await Assert.That(testDropdown.Current.Value?.Identifier).IsEqualTo("two");
-
-            bindableList.Insert(0, "one");
-            bindableList.Add("three");
-
-            await checkOrder(0, "one");
-            await checkOrder(2, "three");
-
-            bindableList.Add("one-half");
-            bindableList.Move(3, 1);
-            await checkOrder(1, "one-half");
-            await checkOrder(2, "two");
-
-            async Task checkOrder(int index, string item) => await Assert.That(testDropdown.ChildrenOfType<FillFlowContainer<Menu.DrawableMenuItem>>().Single()
-                                                                                           .FlowingChildren.Cast<Menu.DrawableMenuItem>().ElementAt(index).Item.Text.Value.ToString())
-                                                                         .IsEqualTo(item);
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestExternalManagement()
-        {
-            var dropdown = createDropdown();
-            dropdown.AlwaysShowSearchBar = true;
-
-            Drawable openButton;
-            Add(openButton = new BasicButton
+            AddStep("select next item", () =>
             {
-                Size = new Vector2(150, 30),
-                Position = new Vector2(225, 50),
-                Text = "Open dropdown",
-                Action = openExternally
+                previousIndex = testDropdown.SelectedIndex;
+                InputManager.Key(Key.Down);
+            });
+            AddAssert("next item is selected", () => testDropdown.SelectedIndex == previousIndex + 1);
+
+            AddStep("select previous item", () =>
+            {
+                previousIndex = testDropdown.SelectedIndex;
+                InputManager.Key(Key.Up);
+            });
+            AddAssert("previous item is selected", () => testDropdown.SelectedIndex == Math.Max(0, previousIndex - 1));
+
+            AddStep("select last item", () => InputManager.Keys(PlatformAction.MoveToListEnd));
+            AddAssert("last item selected", () => testDropdown.SelectedItem == testDropdown.Menu.VisibleMenuItems.Last().Item);
+
+            AddStep("select last item", () => InputManager.Keys(PlatformAction.MoveToListStart));
+            AddAssert("first item selected", () => testDropdown.SelectedItem == testDropdown.Menu.VisibleMenuItems.First().Item);
+
+            AddStep("select next item when empty", () => InputManager.Key(Key.Up));
+            AddStep("select previous item when empty", () => InputManager.Key(Key.Down));
+            AddStep("select last item when empty", () => InputManager.Key(Key.PageUp));
+            AddStep("select first item when empty", () => InputManager.Key(Key.PageDown));
+        }
+
+        [Test]
+        public void TestReplaceItems()
+        {
+            TestDropdown testDropdown = null!;
+
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
+
+            toggleDropdownViaClick(() => testDropdown);
+
+            AddStep("click item 4", () =>
+            {
+                InputManager.MoveMouseTo(testDropdown.Menu.Children[4]);
+                InputManager.Click(MouseButton.Left);
+            });
+
+            AddAssert("item 4 is selected", () => testDropdown.Current.Value?.Identifier == "test 4");
+
+            AddStep("replace items", () =>
+            {
+                testDropdown.Items = testDropdown.Items.Select(i => new TestModel(i.AsNonNull().ToString())).ToArray();
+            });
+
+            AddAssert("item 4 is selected", () => testDropdown.Current.Value?.Identifier == "test 4");
+            AddAssert("item 4 is selected item", () => testDropdown.SelectedItem.Value?.Identifier == "test 4");
+            AddAssert("item 4 is visually selected", () => (testDropdown.ChildrenOfType<Dropdown<TestModel?>.DropdownMenu.DrawableDropdownMenuItem>()
+                                                                        .SingleOrDefault(i => i.IsSelected)?
+                                                                        .Item as DropdownMenuItem<TestModel?>)?.Value?.Identifier == "test 4");
+        }
+
+        [Test]
+        public void TestInvalidCurrent()
+        {
+            TestDropdown testDropdown = null!;
+
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
+
+            toggleDropdownViaClick(() => testDropdown);
+            AddStep("select 'invalid'", () => testDropdown.Current.Value = "invalid");
+
+            AddAssert("'invalid' is selected", () => testDropdown.Current.Value?.Identifier == "invalid");
+            AddAssert("label shows 'invalid'", () => testDropdown.Header.Label.ToString() == "invalid");
+
+            AddStep("select item 2", () => testDropdown.Current.Value = testDropdown.Items.ElementAt(2));
+            AddAssert("item 2 is selected", () => testDropdown.Current.Value?.Equals(testDropdown.Items.ElementAt(2)) == true);
+        }
+
+        [Test]
+        public void TestNullCurrent()
+        {
+            TestDropdown testDropdown = null!;
+
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
+
+            AddStep("select item 1", () => testDropdown.Current.Value = testDropdown.Items.ElementAt(1).AsNonNull());
+            AddAssert("item 1 is selected", () => testDropdown.Current.Value?.Equals(testDropdown.Items.ElementAt(1)) == true);
+
+            AddStep("select item null", () => testDropdown.Current.Value = null);
+            AddAssert("null is selected", () => testDropdown.Current.Value == null);
+            AddAssert("label shows nothing", () => string.IsNullOrEmpty(testDropdown.Header.Label.ToString()));
+        }
+
+        [Test]
+        public void TestDisabledCurrent()
+        {
+            TestDropdown testDropdown = null!;
+            TestModel originalValue = null!;
+
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
+
+            AddStep("disable current", () => testDropdown.Current.Disabled = true);
+            AddStep("store original value", () => originalValue = testDropdown.Current.Value.AsNonNull());
+
+            toggleDropdownViaClick(() => testDropdown);
+            assertDropdownIsClosed(() => testDropdown);
+
+            AddStep("attempt to select next", () => InputManager.Key(Key.Down));
+            valueIsUnchanged();
+
+            AddStep("attempt to select previous", () => InputManager.Key(Key.Up));
+            valueIsUnchanged();
+
+            AddStep("attempt to select first", () => InputManager.Keys(PlatformAction.MoveToListStart));
+            valueIsUnchanged();
+
+            AddStep("attempt to select last", () => InputManager.Keys(PlatformAction.MoveToListEnd));
+            valueIsUnchanged();
+
+            AddStep("enable current", () => testDropdown.Current.Disabled = false);
+            toggleDropdownViaClick(() => testDropdown);
+            assertDropdownIsOpen(() => testDropdown);
+
+            AddStep("disable current", () => testDropdown.Current.Disabled = true);
+            assertDropdownIsClosed(() => testDropdown);
+
+            void valueIsUnchanged() => AddAssert("value is unchanged", () => testDropdown.Current.Value?.Equals(originalValue) == true);
+        }
+
+        [Test]
+        public void TestItemSource()
+        {
+            TestDropdown testDropdown = null!;
+            BindableList<TestModel?> bindableList = null!;
+
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
+
+            AddStep("bind source", () => testDropdown.ItemSource = bindableList = new BindableList<TestModel?>());
+
+            toggleDropdownViaClick(() => testDropdown);
+
+            AddAssert("no elements in dropdown", () => !testDropdown.Items.Any());
+
+            AddStep("add items to bindable", () => bindableList.AddRange(new[] { "one", "2", "three" }.Select(s => new TestModel(s))));
+            AddStep("select 'three'", () => testDropdown.Current.Value = "three");
+
+            AddStep("replace '2' with 'two'", () => bindableList.ReplaceRange(1, 1, new TestModel[] { "two" }));
+            checkOrder(1, "two");
+
+            AddStep("remove 'one' from bindable", () => bindableList.RemoveAt(0));
+            AddAssert("two items in dropdown", () => testDropdown.Items.Count() == 2);
+            AddAssert("current value is still 'three'", () => testDropdown.Current.Value?.Identifier == "three");
+
+            AddStep("remove 'three'", () => bindableList.Remove("three"));
+            AddAssert("current value is 'two'", () => testDropdown.Current.Value?.Identifier == "two");
+
+            AddStep("add 'one' and 'three'", () =>
+            {
+                bindableList.Insert(0, "one");
+                bindableList.Add("three");
+            });
+
+            checkOrder(0, "one");
+            checkOrder(2, "three");
+
+            AddStep("add 'one-half'", () => bindableList.Add("one-half"));
+            AddStep("move 'one-half'", () => bindableList.Move(3, 1));
+            checkOrder(1, "one-half");
+            checkOrder(2, "two");
+
+            void checkOrder(int index, string item) => AddAssert(
+                $"item #{index + 1} is '{item}'",
+                async () => await Assert.That(testDropdown.ChildrenOfType<FillFlowContainer<Menu.DrawableMenuItem>>().Single().FlowingChildren.Cast<Menu.DrawableMenuItem>().ElementAt(index).Item.Text
+                                                          .Value.ToString())
+                                        .IsEqualTo(item));
+        }
+
+        [Test]
+        public void TestExternalManagement()
+        {
+            TestDropdown dropdown = null!;
+            Drawable openButton = null!;
+
+            AddStep("setup dropdown", () =>
+            {
+                dropdown = createDropdown();
+                dropdown.AlwaysShowSearchBar = true;
+
+                Add(openButton = new BasicButton
+                {
+                    Size = new Vector2(150, 30),
+                    Position = new Vector2(225, 50),
+                    Text = "Open dropdown",
+                    Action = openExternally
+                });
             });
 
             // Open via setting state directly
 
-            openExternally();
-            await assertDropdownIsOpen(dropdown);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-            InputManager.Key(Key.Escape);
+            AddStep("open dropdown directly", openExternally);
+            AddAssert("dropdown open", async () => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Open));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+            AddStep("press escape", () => InputManager.Key(Key.Escape));
 
             // Open via clicking on an external button
 
-            InputManager.MoveMouseTo(openButton);
-            InputManager.Click(MouseButton.Left);
+            AddStep("open dropdown via external button", () =>
+            {
+                InputManager.MoveMouseTo(openButton);
+                InputManager.Click(MouseButton.Left);
+            });
 
-            await assertDropdownIsOpen(dropdown);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-            InputManager.Key(Key.Escape);
+            AddAssert("dropdown open", async () => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Open));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+            AddStep("press escape", () => InputManager.Key(Key.Escape));
 
             // Close via setting state directly
 
-            openExternally();
-            await assertDropdownIsOpen(dropdown);
-            dropdown.ChildrenOfType<Menu>().Single().Close();
-            await assertDropdownIsClosed(dropdown);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
+            AddStep("open dropdown directly", openExternally);
+            AddAssert("dropdown open", async () => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Open));
+            AddStep("close dropdown directly", () => dropdown.ChildrenOfType<Menu>().Single().Close());
+            AddAssert("dropdown closed", async () => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Closed));
+            AddAssert("search bar not visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
 
             void openExternally() => dropdown.ChildrenOfType<Menu>().Single().Open();
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestItemReplacementDoesNotAffectScroll()
+        [Test]
+        public void TestItemReplacementDoesNotAffectScroll()
         {
-            var testDropdown = createDropdown();
+            TestDropdown testDropdown = null!;
+            BindableList<TestModel?> bindableList = null!;
 
-            BindableList<TestModel?> bindableList;
-            testDropdown.ItemSource = bindableList = new BindableList<TestModel?>();
-            bindableList.AddRange(Enumerable.Range(0, 20).Select(i => (TestModel)$"test {i}"));
-            testDropdown.Menu.MaxHeight = 100;
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
 
-            toggleDropdownViaClick(testDropdown);
+            AddStep("bind source", () => testDropdown.ItemSource = bindableList = new BindableList<TestModel?>());
+            AddStep("add many items", () => bindableList.AddRange(Enumerable.Range(0, 20).Select(i => (TestModel)$"test {i}")));
+            AddStep("set max height", () => testDropdown.Menu.MaxHeight = 100);
 
-            testDropdown.ChildrenOfType<BasicScrollContainer>().Single().ScrollTo(200);
-            bindableList.ReplaceRange(10, 1, new TestModel[] { "test ten" });
-            await Assert.That(testDropdown.ChildrenOfType<BasicScrollContainer>().Single().Target).IsEqualTo(200);
+            toggleDropdownViaClick(() => testDropdown);
+
+            AddStep("scroll to middle", () => testDropdown.ChildrenOfType<BasicScrollContainer>().Single().ScrollTo(200));
+            AddStep("replace item in middle", () => bindableList.ReplaceRange(10, 1, new TestModel[] { "test ten" }));
+            AddAssert("scroll is unchanged", () => testDropdown.ChildrenOfType<BasicScrollContainer>().Single().Target == 200);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestClearItemsInBindableWhileNotPresent()
+        [Test]
+        public void TestClearItemsInBindableWhileNotPresent()
         {
-            var testDropdown = createDropdown();
+            TestDropdown testDropdown = null!;
+            BindableList<TestModel?> bindableList = null!;
 
-            BindableList<TestModel?> bindableList;
-            testDropdown.ItemSource = bindableList = new BindableList<TestModel?>();
-            bindableList.AddRange(Enumerable.Range(0, 20).Select(i => (TestModel)$"test {i}"));
+            AddStep("setup dropdown", () => testDropdown = createDropdown());
 
-            testDropdown.Hide();
-            bindableList.Clear();
-            testDropdown.Show();
-            await Assert.That(testDropdown.Menu.Children).IsEmpty();
+            AddStep("bind source", () => testDropdown.ItemSource = bindableList = new BindableList<TestModel?>());
+            AddStep("add many items", () => bindableList.AddRange(Enumerable.Range(0, 20).Select(i => (TestModel)$"test {i}")));
+
+            AddStep("hide dropdown", () => testDropdown.Hide());
+            AddStep("clear items", () => bindableList.Clear());
+            AddStep("show dropdown", () => testDropdown.Show());
+            AddAssert("dropdown menu empty", () => !testDropdown.Menu.Children.Any());
         }
 
         /// <summary>
@@ -345,288 +408,372 @@ namespace osu.Framework.Tests.Visual.UserInterface
         /// Ensures item labels are assigned after the dropdown finishes loading (reaches <see cref="LoadState.Ready"/> state),
         /// so any dependency from BDL can be retrieved first before calling <see cref="Dropdown{T}.GenerateItemText"/>.
         /// </remarks>
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestAddItemBeforeDropdownLoad()
+        [Test]
+        public void TestAddItemBeforeDropdownLoad()
         {
-            BdlDropdown dropdown;
-            Child = dropdown = new BdlDropdown
-            {
-                Position = new Vector2(50f, 50f),
-                Width = 150f,
-                Items = new TestModel("test").Yield(),
-            };
+            BdlDropdown dropdown = null!;
 
-            await Assert.That(dropdown.Menu.VisibleMenuItems.First().ChildrenOfType<SpriteText>().First().Text.ToString())
-                        .IsEqualTo("loaded: test");
+            AddStep("setup dropdown", () =>
+            {
+                Child = dropdown = new BdlDropdown
+                {
+                    Position = new Vector2(50f, 50f),
+                    Width = 150f,
+                    Items = new TestModel("test").Yield(),
+                };
+            });
+
+            AddAssert("text is expected", async () => await Assert.That(dropdown.Menu.VisibleMenuItems.First().ChildrenOfType<SpriteText>().First().Text.ToString()).IsEqualTo("loaded: test"));
         }
 
         /// <summary>
         /// Adds an item after the dropdown is in <see cref="LoadState.Ready"/> state, and ensures item labels are assigned correctly and not ignored by <see cref="Dropdown{T}"/>.
         /// </summary>
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestAddItemWhileDropdownIsInReadyState()
+        [Test]
+        public void TestAddItemWhileDropdownIsInReadyState()
         {
-            BdlDropdown dropdown;
-            Child = dropdown = new BdlDropdown
+            BdlDropdown dropdown = null!;
+
+            AddStep("setup dropdown", () =>
             {
-                Position = new Vector2(50f, 50f),
-                Width = 150f,
-            };
+                Child = dropdown = new BdlDropdown
+                {
+                    Position = new Vector2(50f, 50f),
+                    Width = 150f,
+                };
 
-            dropdown.Items = new TestModel("test").Yield();
+                dropdown.Items = new TestModel("test").Yield();
+            });
 
-            await Assert.That(dropdown.Menu.VisibleMenuItems.First(d => d.IsSelected).ChildrenOfType<SpriteText>().First().Text.ToString())
-                        .IsEqualTo("loaded: test");
+            AddAssert("text is expected",
+                async () => await Assert.That(dropdown.Menu.VisibleMenuItems.First(d => d.IsSelected).ChildrenOfType<SpriteText>().First().Text.ToString()).IsEqualTo("loaded: test"));
         }
 
         /// <summary>
         /// Sets a non-existent item dropdown and ensures its label is assigned correctly.
         /// </summary>
         /// <param name="afterBdl">Whether the non-existent item should be set before or after the dropdown's BDL has run.</param>
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        [Arguments(true)]
+        [Test]
         [Arguments(false)]
-        public async Task TestSetNonExistentItem(bool afterBdl)
+        [Arguments(true)]
+        public void TestSetNonExistentItem(bool afterBdl)
         {
-            BindableList<TestModel?> bindableList = new BindableList<TestModel?>();
-            bindableList.AddRange(new[] { "one", "two", "three" }.Select(s => new TestModel(s)));
+            BdlDropdown dropdown = null!;
+            BindableList<TestModel?> bindableList = null!;
 
-            var bindable = new Bindable<TestModel?>();
-
-            if (!afterBdl)
-                bindable.Value = new TestModel("non-existent item");
-
-            BdlDropdown dropdown;
-            Child = dropdown = new BdlDropdown
+            AddStep("setup bindables", () =>
             {
-                Position = new Vector2(50f, 50f),
-                Width = 150f,
-                ItemSource = bindableList,
-                Current = bindable,
-            };
+                bindableList = new BindableList<TestModel?>();
+                bindableList.AddRange(new[] { "one", "two", "three" }.Select(s => new TestModel(s)));
+            });
 
-            if (afterBdl)
-                bindable.Value = new TestModel("non-existent item");
+            AddStep("setup dropdown", () =>
+            {
+                var bindable = new Bindable<TestModel?>();
 
-            await Assert.That(dropdown.SelectedItem.Text.Value.ToString()).IsEqualTo("loaded: non-existent item");
+                if (!afterBdl)
+                    bindable.Value = new TestModel("non-existent item");
+
+                Child = dropdown = new BdlDropdown
+                {
+                    Position = new Vector2(50f, 50f),
+                    Width = 150f,
+                    ItemSource = bindableList,
+                    Current = bindable,
+                };
+
+                if (afterBdl)
+                    bindable.Value = new TestModel("non-existent item");
+            });
+
+            AddAssert("text is expected", async () => await Assert.That(dropdown.SelectedItem.Text.Value.ToString()).IsEqualTo("loaded: non-existent item"));
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestRemoveDropdownOnSelect()
+        [Test]
+        public void TestRemoveDropdownOnSelect()
         {
-            Bindable<TestModel?> bindable = new Bindable<TestModel?>();
-            bindable.ValueChanged += _ => createDropdown();
+            TestDropdown testDropdown = null!;
+            Bindable<TestModel?> bindable = null!;
 
-            var testDropdown = createDropdown();
-            testDropdown.Current = bindable;
+            AddStep("setup dropdown", () =>
+            {
+                bindable = new Bindable<TestModel?>();
+                bindable.ValueChanged += _ => createDropdown();
 
-            toggleDropdownViaClick(testDropdown);
+                testDropdown = createDropdown();
+                testDropdown.Current = bindable;
+            });
 
-            InputManager.MoveMouseTo(testDropdown.Menu.Children[2]);
-            InputManager.Click(MouseButton.Left);
+            toggleDropdownViaClick(() => testDropdown);
 
-            await Assert.That(bindable.Value?.Identifier).IsEqualTo("test 2");
+            AddStep("click item 2", () =>
+            {
+                InputManager.MoveMouseTo(testDropdown.Menu.Children[2]);
+                InputManager.Click(MouseButton.Left);
+            });
+
+            AddAssert("bindable value is item 2", () => bindable.Value?.Identifier == "test 2");
         }
 
         #region Searching
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestSearching()
+        [Test]
+        public void TestSearching()
         {
-            var dropdown = createDropdowns<ManualTextDropdown>(1)[0];
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
+            ManualTextDropdown dropdown = null!;
 
-            toggleDropdownViaClick(dropdown);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
+            AddStep("setup dropdown", () => dropdown = createDropdowns<ManualTextDropdown>(1)[0]);
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
 
-            dropdown.TextInput.Text("test 4");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-            await Assert.That(dropdown.Menu.VisibleMenuItems.Single(i => i.IsPresent).Item.Text.Value).IsEqualTo("test 4");
-            await Assert.That(dropdown.Menu.VisibleMenuItems.Single().IsPreSelected).IsTrue();
+            toggleDropdownViaClick(() => dropdown);
 
-            InputManager.Key(Key.Enter);
-            await Assert.That(dropdown.SelectedItem.Text.Value).IsEqualTo("test 4");
-        }
+            AddAssert("search bar still hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestReleaseFocusAfterSearching()
-        {
-            var dropdown = createDropdowns<ManualTextDropdown>(1)[0];
-            toggleDropdownViaClick(dropdown);
-
-            dropdown.TextInput.Text("test 4");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-
-            InputManager.Key(Key.Escape);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            await assertDropdownIsOpen(dropdown);
-
-            InputManager.Key(Key.Escape);
-            await assertDropdownIsClosed(dropdown);
-
-            toggleDropdownViaClick(dropdown);
-            dropdown.TextInput.Text("test 4");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-
-            InputManager.MoveMouseTo(Vector2.Zero);
-            InputManager.Click(MouseButton.Left);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestSelectSearchedItem()
-        {
-            var dropdown = createDropdowns<ManualTextDropdown>(1)[0];
-            toggleDropdownViaClick(dropdown);
-
-            dropdown.TextInput.Text("test 4");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-
-            InputManager.Key(Key.Enter);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            await assertDropdownIsClosed(dropdown);
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestAlwaysShowSearchBar()
-        {
-            var dropdown = createDropdowns<ManualTextDropdown>(1)[0];
-            dropdown.AlwaysShowSearchBar = true;
-
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            toggleDropdownViaClick(dropdown);
-
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-
-            dropdown.TextInput.Text("test 4");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-
-            InputManager.Key(Key.Escape);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-            await assertDropdownIsOpen(dropdown);
-
-            InputManager.Key(Key.Escape);
-            await assertDropdownIsClosed(dropdown);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-
-            toggleDropdownViaClick(dropdown);
-            dropdown.TextInput.Text("test 4");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
-
-            InputManager.MoveMouseTo(Vector2.Zero);
-            InputManager.Click(MouseButton.Left);
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-        }
-
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestKeyBindingIsolation()
-        {
-            var dropdown = createDropdowns<ManualTextDropdown>(1)[0];
-            dropdown.AlwaysShowSearchBar = true;
-
-            TestKeyBindingHandler keyBindingHandler;
-            Add(new TestKeyBindingContainer
+            AddStep("trigger text", () => dropdown.TextInput.Text("test 4"));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+            AddAssert("items filtered", () =>
             {
-                RelativeSizeAxes = Axes.Both,
-                Child = keyBindingHandler = new TestKeyBindingHandler
+                var drawableItem = dropdown.Menu.VisibleMenuItems.Single(i => i.IsPresent);
+                return drawableItem.Item.Text.Value == "test 4";
+            });
+            AddAssert("item preselected", () => dropdown.Menu.VisibleMenuItems.Single().IsPreSelected);
+
+            AddStep("press enter", () => InputManager.Key(Key.Enter));
+            AddAssert("item selected", () => dropdown.SelectedItem.Text.Value == "test 4");
+        }
+
+        [Test]
+        public void TestReleaseFocusAfterSearching()
+        {
+            ManualTextDropdown dropdown = null!;
+
+            AddStep("setup dropdown", () => dropdown = createDropdowns<ManualTextDropdown>(1)[0]);
+            toggleDropdownViaClick(() => dropdown);
+
+            AddStep("trigger text", () => dropdown.TextInput.Text("test 4"));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+
+            AddStep("press escape", () => InputManager.Key(Key.Escape));
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            AddAssert("dropdown still open", () => dropdown.Menu.State == MenuState.Open);
+
+            AddStep("press escape again", () => InputManager.Key(Key.Escape));
+            AddAssert("dropdown closed", () => dropdown.Menu.State == MenuState.Closed);
+
+            toggleDropdownViaClick(() => dropdown);
+            AddStep("trigger text", () => dropdown.TextInput.Text("test 4"));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+
+            AddStep("click away", () =>
+            {
+                InputManager.MoveMouseTo(Vector2.Zero);
+                InputManager.Click(MouseButton.Left);
+            });
+
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+        }
+
+        [Test]
+        public void TestSelectSearchedItem()
+        {
+            ManualTextDropdown dropdown = null!;
+
+            AddStep("setup dropdown", () => dropdown = createDropdowns<ManualTextDropdown>(1)[0]);
+            toggleDropdownViaClick(() => dropdown);
+
+            AddStep("trigger text", () => dropdown.TextInput.Text("test 4"));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+
+            AddStep("press enter", () => InputManager.Key(Key.Enter));
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            AddAssert("dropdown closed", () => dropdown.Menu.State == MenuState.Closed);
+        }
+
+        [Test]
+        public void TestAlwaysShowSearchBar()
+        {
+            ManualTextDropdown dropdown = null!;
+
+            AddStep("setup dropdown", () =>
+            {
+                dropdown = createDropdowns<ManualTextDropdown>(1)[0];
+                dropdown.AlwaysShowSearchBar = true;
+            });
+
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            toggleDropdownViaClick(() => dropdown);
+
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+
+            AddStep("trigger text", () => dropdown.TextInput.Text("test 4"));
+            AddAssert("search bar still visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+
+            AddStep("press escape", () => InputManager.Key(Key.Escape));
+            AddAssert("search bar still visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+            AddAssert("dropdown still open", () => dropdown.Menu.State == MenuState.Open);
+
+            AddStep("press escape again", () => InputManager.Key(Key.Escape));
+            AddAssert("dropdown closed", () => dropdown.Menu.State == MenuState.Closed);
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+
+            toggleDropdownViaClick(() => dropdown);
+            AddStep("trigger text", () => dropdown.TextInput.Text("test 4"));
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
+
+            AddStep("click away", () =>
+            {
+                InputManager.MoveMouseTo(Vector2.Zero);
+                InputManager.Click(MouseButton.Left);
+            });
+
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+        }
+
+        [Test]
+        public void TestKeyBindingIsolation()
+        {
+            ManualTextDropdown dropdown = null!;
+            TestKeyBindingHandler keyBindingHandler = null!;
+
+            AddStep("setup dropdown", () =>
+            {
+                dropdown = createDropdowns<ManualTextDropdown>(1)[0];
+                dropdown.AlwaysShowSearchBar = true;
+            });
+
+            AddStep("setup key binding handler", () =>
+            {
+                Add(new TestKeyBindingContainer
                 {
                     RelativeSizeAxes = Axes.Both,
-                },
+                    Child = keyBindingHandler = new TestKeyBindingHandler
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                    },
+                });
             });
 
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            toggleDropdownViaClick(dropdown);
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            toggleDropdownViaClick(() => dropdown);
 
-            InputManager.Key(Key.Space);
-            // we must send something via the text input path for TextBox to block the space key press above,
-            // we're not supposed to do this here, but we don't have a good way of simulating text input from ManualInputManager so let's just do this for now.
-            // todo: add support for simulating text typing at a ManualInputManager level for more realistic results.
-            dropdown.TextInput.Text(" ");
+            AddStep("press space", () =>
+            {
+                InputManager.Key(Key.Space);
+                // we must send something via the text input path for TextBox to block the space key press above,
+                // we're not supposed to do this here, but we don't have a good way of simulating text input from ManualInputManager so let's just do this for now.
+                // todo: add support for simulating text typing at a ManualInputManager level for more realistic results.
+                dropdown.TextInput.Text(" ");
+            });
+            AddAssert("handler did not receive press", () => !keyBindingHandler.ReceivedPress);
 
-            await Assert.That(keyBindingHandler.ReceivedPress).IsFalse();
+            toggleDropdownViaClick(() => dropdown);
 
-            toggleDropdownViaClick(dropdown);
-
-            InputManager.Key(Key.Space);
-            // we must send something via the text input path for TextBox to block the space key press above,
-            // we're not supposed to do this here, but we don't have a good way of simulating text input from ManualInputManager so let's just do this for now.
-            dropdown.TextInput.Text(" ");
-
-            await Assert.That(keyBindingHandler.ReceivedPress).IsTrue();
+            AddStep("press space", () =>
+            {
+                InputManager.Key(Key.Space);
+                // we must send something via the text input path for TextBox to block the space key press above,
+                // we're not supposed to do this here, but we don't have a good way of simulating text input from ManualInputManager so let's just do this for now.
+                dropdown.TextInput.Text(" ");
+            });
+            AddAssert("handler did not receive press", () => !keyBindingHandler.ReceivedPress);
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestMouseFromTouch()
+        [Test]
+        public void TestMouseFromTouch()
         {
-            var dropdown = createDropdowns<ManualTextDropdown>(1)[0];
-            dropdown.AlwaysShowSearchBar = true;
+            ManualTextDropdown dropdown = null!;
+            TestClickHandler clickHandler = null!;
 
-            TestClickHandler clickHandler;
-            Add(clickHandler = new TestClickHandler
+            AddStep("setup dropdown", () =>
             {
-                RelativeSizeAxes = Axes.Both
+                dropdown = createDropdowns<ManualTextDropdown>(1)[0];
+                dropdown.AlwaysShowSearchBar = true;
             });
 
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            InputManager.BeginTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre));
-            InputManager.EndTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre));
+            AddStep("setup click handler", () => Add(clickHandler = new TestClickHandler
+            {
+                RelativeSizeAxes = Axes.Both
+            }));
 
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            await Assert.That(clickHandler.ReceivedClick).IsTrue();
+            AddAssert("search bar hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            AddStep("begin touch", () => InputManager.BeginTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre)));
+            AddStep("end touch", () => InputManager.EndTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre)));
 
-            dropdown.TextInput.Text("something");
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden);
-            await Assert.That(dropdown.Header.SearchTerm.Value).IsNullOrEmpty();
+            AddAssert("search bar still hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            AddAssert("handler received click", () => clickHandler.ReceivedClick);
 
-            clickHandler.Hide();
-            InputManager.BeginTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre));
-            InputManager.EndTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre));
-            await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible);
+            AddStep("type something", () => dropdown.TextInput.Text("something"));
+            AddAssert("search bar still hidden", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Hidden));
+            AddAssert("search bar empty", async () => await Assert.That(dropdown.Header.SearchTerm.Value).IsNullOrEmpty());
+
+            AddStep("hide click handler", () => clickHandler.Hide());
+            AddStep("begin touch", () => InputManager.BeginTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre)));
+            AddStep("end touch", () => InputManager.EndTouch(new Touch(TouchSource.Touch1, dropdown.Header.ScreenSpaceDrawQuad.Centre)));
+
+            AddAssert("search bar visible", async () => await Assert.That(dropdown.ChildrenOfType<DropdownSearchBar>().Single().State.Value).IsEqualTo(Visibility.Visible));
         }
 
         #endregion
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
-        public async Task TestPaddedSearchBar()
+        [Test]
+        public void TestPaddedSearchBar()
         {
-            SearchBarPaddedDropdown dropdown;
-            Child = dropdown = new SearchBarPaddedDropdown
+            SearchBarPaddedDropdown dropdown = null!;
+
+            AddStep("setup dropdown", () =>
             {
-                Position = new Vector2(50f, 50f),
-                Width = 150f,
-                Items = new TestModel("test").Yield(),
-            };
+                Child = dropdown = new SearchBarPaddedDropdown
+                {
+                    Position = new Vector2(50f, 50f),
+                    Width = 150f,
+                    Items = new TestModel("test").Yield(),
+                };
+            });
 
-            RectangleF area = dropdown.Header.ScreenSpaceDrawQuad.AABBFloat;
-            InputManager.MoveMouseTo(new Vector2(area.Right - 5, area.Centre.Y));
-            InputManager.Click(MouseButton.Left);
+            AddStep("click on padded area", () =>
+            {
+                RectangleF area = dropdown.Header.ScreenSpaceDrawQuad.AABBFloat;
+                InputManager.MoveMouseTo(new Vector2(area.Right - 5, area.Centre.Y));
+                InputManager.Click(MouseButton.Left);
+            });
 
-            await assertDropdownIsOpen(dropdown);
+            AddAssert("dropdown is open", async () => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Open));
         }
 
-        [Test, HookExecutor<TestSceneExecutor>, TestExecutor<TestSceneExecutor>]
+        [Test]
         [Arguments(false)]
         [Arguments(true)]
-        public async Task TestDoubleClickOnHeader(bool alwaysShowSearchBar)
+        public void TestDoubleClickOnHeader(bool alwaysShowSearchBar)
         {
+            TestDropdown testDropdown = null!;
             bool wasOpened = false;
             bool wasClosed = false;
 
-            var testDropdown = createDropdown();
-            testDropdown.AlwaysShowSearchBar = alwaysShowSearchBar;
-            testDropdown.Menu.StateChanged += s =>
+            AddStep("setup dropdown", () =>
             {
-                wasOpened |= s == MenuState.Open;
-                wasClosed |= s == MenuState.Closed;
-            };
+                wasOpened = false;
+                wasClosed = false;
 
-            InputManager.MoveMouseTo(testDropdown.Header);
-            InputManager.Click(MouseButton.Left);
-            InputManager.Click(MouseButton.Left);
+                testDropdown = createDropdown();
+                testDropdown.AlwaysShowSearchBar = alwaysShowSearchBar;
 
-            await Assert.That(wasOpened).IsTrue();
-            await Assert.That(wasClosed).IsTrue();
-            await assertDropdownIsClosed(testDropdown);
+                testDropdown.Menu.StateChanged += s =>
+                {
+                    wasOpened |= s == MenuState.Open;
+                    wasClosed |= s == MenuState.Closed;
+                };
+            });
+
+            AddStep("double click header", () =>
+            {
+                InputManager.MoveMouseTo(testDropdown.Header);
+                InputManager.Click(MouseButton.Left);
+                InputManager.Click(MouseButton.Left);
+            });
+
+            AddAssert("dropdown was opened at some point", async () => await Assert.That(wasOpened).IsTrue());
+            AddAssert("dropdown was closed at some point", async () => await Assert.That(wasClosed).IsTrue());
+            AddAssert("dropdown is closed", async () => await Assert.That(testDropdown.Menu.State).IsEqualTo(MenuState.Closed));
         }
 
         private TestDropdown createDropdown() => createDropdowns(1).Single();
@@ -664,17 +811,15 @@ namespace osu.Framework.Tests.Visual.UserInterface
             return dropdowns;
         }
 
-        private void toggleDropdownViaClick(TestDropdown dropdown, string? dropdownName = null)
+        private void toggleDropdownViaClick(Func<TestDropdown> dropdown, string? dropdownName = null) => AddStep($"click {dropdownName ?? "dropdown"}", () =>
         {
-            InputManager.MoveMouseTo(dropdown.Header);
+            InputManager.MoveMouseTo(dropdown().Header);
             InputManager.Click(MouseButton.Left);
-        }
+        });
 
-        private async Task assertDropdownIsOpen(TestDropdown dropdown)
-            => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Open);
+        private void assertDropdownIsOpen(Func<TestDropdown> dropdown) => AddAssert("dropdown is open", () => dropdown().Menu.State == MenuState.Open);
 
-        private async Task assertDropdownIsClosed(TestDropdown dropdown)
-            => await Assert.That(dropdown.Menu.State).IsEqualTo(MenuState.Closed);
+        private void assertDropdownIsClosed(Func<TestDropdown> dropdown) => AddAssert("dropdown is closed", () => dropdown().Menu.State == MenuState.Closed);
 
         private class TestModel : IEquatable<TestModel>
         {

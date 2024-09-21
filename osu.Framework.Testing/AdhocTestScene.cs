@@ -296,7 +296,7 @@ namespace osu.Framework.Testing
         {
             StepsContainer.Add(new RepeatStepButton(action, invocationCount, AddStepsAsSetupSteps)
             {
-                Text = description,
+                Text = description
             });
         }, false);
 
@@ -332,16 +332,21 @@ namespace osu.Framework.Testing
             });
         }, false);
 
-        protected void AddAssert(string description, Func<bool> assert, string extendedDescription = null) => Scheduler.Add(() =>
+        protected void AddAssert(string description, Func<bool> assert, string extendedDescription = null)
         {
-            StepsContainer.Add(new AssertButton(AddStepsAsSetupSteps)
+            StackTrace callStack = new StackTrace(1);
+
+            Scheduler.Add(() =>
             {
-                Text = description,
-                ExtendedDescription = extendedDescription,
-                CallStack = new StackTrace(1),
-                Assertion = assert,
-            });
-        }, false);
+                StepsContainer.Add(new AssertButton(AddStepsAsSetupSteps)
+                {
+                    Text = description,
+                    ExtendedDescription = extendedDescription,
+                    CallStack = callStack,
+                    Assertion = assert,
+                });
+            }, false);
+        }
 
         internal void RunSetUpSteps()
         {

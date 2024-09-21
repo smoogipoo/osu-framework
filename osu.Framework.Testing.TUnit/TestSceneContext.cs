@@ -14,7 +14,6 @@ namespace osu.Framework.Testing
         public readonly AdhocTestScene.TestSceneHost Host;
         public readonly ITestSceneTestRunner Runner;
 
-        private readonly TestScene testScene;
         private readonly Game game;
         private readonly Thread thread;
 
@@ -22,8 +21,6 @@ namespace osu.Framework.Testing
 
         public TestSceneContext(TestScene testScene)
         {
-            this.testScene = testScene;
-
             Host = new AdhocTestScene.TestSceneHost(testScene, $"{testScene.GetType().Name}-{Guid.NewGuid()}");
             Runner = testScene.CreateRunner();
 
@@ -31,8 +28,6 @@ namespace osu.Framework.Testing
                 throw new InvalidCastException($"The test runner must be a {nameof(Game)}.");
 
             game = (Game)Runner;
-            game.OnLoadComplete += _ => game.Add(testScene);
-
             thread = new Thread(runHost);
         }
 
@@ -98,17 +93,6 @@ namespace osu.Framework.Testing
                 return Task.FromException(hostException);
 
             return Task.CompletedTask;
-        }
-
-        public async Task RunOnUpdateThread(Func<Task> action)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(testScene.TimePerAction)).ConfigureAwait(false);
-
-            SynchronizationContext.SetSynchronizationContext(Host.UpdateThread.SynchronizationContext);
-            await Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.FromCurrentSynchronizationContext()).Unwrap().ConfigureAwait(false);
-
-            await CheckForErrors().ConfigureAwait(false);
-            await Task.Delay(TimeSpan.FromMilliseconds(testScene.TimePerAction)).ConfigureAwait(false);
         }
     }
 }

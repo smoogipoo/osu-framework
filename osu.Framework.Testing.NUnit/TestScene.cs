@@ -61,30 +61,35 @@ namespace osu.Framework.Testing
                 });
         }, false);
 
-        protected void AddAssert<T>(string description, ActualValueDelegate<T> actualValue, Func<IResolveConstraint> constraint, string? extendedDescription = null) => Scheduler.Add(() =>
+        protected void AddAssert<T>(string description, ActualValueDelegate<T> actualValue, Func<IResolveConstraint> constraint, string? extendedDescription = null)
         {
-            ConstraintResult? lastResult = null;
+            StackTrace callStack = new StackTrace(1);
 
-            StepsContainer.Add(new AssertButton(AddStepsAsSetupSteps, () =>
+            Scheduler.Add(() =>
             {
-                if (lastResult == null)
-                    return string.Empty;
+                ConstraintResult? lastResult = null;
 
-                var writer = new TextMessageWriter(string.Empty);
-                lastResult.WriteMessageTo(writer);
-                return writer.ToString().TrimStart();
-            })
-            {
-                Text = description,
-                ExtendedDescription = extendedDescription,
-                CallStack = new StackTrace(1),
-                Assertion = () =>
+                StepsContainer.Add(new AssertButton(AddStepsAsSetupSteps, () =>
                 {
-                    lastResult = constraint().Resolve().ApplyTo(actualValue());
-                    return lastResult.IsSuccess;
-                }
-            });
-        }, false);
+                    if (lastResult == null)
+                        return string.Empty;
+
+                    var writer = new TextMessageWriter(string.Empty);
+                    lastResult.WriteMessageTo(writer);
+                    return writer.ToString().TrimStart();
+                })
+                {
+                    Text = description,
+                    ExtendedDescription = extendedDescription,
+                    CallStack = callStack,
+                    Assertion = () =>
+                    {
+                        lastResult = constraint().Resolve().ApplyTo(actualValue());
+                        return lastResult.IsSuccess;
+                    }
+                });
+            }, false);
+        }
 
         private Task? runTask;
         private ITestSceneTestRunner? runner;
