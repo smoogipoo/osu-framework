@@ -86,7 +86,7 @@ namespace osu.Framework.Testing.Drawables
             : this()
         {
             TestType = test;
-            text.AddText(TestScene.RemovePrefix(test.Name));
+            text.AddText(AdhocTestScene.RemovePrefix(test.Name));
 
             string description = test.GetCustomAttribute<DescriptionAttribute>()?.Description;
 

@@ -12,6 +12,6 @@ namespace osu.Framework.Tests.Visual
         {
         }
 
-        protected override ITestSceneTestRunner CreateRunner() => new FrameworkTestSceneTestRunner();
+        protected internal override ITestSceneTestRunner CreateRunner() => new FrameworkTestSceneTestRunner();
     }
 }

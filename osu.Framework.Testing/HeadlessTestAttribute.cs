@@ -8,11 +8,9 @@ namespace osu.Framework.Testing
 {
     /// <summary>
     /// Denotes a "visual" test which should only be run in a headless context.
-    /// This will stop the test from showing up in a <see cref="TestBrowser"/>.
+    /// This will stop the test from showing up in a <see cref="AdhocTestBrowser"/>.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     [MeansImplicitUse]
-    public class HeadlessTestAttribute : Attribute
-    {
-    }
+    public class HeadlessTestAttribute : Attribute;
 }

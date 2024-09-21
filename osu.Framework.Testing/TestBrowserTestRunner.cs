@@ -21,7 +21,7 @@ namespace osu.Framework.Testing
         private Bindable<double> volume;
         private double volumeAtStartup;
 
-        public TestBrowserTestRunner(TestBrowser browser)
+        public TestBrowserTestRunner(AdhocTestBrowser browser)
         {
             this.browser = browser;
         }
@@ -55,7 +55,7 @@ namespace osu.Framework.Testing
 
         private Type loadableTestType => testIndex >= 0 ? browser.TestTypes.ElementAtOrDefault(testIndex) : null;
 
-        private readonly TestBrowser browser;
+        private readonly AdhocTestBrowser browser;
 
         [Resolved]
         private GameHost host { get; set; }

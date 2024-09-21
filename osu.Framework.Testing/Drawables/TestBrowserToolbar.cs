@@ -17,7 +17,7 @@ namespace osu.Framework.Testing.Drawables
     internal partial class TestBrowserToolbar : CompositeDrawable
     {
         [BackgroundDependencyLoader]
-        private void load(TestBrowser browser)
+        private void load(AdhocTestBrowser browser)
         {
             const float section_padding = 10;
 

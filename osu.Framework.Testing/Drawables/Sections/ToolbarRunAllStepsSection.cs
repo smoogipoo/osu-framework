@@ -18,7 +18,7 @@ namespace osu.Framework.Testing.Drawables.Sections
         }
 
         [BackgroundDependencyLoader]
-        private void load(TestBrowser browser)
+        private void load(AdhocTestBrowser browser)
         {
             InternalChild = new FillFlowContainer
             {

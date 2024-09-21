@@ -354,7 +354,7 @@ namespace osu.Framework.Audio
                 return false;
 
             // we don't want bass initializing with real audio device on headless test runs.
-            if (deviceIndex != Bass.NoSoundDevice && DebugUtils.IsNUnitRunning)
+            if (deviceIndex != Bass.NoSoundDevice && DebugUtils.IsTestRunning)
                 return false;
 
             // initialize new device

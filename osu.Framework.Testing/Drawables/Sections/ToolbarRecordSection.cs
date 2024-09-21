@@ -18,7 +18,7 @@ namespace osu.Framework.Testing.Drawables.Sections
     {
         private BasicButton recordButton;
         private FillFlowContainer playbackControls;
-        private TestBrowser browser;
+        private AdhocTestBrowser browser;
 
         public ToolbarRecordSection()
         {
@@ -26,7 +26,7 @@ namespace osu.Framework.Testing.Drawables.Sections
         }
 
         [BackgroundDependencyLoader]
-        private void load(TestBrowser browser)
+        private void load(AdhocTestBrowser browser)
         {
             this.browser = browser;
             SpriteText maxFrameCount, currentFrame;

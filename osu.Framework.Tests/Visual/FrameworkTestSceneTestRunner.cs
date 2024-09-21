@@ -7,7 +7,7 @@ using osu.Framework.Testing;
 
 namespace osu.Framework.Tests.Visual
 {
-    public partial class FrameworkTestSceneTestRunner : TestSceneTestRunner
+    internal partial class FrameworkTestSceneTestRunner : TestSceneTestRunner
     {
         [BackgroundDependencyLoader]
         private void load()

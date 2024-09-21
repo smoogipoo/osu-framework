@@ -12,7 +12,7 @@ namespace osu.Framework.Testing.Drawables.Sections
     public partial class ToolbarRateSection : ToolbarSection
     {
         [BackgroundDependencyLoader]
-        private void load(TestBrowser browser)
+        private void load(AdhocTestBrowser browser)
         {
             Padding = new MarginPadding { Horizontal = 5 };
 

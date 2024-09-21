@@ -30,7 +30,7 @@ namespace osu.Framework.Testing
         }
 
         [BackgroundDependencyLoader]
-        private void load(TestBrowser? browser)
+        private void load(AdhocTestBrowser? browser)
         {
             if (browser != null)
             {

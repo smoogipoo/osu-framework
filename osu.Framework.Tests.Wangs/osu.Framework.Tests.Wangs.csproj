@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>osu.Framework.Tests.Wangs</RootNamespace>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\osu.Framework.Testing.TUnit\osu.Framework.Testing.TUnit.csproj"/>
+  </ItemGroup>
+
+</Project>

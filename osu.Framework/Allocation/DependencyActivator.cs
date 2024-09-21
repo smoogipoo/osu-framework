@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Testing;
 
 namespace osu.Framework.Allocation
 {
@@ -30,12 +29,6 @@ namespace osu.Framework.Allocation
 
         private readonly List<InjectDependencyDelegate> injectionActivators = new List<InjectDependencyDelegate>();
         private readonly List<CacheDependencyDelegate> buildCacheActivators = new List<CacheDependencyDelegate>();
-
-        static DependencyActivator()
-        {
-            // Attributes could have been added or removed when using hot-reload.
-            HotReloadCallbackReceiver.CompilationFinished += _ => ClearCache();
-        }
 
         // Source generator pathway.
         private DependencyActivator(Type type, InjectDependencyDelegate injectDel, CacheDependencyDelegate cacheDel)

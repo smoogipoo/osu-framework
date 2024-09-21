@@ -378,7 +378,7 @@ namespace osu.Framework.Platform
             // unobserved exceptions are logged but left unhandled (most of the time they are not intended to be critical).
             logException(actualException, "unobserved");
 
-            if (DebugUtils.IsNUnitRunning)
+            if (DebugUtils.IsTestRunning)
                 abortExecutionFromException(sender, actualException, false);
         }
 
@@ -719,9 +719,6 @@ namespace osu.Framework.Platform
                 {
                     Monitor = { HandleGC = true },
                 });
-
-                Trace.Listeners.Clear();
-                Trace.Listeners.Add(new ThrowingTraceListener());
 
                 Logger.GameIdentifier = Name;
                 Logger.VersionIdentifier = RuntimeInfo.EntryAssembly.GetName().Version?.ToString() ?? Logger.VersionIdentifier;

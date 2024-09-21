@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Reflection;
-using osu.Framework.Development;
 using osu.Framework.Extensions.ObjectExtensions;
 
 namespace osu.Framework
@@ -32,10 +31,8 @@ namespace osu.Framework
         /// When running under NUnit, the assembly of the current test will be returned instead.
         /// </summary>
         /// <returns>The entry assembly.</returns>
-        public static Assembly EntryAssembly { get; internal set; } = DebugUtils.IsNUnitRunning
-            ? DebugUtils.NUnitTestAssembly
 #pragma warning disable RS0030
-            : Assembly.GetEntryAssembly().AsNonNull();
+        public static Assembly EntryAssembly { get; internal set; } = Assembly.GetEntryAssembly().AsNonNull();
 #pragma warning restore RS0030
 
         public static Platform OS { get; }

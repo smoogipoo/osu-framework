@@ -6,7 +6,6 @@
 using System;
 using System.Diagnostics;
 using System.Text;
-using NUnit.Framework;
 using osu.Framework.Graphics;
 using osuTK.Graphics;
 

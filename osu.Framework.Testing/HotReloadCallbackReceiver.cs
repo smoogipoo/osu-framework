@@ -4,7 +4,9 @@
 #nullable disable
 
 using System;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
+using osu.Framework.Allocation;
 
 namespace osu.Framework.Testing
 {
@@ -14,6 +16,10 @@ namespace osu.Framework.Testing
     internal static class HotReloadCallbackReceiver
     {
         public static event Action<Type[]> CompilationFinished;
+
         public static void UpdateApplication([CanBeNull] Type[] updatedTypes) => CompilationFinished?.Invoke(updatedTypes);
+
+        [ModuleInitializer]
+        public static void ModuleInit() => CompilationFinished += _ => DependencyActivator.ClearCache();
     }
 }

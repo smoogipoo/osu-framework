@@ -7,12 +7,10 @@ using JetBrains.Annotations;
 namespace osu.Framework.Testing
 {
     /// <summary>
-    /// Denotes a method which adds <see cref="TestScene"/> steps.
-    /// Invoked via <see cref="TestScene.RunSetUpSteps"/> (which is called from nUnit's [SetUp] or <see cref="TestBrowser.LoadTest"/>).
+    /// Denotes a method which adds <see cref="AdhocTestScene"/> steps at the end.
+    /// Invoked via <see cref="AdhocTestScene.RunTearDownSteps"/> (which is called from nUnit's [TearDown] or <see cref="AdhocTestBrowser.LoadTest"/>).
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     [MeansImplicitUse]
-    public class SetUpStepsAttribute : Attribute
-    {
-    }
+    public class TearDownStepsAttribute : Attribute;
 }

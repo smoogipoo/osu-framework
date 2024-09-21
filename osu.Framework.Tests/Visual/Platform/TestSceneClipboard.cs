@@ -43,7 +43,7 @@ namespace osu.Framework.Tests.Visual.Platform
         [Test]
         public void TestImage()
         {
-            if (DebugUtils.IsNUnitRunning)
+            if (DebugUtils.IsTestRunning)
                 Assert.Ignore("This test cannot run in headless mode (a window instance is required).");
 
             AddStep("clear previous screenshots", Clear);

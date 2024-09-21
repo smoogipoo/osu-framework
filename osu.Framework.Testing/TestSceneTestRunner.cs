@@ -6,7 +6,6 @@
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Threading;
-using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics;
@@ -16,7 +15,7 @@ using osu.Framework.Platform;
 
 namespace osu.Framework.Testing
 {
-    public partial class TestSceneTestRunner : Game, ITestSceneTestRunner
+    internal partial class TestSceneTestRunner : Game, ITestSceneTestRunner
     {
         private readonly TestRunner runner;
 
@@ -26,10 +25,10 @@ namespace osu.Framework.Testing
         }
 
         /// <summary>
-        /// Blocks execution until a provided <see cref="TestScene"/> runs to completion.
+        /// Blocks execution until a provided <see cref="AdhocTestScene"/> runs to completion.
         /// </summary>
-        /// <param name="test">The <see cref="TestScene"/> to run.</param>
-        public virtual void RunTestBlocking(TestScene test) => runner.RunTestBlocking(test);
+        /// <param name="test">The <see cref="AdhocTestScene"/> to run.</param>
+        public virtual void RunTestBlocking(AdhocTestScene test) => runner.RunTestBlocking(test);
 
         public partial class TestRunner : CompositeDrawable
         {
@@ -44,10 +43,10 @@ namespace osu.Framework.Testing
             }
 
             /// <summary>
-            /// Blocks execution until a provided <see cref="TestScene"/> runs to completion.
+            /// Blocks execution until a provided <see cref="AdhocTestScene"/> runs to completion.
             /// </summary>
-            /// <param name="test">The <see cref="TestScene"/> to run.</param>
-            public void RunTestBlocking(TestScene test)
+            /// <param name="test">The <see cref="AdhocTestScene"/> to run.</param>
+            public virtual void RunTestBlocking(AdhocTestScene test)
             {
                 Trace.Assert(host != null, $"Ensure this runner has been loaded before calling {nameof(RunTestBlocking)}");
 
@@ -68,7 +67,6 @@ namespace osu.Framework.Testing
                     AddInternal(test);
 
                     Logger.Log($@"💨 Class: {test.GetType().ReadableName()}");
-                    Logger.Log($@"🔶 Test:  {TestContext.CurrentContext.Test.Name}");
 
                     // Nunit will run the tests in the TestScene with the same TestScene instance so the TestScene
                     // needs to be removed before the host is exited, otherwise it will end up disposed
@@ -94,9 +92,9 @@ namespace osu.Framework.Testing
     public interface ITestSceneTestRunner
     {
         /// <summary>
-        /// Blocks execution until a provided <see cref="TestScene"/> runs to completion.
+        /// Blocks execution until a provided <see cref="AdhocTestScene"/> runs to completion.
         /// </summary>
-        /// <param name="test">The <see cref="TestScene"/> to run.</param>
-        void RunTestBlocking(TestScene test);
+        /// <param name="test">The <see cref="AdhocTestScene"/> to run.</param>
+        void RunTestBlocking(AdhocTestScene test);
     }
 }

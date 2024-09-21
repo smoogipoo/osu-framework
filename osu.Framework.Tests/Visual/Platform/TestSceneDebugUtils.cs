@@ -39,7 +39,7 @@ namespace osu.Framework.Tests.Visual.Platform
             AddStep("log DebugUtils statics", () =>
             {
                 textFlow.Clear();
-                log(DebugUtils.IsNUnitRunning);
+                log(DebugUtils.IsTestRunning);
                 log(DebugUtils.IsDebugBuild);
                 log(RuntimeInfo.EntryAssembly);
 #pragma warning disable RS0030
@@ -51,7 +51,7 @@ namespace osu.Framework.Tests.Visual.Platform
         [Test]
         public void TestIsNUnitRunning()
         {
-            AddAssert("check IsNUnitRunning", () => DebugUtils.IsNUnitRunning, () => Is.EqualTo(isHeadlessTestRun));
+            AddAssert("check IsNUnitRunning", () => DebugUtils.IsTestRunning, () => Is.EqualTo(isHeadlessTestRun));
         }
 
         [Test]
