@@ -10,19 +10,27 @@ namespace osu.Framework.Graphics.Rendering
 {
     public struct MaskingInfo : IEquatable<MaskingInfo>
     {
-        public RectangleF ScreenSpaceAABB;
+        /// <summary>
+        /// The masking rectangle in coordinates relative to the masking space.
+        /// </summary>
         public RectangleF MaskingRect;
 
-        public Quad ConservativeScreenSpaceQuad;
+        /// <summary>
+        /// The masking rectangle in screen-space coordinates.
+        /// </summary>
+        public RectangleF ScreenSpaceMaskingRect;
 
         /// <summary>
-        /// This matrix transforms screen space coordinates to masking space (likely the parent
-        /// space of the container doing the masking).
-        /// It is used by a shader to determine which pixels to discard.
+        /// Transforms from screen-space coordinates to the masking space.
         /// </summary>
         public Matrix3 ToMaskingSpace;
 
+        /// <summary>
+        /// Transforms from screen-space coordinates to the scissor space.
+        /// </summary>
         public Matrix3 ToScissorSpace;
+
+        public Quad ConservativeScreenSpaceQuad;
 
         public float CornerRadius;
         public float CornerExponent;
@@ -41,11 +49,11 @@ namespace osu.Framework.Graphics.Rendering
         public readonly bool Equals(MaskingInfo other) => this == other;
 
         public static bool operator ==(in MaskingInfo left, in MaskingInfo right) =>
-            left.ScreenSpaceAABB == right.ScreenSpaceAABB &&
             left.MaskingRect == right.MaskingRect &&
-            left.ConservativeScreenSpaceQuad.Equals(right.ConservativeScreenSpaceQuad) &&
+            left.ScreenSpaceMaskingRect == right.ScreenSpaceMaskingRect &&
             left.ToMaskingSpace == right.ToMaskingSpace &&
             left.ToScissorSpace == right.ToScissorSpace &&
+            left.ConservativeScreenSpaceQuad.Equals(right.ConservativeScreenSpaceQuad) &&
             left.CornerRadius == right.CornerRadius &&
             left.CornerExponent == right.CornerExponent &&
             left.BorderThickness == right.BorderThickness &&

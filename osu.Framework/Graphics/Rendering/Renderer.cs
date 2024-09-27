@@ -251,7 +251,7 @@ namespace osu.Framework.Graphics.Rendering
             PushScissor(new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y));
             PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = new RectangleF(0, 0, windowSize.X, windowSize.Y),
+                ScreenSpaceMaskingRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 MaskingRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 ToMaskingSpace = Matrix3.Identity,
                 ToScissorSpace = Matrix3.Identity,
@@ -587,7 +587,7 @@ namespace osu.Framework.Graphics.Rendering
         public void PushMaskingInfo(MaskingInfo maskingInfo, bool overwritePreviousScissor = false)
         {
             if (!overwritePreviousScissor)
-                maskingInfo.ScreenSpaceAABB = RectangleF.Intersect(currentMaskingInfo.ScreenSpaceAABB, maskingInfo.ScreenSpaceAABB);
+                maskingInfo.ScreenSpaceMaskingRect = RectangleF.Intersect(currentMaskingInfo.ScreenSpaceMaskingRect, maskingInfo.ScreenSpaceMaskingRect);
 
             maskingStack.Push(maskingInfo);
             setMaskingInfo(maskingInfo);
@@ -930,10 +930,10 @@ namespace osu.Framework.Graphics.Rendering
                         currentMaskingInfo.MaskingRect.Right,
                         currentMaskingInfo.MaskingRect.Bottom),
                     ScissorRect = new Vector4(
-                        currentMaskingInfo.ScreenSpaceAABB.Left,
-                        currentMaskingInfo.ScreenSpaceAABB.Top,
-                        currentMaskingInfo.ScreenSpaceAABB.Right,
-                        currentMaskingInfo.ScreenSpaceAABB.Bottom),
+                        currentMaskingInfo.ScreenSpaceMaskingRect.Left,
+                        currentMaskingInfo.ScreenSpaceMaskingRect.Top,
+                        currentMaskingInfo.ScreenSpaceMaskingRect.Right,
+                        currentMaskingInfo.ScreenSpaceMaskingRect.Bottom),
                     BorderThickness = currentMaskingInfo.BorderThickness / currentMaskingInfo.BlendRange,
                     BorderColour = currentMaskingInfo.BorderThickness > 0
                         ? new Matrix4(

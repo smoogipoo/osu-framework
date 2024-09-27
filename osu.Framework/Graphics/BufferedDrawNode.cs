@@ -157,7 +157,7 @@ namespace osu.Framework.Graphics
         {
             renderer.PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = screenSpaceDrawRectangle,
+                ScreenSpaceMaskingRect = screenSpaceDrawRectangle,
                 MaskingRect = screenSpaceDrawRectangle,
                 ToMaskingSpace = Matrix3.Identity,
                 ToScissorSpace = Matrix3.Identity,
