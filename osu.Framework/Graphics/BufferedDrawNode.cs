@@ -155,18 +155,9 @@ namespace osu.Framework.Graphics
 
         private ValueInvokeOnDisposal<(BufferedDrawNode node, IRenderer renderer)> establishFrameBufferViewport(IRenderer renderer)
         {
-            // Disable masking for generating the frame buffer since masking will be re-applied
-            // when actually drawing later on anyways. This allows more information to be captured
-            // in the frame buffer and helps with cached buffers being re-used.
-            RectangleF screenSpaceMaskingRect = new RectangleF(
-                MathF.Floor(screenSpaceDrawRectangle.X),
-                MathF.Floor(screenSpaceDrawRectangle.Y),
-                MathF.Ceiling(frameBufferSize.X),
-                MathF.Ceiling(frameBufferSize.Y));
-
             renderer.PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = screenSpaceMaskingRect,
+                ScreenSpaceAABB = screenSpaceDrawRectangle,
                 MaskingRect = screenSpaceDrawRectangle,
                 ToMaskingSpace = Matrix3.Identity,
                 ToScissorSpace = Matrix3.Identity,
