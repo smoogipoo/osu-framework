@@ -91,7 +91,7 @@ namespace osu.Framework.Graphics.Containers
                     ? null
                     : new MaskingInfo
                     {
-                        ScreenSpaceAABB = Source.ScreenSpaceDrawQuad.AABB,
+                        ScreenSpaceAABB = Source.ScreenSpaceDrawQuad.AABBFloat,
                         MaskingRect = Source.DrawRectangle.Normalize(),
                         ConservativeScreenSpaceQuad = Quad.FromRectangle(shrunkDrawRectangle) * DrawInfo.Matrix,
                         ToMaskingSpace = DrawInfo.MatrixInverse,
@@ -127,7 +127,7 @@ namespace osu.Framework.Graphics.Containers
 
                 MaskingInfo edgeEffectMaskingInfo = maskingInfo.Value;
                 edgeEffectMaskingInfo.MaskingRect = effectRect;
-                edgeEffectMaskingInfo.ScreenSpaceAABB = screenSpaceMaskingQuad.Value.AABB;
+                edgeEffectMaskingInfo.ScreenSpaceAABB = screenSpaceMaskingQuad.Value.AABBFloat;
                 edgeEffectMaskingInfo.CornerRadius = maskingInfo.Value.CornerRadius + edgeEffect.Radius + edgeEffect.Roundness;
                 edgeEffectMaskingInfo.BorderThickness = 0;
                 // HACK HACK HACK. We abuse blend range to give us the linear alpha gradient of

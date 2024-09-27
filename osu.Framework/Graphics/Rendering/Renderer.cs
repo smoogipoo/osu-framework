@@ -121,7 +121,6 @@ namespace osu.Framework.Graphics.Rendering
         private readonly Stack<RectangleI> scissorRectStack = new Stack<RectangleI>();
         private readonly Stack<DepthInfo> depthStack = new Stack<DepthInfo>();
         private readonly Stack<StencilInfo> stencilStack = new Stack<StencilInfo>();
-        private readonly Stack<Vector2I> scissorOffsetStack = new Stack<Vector2I>();
         private readonly Stack<IFrameBuffer> frameBufferStack = new Stack<IFrameBuffer>();
         private readonly Stack<IShader> shaderStack = new Stack<IShader>();
         private readonly Stack<bool> scissorStateStack = new Stack<bool>();
@@ -235,7 +234,6 @@ namespace osu.Framework.Graphics.Rendering
             depthStack.Clear();
             stencilStack.Clear();
             scissorStateStack.Clear();
-            scissorOffsetStack.Clear();
             shaderStack.Clear();
 
             quadBatches.Clear();
@@ -251,10 +249,9 @@ namespace osu.Framework.Graphics.Rendering
             PushScissorState(true);
             PushViewport(new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y));
             PushScissor(new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y));
-            PushScissorOffset(Vector2I.Zero);
             PushMaskingInfo(new MaskingInfo
             {
-                ScreenSpaceAABB = new RectangleI(0, 0, (int)windowSize.X, (int)windowSize.Y),
+                ScreenSpaceAABB = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 MaskingRect = new RectangleF(0, 0, windowSize.X, windowSize.Y),
                 ToMaskingSpace = Matrix3.Identity,
                 ToScissorSpace = Matrix3.Identity,
@@ -486,12 +483,6 @@ namespace osu.Framework.Graphics.Rendering
             setScissorState(enabled);
         }
 
-        public void PushScissorOffset(Vector2I offset)
-        {
-            scissorOffsetStack.Push(offset);
-            setScissorOffset(offset);
-        }
-
         public void PopScissor()
         {
             Trace.Assert(scissorRectStack.Count > 1);
@@ -506,14 +497,6 @@ namespace osu.Framework.Graphics.Rendering
 
             scissorStateStack.Pop();
             setScissorState(scissorStateStack.Peek());
-        }
-
-        public void PopScissorOffset()
-        {
-            Trace.Assert(scissorOffsetStack.Count > 1);
-
-            scissorOffsetStack.Pop();
-            setScissorOffset(scissorOffsetStack.Peek());
         }
 
         private void setScissor(RectangleI scissor)
@@ -554,15 +537,6 @@ namespace osu.Framework.Graphics.Rendering
             FlushCurrentBatch(FlushBatchSource.SetScissor);
             SetScissorStateImplementation(enabled);
             ScissorState = enabled;
-        }
-
-        private void setScissorOffset(Vector2I offset)
-        {
-            if (ScissorOffset == offset)
-                return;
-
-            FlushCurrentBatch(FlushBatchSource.SetScissor);
-            ScissorOffset = offset;
         }
 
         /// <summary>
