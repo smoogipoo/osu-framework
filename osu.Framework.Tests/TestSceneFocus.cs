@@ -149,19 +149,14 @@ namespace osu.Framework.Tests
         }
 
         /// <summary>
-        /// Manages focus and captures the primary input responder.
+        /// Manages focus and captures the first input responder.
         /// </summary>
         private interface IFocusSystem : IFocusEnvironment
         {
             /// <summary>
             /// The drawable that shall be the first target for keyboard input.
             /// </summary>
-            IFocusableObject? CurrentPrimaryResponder { get; }
-
-            /// <summary>
-            /// The environment that contains the primary responder.
-            /// </summary>
-            IFocusEnvironment? CurrentFocusEnvironment { get; }
+            IFocusableObject? FirstResponder { get; }
 
             /// <summary>
             /// Requests a drawable to be focused.
@@ -191,12 +186,12 @@ namespace osu.Framework.Tests
             /// <summary>
             /// Notifies that this drawable shall be the first target for keyboard input.
             /// </summary>
-            void OnAssumePrimaryResponder();
+            void OnBecomeFirstResponder();
 
             /// <summary>
             /// Notifies that this drawable shall no longer be the first target for keyboard input.
             /// </summary>
-            void OnResignPrimaryResponder();
+            void OnResignFirstResponder();
 
             #region Internal
 
@@ -249,12 +244,15 @@ namespace osu.Framework.Tests
 
         private class FocusSystem : FocusEnvironment, IFocusSystem
         {
-            public IFocusableObject? CurrentPrimaryResponder => CurrentFocusEnvironment?.CurrentFocus;
-            public IFocusEnvironment? CurrentFocusEnvironment => focusEnvironments.TryPeek(out IFocusEnvironment? env) ? env : null;
-
             private readonly Stack<IFocusEnvironment> focusEnvironments = new Stack<IFocusEnvironment>();
             private readonly List<FocusRequest> pendingFocusRequests = new List<FocusRequest>();
             private bool isProcessingRequests;
+
+            public IFocusableObject? FirstResponder
+                => currentFocusEnvironment?.CurrentFocus;
+
+            private IFocusEnvironment? currentFocusEnvironment
+                => focusEnvironments.TryPeek(out IFocusEnvironment? env) ? env : null;
 
             public void AcquireFocus(IFocusableObject target)
             {
@@ -270,7 +268,7 @@ namespace osu.Framework.Tests
 
             protected override bool OnClick(ClickEvent e)
             {
-                using (resignResponder())
+                using (suspendFirstResponder())
                     restoreEnvironment(null);
                 return true;
             }
@@ -313,10 +311,10 @@ namespace osu.Framework.Tests
 
                         if (request.Acquire)
                         {
-                            if (CurrentFocusEnvironment == environment && CurrentPrimaryResponder == request.Target)
+                            if (currentFocusEnvironment == environment && FirstResponder == request.Target)
                                 return;
 
-                            using (resignResponder())
+                            using (suspendFirstResponder())
                             {
                                 restoreEnvironment(environment);
                                 environment.InternalChangeFocus(request.Target);
@@ -324,10 +322,10 @@ namespace osu.Framework.Tests
                         }
                         else
                         {
-                            if (CurrentFocusEnvironment != environment || CurrentPrimaryResponder != request.Target)
+                            if (currentFocusEnvironment != environment || FirstResponder != request.Target)
                                 return;
 
-                            using (resignResponder())
+                            using (suspendFirstResponder())
                             {
                                 environment.InternalChangeFocus(null);
                                 focusEnvironments.Pop();
@@ -347,9 +345,9 @@ namespace osu.Framework.Tests
             {
                 if (environment == null || focusEnvironments.Contains(environment))
                 {
-                    while (CurrentFocusEnvironment != environment)
+                    while (currentFocusEnvironment != environment)
                     {
-                        CurrentFocusEnvironment!.InternalChangeFocus(null);
+                        currentFocusEnvironment!.InternalChangeFocus(null);
                         focusEnvironments.Pop();
                     }
                 }
@@ -357,10 +355,10 @@ namespace osu.Framework.Tests
                     focusEnvironments.Push(environment);
             }
 
-            private ValueInvokeOnDisposal<FocusSystem> resignResponder()
+            private ValueInvokeOnDisposal<FocusSystem> suspendFirstResponder()
             {
-                CurrentPrimaryResponder?.OnResignPrimaryResponder();
-                return new ValueInvokeOnDisposal<FocusSystem>(this, static s => s.CurrentPrimaryResponder?.OnAssumePrimaryResponder());
+                FirstResponder?.OnResignFirstResponder();
+                return new ValueInvokeOnDisposal<FocusSystem>(this, static s => s.FirstResponder?.OnBecomeFirstResponder());
             }
 
             private readonly record struct FocusRequest(IFocusableObject Target, bool Acquire);
@@ -403,10 +401,10 @@ namespace osu.Framework.Tests
             public virtual void OnGainedFocus()
                 => background.Colour = Color4.Orange;
 
-            public void OnAssumePrimaryResponder()
+            public void OnBecomeFirstResponder()
                 => background.Colour = Color4.Green;
 
-            public void OnResignPrimaryResponder()
+            public void OnResignFirstResponder()
                 => background.Colour = Color4.Orange;
 
             public virtual void OnLostFocus()
