@@ -145,7 +145,7 @@ namespace osu.Framework.Tests
             /// </summary>
             IFocusableObject? CurrentFocus { get; }
 
-            void InternalChangeFocus(IFocusableObject? target);
+            void ChangeFocus(IFocusableObject? target);
         }
 
         /// <summary>
@@ -153,11 +153,6 @@ namespace osu.Framework.Tests
         /// </summary>
         private interface IFocusSystem : IFocusEnvironment
         {
-            /// <summary>
-            /// The drawable that shall be the first target for keyboard input.
-            /// </summary>
-            IFocusableObject? FirstResponder { get; }
-
             /// <summary>
             /// Requests a drawable to be focused.
             /// </summary>
@@ -184,12 +179,12 @@ namespace osu.Framework.Tests
         private interface IFocusableObject : IDrawable
         {
             /// <summary>
-            /// Notifies that this drawable shall be the first target for keyboard input.
+            /// Notifies that this drawable will be the first target for keyboard input.
             /// </summary>
             void OnBecomeFirstResponder();
 
             /// <summary>
-            /// Notifies that this drawable shall no longer be the first target for keyboard input.
+            /// Notifies that this drawable will no longer be the first target for keyboard input.
             /// </summary>
             void OnResignFirstResponder();
 
@@ -211,7 +206,7 @@ namespace osu.Framework.Tests
         {
             public IFocusableObject? CurrentFocus { get; private set; }
 
-            void IFocusEnvironment.InternalChangeFocus(IFocusableObject? target)
+            void IFocusEnvironment.ChangeFocus(IFocusableObject? target)
             {
                 if (CurrentFocus == target)
                     return;
@@ -248,7 +243,7 @@ namespace osu.Framework.Tests
             private readonly List<FocusRequest> pendingFocusRequests = new List<FocusRequest>();
             private bool isProcessingRequests;
 
-            public IFocusableObject? FirstResponder
+            private IFocusableObject? currentFirstResponder
                 => currentFocusEnvironment?.CurrentFocus;
 
             private IFocusEnvironment? currentFocusEnvironment
@@ -311,23 +306,23 @@ namespace osu.Framework.Tests
 
                         if (request.Acquire)
                         {
-                            if (currentFocusEnvironment == environment && FirstResponder == request.Target)
+                            if (currentFocusEnvironment == environment && currentFirstResponder == request.Target)
                                 return;
 
                             using (suspendFirstResponder())
                             {
                                 restoreEnvironment(environment);
-                                environment.InternalChangeFocus(request.Target);
+                                environment.ChangeFocus(request.Target);
                             }
                         }
                         else
                         {
-                            if (currentFocusEnvironment != environment || FirstResponder != request.Target)
+                            if (currentFocusEnvironment != environment || currentFirstResponder != request.Target)
                                 return;
 
                             using (suspendFirstResponder())
                             {
-                                environment.InternalChangeFocus(null);
+                                environment.ChangeFocus(null);
                                 focusEnvironments.Pop();
                             }
                         }
@@ -347,7 +342,7 @@ namespace osu.Framework.Tests
                 {
                     while (currentFocusEnvironment != environment)
                     {
-                        currentFocusEnvironment!.InternalChangeFocus(null);
+                        currentFocusEnvironment!.ChangeFocus(null);
                         focusEnvironments.Pop();
                     }
                 }
@@ -357,8 +352,8 @@ namespace osu.Framework.Tests
 
             private ValueInvokeOnDisposal<FocusSystem> suspendFirstResponder()
             {
-                FirstResponder?.OnResignFirstResponder();
-                return new ValueInvokeOnDisposal<FocusSystem>(this, static s => s.FirstResponder?.OnBecomeFirstResponder());
+                currentFirstResponder?.OnResignFirstResponder();
+                return new ValueInvokeOnDisposal<FocusSystem>(this, static s => s.currentFirstResponder?.OnBecomeFirstResponder());
             }
 
             private readonly record struct FocusRequest(IFocusableObject Target, bool Acquire);
