@@ -241,7 +241,7 @@ namespace osu.Framework.Tests
         {
             private readonly Stack<IFocusEnvironment> focusEnvironments = new Stack<IFocusEnvironment>();
             private readonly List<FocusRequest> pendingFocusRequests = new List<FocusRequest>();
-            private bool isProcessingRequests;
+            private uint isProcessingRequests;
 
             private IFocusableObject? currentFirstResponder
                 => currentFocusEnvironment?.CurrentFocus;
@@ -270,6 +270,8 @@ namespace osu.Framework.Tests
 
             bool IFocusSystem.OnClick(IFocusableObject target)
             {
+                isProcessingRequests++;
+
                 try
                 {
                     // It could be the case that, while processing the pending requests, one of them caused an indirect click that re-entered this method.
@@ -284,16 +286,17 @@ namespace osu.Framework.Tests
                 }
                 finally
                 {
+                    isProcessingRequests--;
                     processRequests();
                 }
             }
 
             private void processRequests()
             {
-                if (isProcessingRequests)
+                if (isProcessingRequests > 0)
                     return;
 
-                isProcessingRequests = true;
+                isProcessingRequests++;
 
                 try
                 {
@@ -307,7 +310,7 @@ namespace osu.Framework.Tests
                         if (request.Acquire)
                         {
                             if (currentFocusEnvironment == environment && currentFirstResponder == request.Target)
-                                return;
+                                continue;
 
                             using (suspendFirstResponder())
                             {
@@ -318,7 +321,7 @@ namespace osu.Framework.Tests
                         else
                         {
                             if (currentFocusEnvironment != environment || currentFirstResponder != request.Target)
-                                return;
+                                continue;
 
                             using (suspendFirstResponder())
                             {
@@ -332,7 +335,7 @@ namespace osu.Framework.Tests
                 }
                 finally
                 {
-                    isProcessingRequests = false;
+                    isProcessingRequests--;
                 }
             }
 
