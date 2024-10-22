@@ -119,13 +119,16 @@ namespace osu.Framework.Tests
                                 Origin = Anchor.Centre,
                                 RelativeSizeAxes = Axes.Both,
                                 Size = new Vector2(0.5f),
-                                Child = obj2 = new FocusableObject
+                                Child = new FocusableObject
                                 {
                                     Size = Vector2.One,
-                                    Click = () =>
+                                    Child = obj2 = new FocusableObject
                                     {
-                                        system.ReleaseFocus(obj2);
-                                        return true;
+                                        Click = () =>
+                                        {
+                                            system.ReleaseFocus(obj2);
+                                            return true;
+                                        }
                                     }
                                 }
                             }
