@@ -90,28 +90,24 @@ namespace osu.Framework.Tests
                         RelativeSizeAxes = Axes.Both,
                         Children =
                         [
-                            new FocusEnvironment
+                            new FillFlowContainer
                             {
                                 Anchor = Anchor.Centre,
                                 Origin = Anchor.Centre,
                                 RelativeSizeAxes = Axes.Both,
                                 Size = new Vector2(0.5f),
-                                Child = new FillFlowContainer
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Children =
-                                    [
-                                        new FocusableObject(),
-                                        obj1 = new FocusableObject
+                                Children =
+                                [
+                                    new FocusableObject(),
+                                    obj1 = new FocusableObject
+                                    {
+                                        Click = () =>
                                         {
-                                            Click = () =>
-                                            {
-                                                system.AcquireFocus(obj2);
-                                                return true;
-                                            }
+                                            system.AcquireFocus(obj2);
+                                            return true;
                                         }
-                                    ]
-                                }
+                                    }
+                                ]
                             },
                             new FocusEnvironment
                             {
@@ -119,13 +115,16 @@ namespace osu.Framework.Tests
                                 Origin = Anchor.Centre,
                                 RelativeSizeAxes = Axes.Both,
                                 Size = new Vector2(0.5f),
-                                Child = obj2 = new FocusableObject
+                                Child = new FocusableObject
                                 {
                                     Size = Vector2.One,
-                                    Click = () =>
+                                    Child = obj2 = new FocusableObject
                                     {
-                                        system.ReleaseFocus(obj2);
-                                        return true;
+                                        Click = () =>
+                                        {
+                                            system.ReleaseFocus(obj2);
+                                            return true;
+                                        }
                                     }
                                 }
                             }
