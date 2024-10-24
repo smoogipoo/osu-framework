@@ -24,12 +24,12 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using osu.Framework.Development;
 using osu.Framework.Extensions.EnumExtensions;
-using osu.Framework.Extensions.ExceptionExtensions;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Layout;
 using osu.Framework.Logging;
 using osu.Framework.Utils;
+using Exception = System.Exception;
 
 namespace osu.Framework.Graphics.Containers
 {
@@ -173,9 +173,18 @@ namespace osu.Framework.Graphics.Containers
 
             var taskScheduler = loadables.Any(c => c.IsLongRunning) ? SCHEDULER_LONG_LOAD : SCHEDULER_STANDARD;
 
-            return Task.Factory.StartNew(() => loadComponents(loadables, deps, true, linkedSource.Token), linkedSource.Token, TaskCreationOptions.HideScheduler, taskScheduler).ContinueWith(loaded =>
+            return Task.Factory.StartNew(() =>
             {
-                var exception = loaded.Exception?.AsSingular();
+                Exception exception = null;
+
+                try
+                {
+                    loadComponents(loadables, deps, true, linkedSource.Token);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
 
                 if (loadables.Count == 0)
                     return;
@@ -205,7 +214,7 @@ namespace osu.Framework.Graphics.Containers
                         linkedSource.Dispose();
                     }
                 });
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }, linkedSource.Token, TaskCreationOptions.HideScheduler, taskScheduler);
         }
 
         /// <summary>
