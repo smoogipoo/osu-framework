@@ -81,7 +81,7 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             int loadCount1 = 0;
 
-            AddUntilStep("wait for load", () => loaded > 0);
+            AddUntilStep("wait for load", () => loaded, () => Is.GreaterThan(0));
 
             AddStep("scroll down", () =>
             {
@@ -91,12 +91,12 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             AddWaitStep("wait some more", 10);
 
-            AddUntilStep("more loaded", () => loaded > loadCount1);
-            AddAssert("not too many loaded", () => childrenWithAvatarsLoaded().Count() < panel_count / 4);
+            AddUntilStep("more loaded", () => loaded, () => Is.GreaterThan(loadCount1));
+            AddAssert("not too many loaded", () => childrenWithAvatarsLoaded().Count(), () => Is.LessThan(panel_count / 4));
 
             AddStep("Remove all panels", () => flow.Clear(false));
 
-            AddUntilStep("repeating schedulers removed", () => !scroll.Scheduler.HasPendingTasks);
+            AddUntilStep("repeating schedulers removed", () => scroll.Scheduler.HasPendingTasks, () => Is.False);
         }
 
         [TestCase(false)]
@@ -130,7 +130,7 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             int loadCount1 = 0;
 
-            AddUntilStep("wait for load", () => loaded > 0);
+            AddUntilStep("wait for load", () => loaded, () => Is.GreaterThan(0));
 
             AddStep("scroll down", () =>
             {
@@ -140,12 +140,12 @@ namespace osu.Framework.Tests.Visual.Drawables
 
             AddWaitStep("wait some more", 10);
 
-            AddUntilStep("more loaded", () => loaded > loadCount1);
-            AddAssert("not too many loaded", () => childrenWithAvatarsLoaded().Count() < panel_count / 4);
+            AddUntilStep("more loaded", () => loaded, () => Is.GreaterThan(loadCount1));
+            AddAssert("not too many loaded", () => childrenWithAvatarsLoaded().Count(), () => Is.LessThan(panel_count / 4));
 
             AddStep("Remove all panels", () => flow.Clear(false));
 
-            AddUntilStep("repeating schedulers removed", () => !scroll.Scheduler.HasPendingTasks);
+            AddUntilStep("repeating schedulers removed", () => scroll.Scheduler.HasPendingTasks, () => Is.False);
         }
 
         public partial class TestBox : Container
