@@ -1,8 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +11,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Lists;
+using osu.Framework.Testing;
 using osu.Framework.Threading;
 using osuTK;
 using osuTK.Graphics;
@@ -23,11 +22,11 @@ namespace osu.Framework.Tests.Visual.Drawables
     {
         private const int panel_count = 1024;
 
-        private FillFlowContainer<Container> flow;
-        private TestScrollContainer scroll;
+        private FillFlowContainer<Container> flow = null!;
+        private TestScrollContainer scroll = null!;
 
         [Resolved]
-        private Game game { get; set; }
+        private Game game { get; set; } = null!;
 
         [SetUp]
         public void SetUp() => Schedule(() =>
@@ -238,7 +237,7 @@ namespace osu.Framework.Tests.Visual.Drawables
                 }
             });
 
-            IReadOnlyList<Container> previousChildren = null;
+            IReadOnlyList<Container> previousChildren = null!;
 
             AddUntilStep("all loaded", () => loadCount == 16);
 
@@ -256,15 +255,10 @@ namespace osu.Framework.Tests.Visual.Drawables
         }
 
         [Test]
-        [Ignore("Fails intermittently on CI, can't be reproduced locally.")]
         public void TestManyChildrenUnload()
         {
-            int loaded = 0;
-
             AddStep("populate panels", () =>
             {
-                loaded = 0;
-
                 for (int i = 1; i < panel_count; i++)
                 {
                     flow.Add(new Container
@@ -277,7 +271,7 @@ namespace osu.Framework.Tests.Visual.Drawables
                                 RelativeSizeAxes = Axes.Both,
                                 Children = new Drawable[]
                                 {
-                                    new TestBox(() => loaded++) { RelativeSizeAxes = Axes.Both }
+                                    new TestBox { RelativeSizeAxes = Axes.Both }
                                 }
                             }, 500, 2000),
                             new SpriteText { Text = i.ToString() },
@@ -286,24 +280,14 @@ namespace osu.Framework.Tests.Visual.Drawables
                 }
             });
 
-            IEnumerable<Drawable> childrenWithAvatarsLoaded() => flow.Children.Where(c => c.Children.OfType<DelayedLoadWrapper>().First().Content?.IsLoaded ?? false);
+            List<DelayedLoadUnloadWrapper> firstLoad = getLoadedWrappers();
+            scrollToEnd();
+            List<DelayedLoadUnloadWrapper> secondLoad = getLoadedWrappers(firstLoad);
+            List<DelayedLoadUnloadWrapper> unloaded = getUnloadedWrappers(firstLoad);
 
-            AddUntilStep("wait for load", () => loaded > 0);
-
-            int loadedCount1 = 0;
-            Drawable[] loadedChildren1 = null;
-
-            AddStep("scroll down", () =>
-            {
-                loadedCount1 = loaded;
-                loadedChildren1 = childrenWithAvatarsLoaded().ToArray();
-                scroll.ScrollToEnd();
-            });
-
-            AddUntilStep("more loaded", () => loaded > loadedCount1);
-
-            AddAssert("not too many loaded", () => loaded < panel_count / 4);
-            AddUntilStep("wait some unloaded", () => loadedChildren1.Any(c => !childrenWithAvatarsLoaded().Contains(c)));
+            AddAssert("more loaded", () => secondLoad.Any());
+            AddAssert("not all loaded", () => this.ChildrenOfType<DelayedLoadUnloadWrapper>().Any(w => w.Content?.IsLoaded != true));
+            AddAssert("any unloaded", () => unloaded.Any());
         }
 
         [Test]
@@ -348,7 +332,7 @@ namespace osu.Framework.Tests.Visual.Drawables
         [Test]
         public void TestUnloadWithNonOptimisingParent()
         {
-            DelayedLoadUnloadWrapper wrapper = null;
+            DelayedLoadUnloadWrapper wrapper = null!;
 
             AddStep("add panel", () =>
             {
@@ -370,8 +354,8 @@ namespace osu.Framework.Tests.Visual.Drawables
         [Test]
         public void TestUnloadWithOffscreenParent()
         {
-            Container parent = null;
-            DelayedLoadUnloadWrapper wrapper = null;
+            Container parent = null!;
+            DelayedLoadUnloadWrapper wrapper = null!;
 
             AddStep("add panel", () =>
             {
@@ -393,8 +377,8 @@ namespace osu.Framework.Tests.Visual.Drawables
         [Test]
         public void TestUnloadWithParentRemovedFromHierarchy()
         {
-            Container parent = null;
-            DelayedLoadUnloadWrapper wrapper = null;
+            Container parent = null!;
+            DelayedLoadUnloadWrapper wrapper = null!;
 
             AddStep("add panel", () =>
             {
@@ -416,8 +400,8 @@ namespace osu.Framework.Tests.Visual.Drawables
         [Test]
         public void TestUnloadedWhenAsyncLoadCompletedAndMaskedAway()
         {
-            BasicScrollContainer scrollContainer = null;
-            DelayedLoadTestDrawable child = null;
+            BasicScrollContainer scrollContainer = null!;
+            DelayedLoadTestDrawable? child = null;
 
             AddStep("add panel", () =>
             {
@@ -447,23 +431,23 @@ namespace osu.Framework.Tests.Visual.Drawables
             // Check that the child is disposed when its async-load completes while the wrapper is masked away.
             AddUntilStep("wait for load to begin", () => child?.LoadState == LoadState.Loading);
             AddStep("scroll to end", () => scrollContainer.ScrollToEnd(false));
-            AddStep("allow load", () => child.AllowLoad.Set());
-            AddUntilStep("drawable disposed", () => child.IsDisposed);
+            AddStep("allow load", () => child!.AllowLoad.Set());
+            AddUntilStep("drawable disposed", () => child!.IsDisposed);
 
-            Drawable lastChild = null;
-            AddStep("store child", () => lastChild = child);
+            Drawable lastChild = null!;
+            AddStep("store child", () => lastChild = child!);
 
             // Check that reuse of the child is not attempted.
             AddStep("scroll to start", () => scrollContainer.ScrollToStart(false));
-            AddStep("allow load of new child", () => child.AllowLoad.Set());
-            AddUntilStep("new child loaded", () => child.IsLoaded);
+            AddStep("allow load of new child", () => child!.AllowLoad.Set());
+            AddUntilStep("new child loaded", () => child!.IsLoaded);
             AddAssert("last child not loaded", () => !lastChild.IsLoaded);
         }
 
         [Test]
         public void TestWrapperStopReceivingUpdatesAfterDelayedLoadCompleted()
         {
-            DelayedLoadTestDrawable child = null;
+            DelayedLoadTestDrawable? child = null!;
 
             AddStep("add panel", () =>
             {
@@ -489,6 +473,42 @@ namespace osu.Framework.Tests.Visual.Drawables
             AddUntilStep("drawable disposed", () => child.IsDisposed);
         }
 
+        private List<DelayedLoadUnloadWrapper> getLoadedWrappers(List<DelayedLoadUnloadWrapper>? except = null)
+        {
+            except ??= [];
+
+            List<DelayedLoadUnloadWrapper> loaded = new List<DelayedLoadUnloadWrapper>();
+
+            AddUntilStep("wait for any new loaded", () => this.ChildrenOfType<DelayedLoadUnloadWrapper>().Except(except).Any(w => w.Content?.IsLoaded == true));
+            AddUntilStep("wait for all pending loads", () => this.ChildrenOfType<DelayedLoadUnloadWrapper>().All(d => d.LoadState != LoadState.Loading));
+            AddStep("get loaded wrappers", () =>
+            {
+                loaded.Clear();
+                loaded.AddRange(this.ChildrenOfType<DelayedLoadUnloadWrapper>().Where(w => w.Content?.IsLoaded == true));
+            });
+
+            return loaded;
+        }
+
+        private List<DelayedLoadUnloadWrapper> getUnloadedWrappers(List<DelayedLoadUnloadWrapper> loaded)
+        {
+            List<DelayedLoadUnloadWrapper> unloaded = new List<DelayedLoadUnloadWrapper>();
+
+            AddUntilStep("wait for pending unloads", () =>
+            {
+                unloaded.AddRange(loaded.Where(w => w.Content?.IsLoaded != true));
+                return unloaded.Count > 0;
+            });
+
+            return unloaded;
+        }
+
+        private void scrollToEnd()
+        {
+            AddStep("scroll to end", () => scroll.ScrollToEnd(animated: false));
+            AddUntilStep("wait for scroll to complete", () => scroll.IsScrolledToEnd(1));
+        }
+
         public partial class TestScrollContainer : BasicScrollContainer
         {
             public new Scheduler Scheduler => base.Scheduler;
@@ -496,19 +516,14 @@ namespace osu.Framework.Tests.Visual.Drawables
 
         public partial class TestBox : Container
         {
-            private readonly Action onLoadAction;
-
-            public TestBox(Action onLoadAction = null)
+            public TestBox()
             {
-                this.onLoadAction = onLoadAction;
                 RelativeSizeAxes = Axes.Both;
             }
 
             [BackgroundDependencyLoader]
             private void load()
             {
-                onLoadAction?.Invoke();
-
                 Child = new SpriteText
                 {
                     Colour = Color4.Yellow,
