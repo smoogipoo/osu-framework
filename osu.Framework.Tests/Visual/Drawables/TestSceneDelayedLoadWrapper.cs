@@ -139,7 +139,7 @@ namespace osu.Framework.Tests.Visual.Drawables
 
         private void scrollToEnd()
         {
-            AddStep("scroll to end", () => scroll.ScrollToEnd());
+            AddStep("scroll to end", () => scroll.ScrollToEnd(animated: false));
             AddUntilStep("wait for scroll to complete", () => scroll.IsScrolledToEnd(1));
         }
 
