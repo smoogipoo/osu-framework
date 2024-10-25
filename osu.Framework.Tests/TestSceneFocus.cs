@@ -5,11 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
+using osu.Framework.Testing;
 using osu.Framework.Tests.Visual;
 using osuTK;
 using osuTK.Graphics;
@@ -140,7 +140,7 @@ namespace osu.Framework.Tests
         private interface IFocusEnvironment : IDrawable
         {
             /// <summary>
-            /// The focused drawable within this environment.
+            /// The immediate focused drawable within this environment.
             /// </summary>
             IFocusableObject? CurrentFocus { get; }
 
@@ -152,6 +152,11 @@ namespace osu.Framework.Tests
         /// </summary>
         private interface IFocusSystem : IFocusEnvironment
         {
+            /// <summary>
+            /// The drawable that will be the first target for keyboard input.
+            /// </summary>
+            IFocusableObject? FirstResponder { get; }
+
             /// <summary>
             /// Requests a drawable to be focused.
             /// </summary>
@@ -238,124 +243,97 @@ namespace osu.Framework.Tests
 
         private class FocusSystem : FocusEnvironment, IFocusSystem
         {
-            private readonly Stack<IFocusEnvironment> focusEnvironments = new Stack<IFocusEnvironment>();
-            private readonly List<FocusRequest> pendingFocusRequests = new List<FocusRequest>();
-            private uint isProcessingRequests;
+            public IFocusableObject? FirstResponder { get; private set; }
 
-            private IFocusableObject? currentFirstResponder
-                => currentFocusEnvironment?.CurrentFocus;
-
-            private IFocusEnvironment? currentFocusEnvironment
-                => focusEnvironments.TryPeek(out IFocusEnvironment? env) ? env : null;
-
-            public void AcquireFocus(IFocusableObject target)
-            {
-                pendingFocusRequests.Add(new FocusRequest(target, true));
-                processRequests();
-            }
-
-            public void ReleaseFocus(IFocusableObject target)
-            {
-                pendingFocusRequests.Add(new FocusRequest(target, false));
-                processRequests();
-            }
+            private readonly Queue<FocusRequest> pendingRequests = new Queue<FocusRequest>();
+            private bool isDeferringRequests;
 
             protected override bool OnClick(ClickEvent e)
             {
-                using (suspendFirstResponder())
-                    restoreEnvironment(null);
-                return true;
+                while (FirstResponder != null)
+                    ReleaseFocus(FirstResponder);
+                return false;
             }
+
+            public override bool ReceivePositionalInputAt(Vector2 screenSpacePos) => true;
+
+            public void AcquireFocus(IFocusableObject target)
+                => handleRequest(new FocusRequest(target, true));
+
+            public void ReleaseFocus(IFocusableObject target)
+                => handleRequest(new FocusRequest(target, false));
 
             bool IFocusSystem.OnClick(IFocusableObject target)
             {
-                isProcessingRequests++;
+                isDeferringRequests = true;
+
+                bool acquire = false;
 
                 try
                 {
-                    // It could be the case that, while processing the pending requests, one of them caused an indirect click that re-entered this method.
-                    // When this occurs, we need to save the current pending requests to acquire focus at the correct point in time.
-                    int requestCount = pendingFocusRequests.Count;
-
                     if (!target.HandleClick())
                         return false;
 
-                    pendingFocusRequests.Insert(requestCount, new FocusRequest(target, true));
+                    acquire = true;
                     return true;
                 }
                 finally
                 {
-                    isProcessingRequests--;
-                    processRequests();
+                    isDeferringRequests = false;
+
+                    if (acquire)
+                        handleRequest(new FocusRequest(target, acquire));
+
+                    while (pendingRequests.TryDequeue(out FocusRequest req))
+                        handleRequest(req);
                 }
             }
 
-            private void processRequests()
+            private void handleRequest(FocusRequest request)
             {
-                if (isProcessingRequests > 0)
-                    return;
-
-                isProcessingRequests++;
-
-                try
+                if (isDeferringRequests)
                 {
-                    // Note: Do not make this into a foreach - it can be mutated if the user changes focus during one of the event handlers.
-                    // ReSharper disable once ForCanBeConvertedToForeach
-                    for (int i = 0; i < pendingFocusRequests.Count; i++)
+                    pendingRequests.Enqueue(request);
+                    return;
+                }
+
+                IFocusEnvironment environment = request.Target.FindClosestParent<IFocusEnvironment>()!;
+
+                if (request.Acquire)
+                {
+                    if (FirstResponder != request.Target)
                     {
-                        FocusRequest request = pendingFocusRequests[i];
-                        IFocusEnvironment environment = request.Target.FindClosestParent<IFocusEnvironment>()!;
-
-                        if (request.Acquire)
-                        {
-                            if (currentFocusEnvironment == environment && currentFirstResponder == request.Target)
-                                continue;
-
-                            using (suspendFirstResponder())
-                            {
-                                restoreEnvironment(environment);
-                                environment.ChangeFocus(request.Target);
-                            }
-                        }
-                        else
-                        {
-                            if (currentFocusEnvironment != environment || currentFirstResponder != request.Target)
-                                continue;
-
-                            using (suspendFirstResponder())
-                            {
-                                environment.ChangeFocus(null);
-                                focusEnvironments.Pop();
-                            }
-                        }
+                        FirstResponder?.OnResignFirstResponder();
+                        FirstResponder = null;
                     }
 
-                    pendingFocusRequests.Clear();
-                }
-                finally
-                {
-                    isProcessingRequests--;
-                }
-            }
+                    environment.ChangeFocus(request.Target);
 
-            private void restoreEnvironment(IFocusEnvironment? environment)
-            {
-                if (environment == null || focusEnvironments.Contains(environment))
-                {
-                    while (currentFocusEnvironment != environment)
+                    if (FirstResponder == null)
                     {
-                        currentFocusEnvironment!.ChangeFocus(null);
-                        focusEnvironments.Pop();
+                        FirstResponder = request.Target;
+                        FirstResponder.OnBecomeFirstResponder();
                     }
                 }
                 else
-                    focusEnvironments.Push(environment);
-            }
+                {
+                    if (environment.CurrentFocus != request.Target)
+                        return;
 
-            private ValueInvokeOnDisposal<FocusSystem> suspendFirstResponder()
-            {
-                currentFirstResponder?.OnResignFirstResponder();
-                return new ValueInvokeOnDisposal<FocusSystem>(this, static s => s.currentFirstResponder?.OnBecomeFirstResponder());
+                    if (FirstResponder == request.Target)
+                    {
+                        FirstResponder?.OnResignFirstResponder();
+                        FirstResponder = null;
+                    }
+
+                    environment.ChangeFocus(null);
+
+                    if (FirstResponder == null)
+                    {
+                        FirstResponder = this.ChildrenOfType<IFocusEnvironment>().Select(e => e.CurrentFocus).FirstOrDefault(d => d != null);
+                        FirstResponder?.OnBecomeFirstResponder();
+                    }
+                }
             }
 
             private readonly record struct FocusRequest(IFocusableObject Target, bool Acquire);
