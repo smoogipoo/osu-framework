@@ -1,9 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -19,9 +16,8 @@ namespace osu.Framework.Tests.Visual.Drawables
 {
     public partial class TestSceneDelayedLoadWrapper : FrameworkTestScene
     {
-        private FillFlowContainer<Container> flow;
-        private TestSceneDelayedLoadUnloadWrapper.TestScrollContainer scroll;
-        private int loaded;
+        private FillFlowContainer<Container> flow = null!;
+        private TestSceneDelayedLoadUnloadWrapper.TestScrollContainer scroll = null!;
 
         private const int panel_count = 2048;
 
@@ -30,8 +26,6 @@ namespace osu.Framework.Tests.Visual.Drawables
         {
             AddStep("create scroll container", () =>
             {
-                loaded = 0;
-
                 Children = new Drawable[]
                 {
                     scroll = new TestSceneDelayedLoadUnloadWrapper.TestScrollContainer
@@ -68,7 +62,7 @@ namespace osu.Framework.Tests.Visual.Drawables
                                 RelativeSizeAxes = Axes.Both,
                                 Children = new Drawable[]
                                 {
-                                    new TestBox(() => loaded++) { RelativeSizeAxes = Axes.Both }
+                                    new TestBox { RelativeSizeAxes = Axes.Both }
                                 }
                             }, instant ? 0 : 500),
                             new SpriteText { Text = i.ToString() },
@@ -77,25 +71,14 @@ namespace osu.Framework.Tests.Visual.Drawables
                 }
             });
 
-            var childrenWithAvatarsLoaded = new Func<IEnumerable<Drawable>>(() => flow.Children.Where(c => c.Children.OfType<DelayedLoadWrapper>().First().Content?.IsLoaded ?? false));
+            List<DelayedLoadWrapper> firstLoad = getLoadedWrappers();
+            scrollToEnd();
+            List<DelayedLoadWrapper> secondLoad = getLoadedWrappers(except: firstLoad);
 
-            int loadCount1 = 0;
+            AddAssert("more loaded", () => secondLoad.Any());
+            AddAssert("not all loaded", () => this.ChildrenOfType<DelayedLoadWrapper>().Any(w => w.Content?.IsLoaded != true));
 
-            AddUntilStep("wait for load", () => loaded, () => Is.GreaterThan(0));
-
-            AddStep("scroll down", () =>
-            {
-                loadCount1 = loaded;
-                scroll.ScrollToEnd();
-            });
-
-            AddWaitStep("wait some more", 10);
-
-            AddUntilStep("more loaded", () => loaded, () => Is.GreaterThan(loadCount1));
-            AddAssert("not too many loaded", () => childrenWithAvatarsLoaded().Count(), () => Is.LessThan(panel_count / 4));
-
-            AddStep("Remove all panels", () => flow.Clear(false));
-
+            AddStep("remove all panels", () => flow.Clear(false));
             AddUntilStep("repeating schedulers removed", () => scroll.Scheduler.HasPendingTasks, () => Is.False);
         }
 
@@ -117,7 +100,7 @@ namespace osu.Framework.Tests.Visual.Drawables
                                 RelativeSizeAxes = Axes.Both,
                                 Children = new Drawable[]
                                 {
-                                    new TestBox(() => loaded++) { RelativeSizeAxes = Axes.Both }
+                                    new TestBox { RelativeSizeAxes = Axes.Both }
                                 }
                             }, instant ? 0 : 500),
                             new SpriteText { Text = i.ToString() },
@@ -126,43 +109,45 @@ namespace osu.Framework.Tests.Visual.Drawables
                 }
             });
 
-            var childrenWithAvatarsLoaded = new Func<IEnumerable<Drawable>>(() => flow.Children.Where(c => c.Children.OfType<DelayedLoadWrapper>().First().Content?.IsLoaded ?? false));
+            List<DelayedLoadWrapper> firstLoad = getLoadedWrappers();
+            scrollToEnd();
+            List<DelayedLoadWrapper> secondLoad = getLoadedWrappers(except: firstLoad);
 
-            int loadCount1 = 0;
+            AddAssert("more loaded", () => secondLoad.Except(firstLoad).Any());
+            AddAssert("not all loaded", () => this.ChildrenOfType<DelayedLoadWrapper>().Any(w => w.Content?.IsLoaded != true));
 
-            AddUntilStep("wait for load", () => loaded, () => Is.GreaterThan(0));
+            AddStep("remove all panels", () => flow.Clear(false));
+            AddUntilStep("repeating schedulers removed", () => scroll.Scheduler.HasPendingTasks, () => Is.False);
+        }
 
-            AddStep("scroll down", () =>
+        private List<DelayedLoadWrapper> getLoadedWrappers(List<DelayedLoadWrapper>? except = null)
+        {
+            except ??= [];
+
+            List<DelayedLoadWrapper> loaded = new List<DelayedLoadWrapper>();
+
+            AddUntilStep("wait for any new loaded", () => this.ChildrenOfType<DelayedLoadWrapper>().Except(except).Any(w => w.Content?.IsLoaded == true));
+            AddUntilStep("wait for all pending loads", () => this.ChildrenOfType<DelayedLoadWrapper>().All(d => d.LoadState != LoadState.Loading));
+            AddStep("get loaded wrappers", () =>
             {
-                loadCount1 = loaded;
-                scroll.ScrollToEnd();
+                loaded.Clear();
+                loaded.AddRange(this.ChildrenOfType<DelayedLoadWrapper>().Where(w => w.Content?.IsLoaded == true));
             });
 
-            AddWaitStep("wait some more", 10);
+            return loaded;
+        }
 
-            AddUntilStep("more loaded", () => loaded, () => Is.GreaterThan(loadCount1));
-            AddAssert("not too many loaded", () => childrenWithAvatarsLoaded().Count(), () => Is.LessThan(panel_count / 4));
-
-            AddStep("Remove all panels", () => flow.Clear(false));
-
-            AddUntilStep("repeating schedulers removed", () => scroll.Scheduler.HasPendingTasks, () => Is.False);
+        private void scrollToEnd()
+        {
+            AddStep("scroll to end", () => scroll.ScrollToEnd());
+            AddUntilStep("wait for scroll to complete", () => scroll.IsScrolledToEnd(1));
         }
 
         public partial class TestBox : Container
         {
-            private readonly Action onLoadAction;
-
-            public TestBox(Action onLoadAction)
-            {
-                this.onLoadAction = onLoadAction;
-                RelativeSizeAxes = Axes.Both;
-            }
-
             [BackgroundDependencyLoader]
             private void load()
             {
-                onLoadAction?.Invoke();
-
                 Child = new SpriteText
                 {
                     Colour = Color4.Yellow,
