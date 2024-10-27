@@ -43,6 +43,9 @@ namespace osu.Framework.Graphics
             return null;
         }
 
+        public static T? FindClosestParentOrSelf<T>(this IDrawable? drawable) where T : class, IDrawable
+            => drawable as T ?? drawable.FindClosestParent<T>();
+
         /// <summary>
         /// Check whether the drawable is rooted at a proposed parent drawable.
         /// </summary>

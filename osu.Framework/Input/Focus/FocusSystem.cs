@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;
@@ -29,7 +30,12 @@ namespace osu.Framework.Input.Focus
         protected override bool OnClick(ClickEvent e)
         {
             while (FirstResponder != null)
+            {
+                // Release focus immediately -- we are in a deferred context at this time.
+                Debug.Assert(context is DeferredFocusUpdateContext);
                 releaseFocus(GetContainingInputManager()?.CurrentState ?? new InputState(), FirstResponder);
+            }
+
             return false;
         }
 
@@ -105,11 +111,11 @@ namespace osu.Framework.Input.Focus
                 FirstResponder = nextFirstResponder;
         }
 
-        public void TriggerFocusContention(Drawable? triggerSource)
+        void IFocusManager.TriggerFocusContention(Drawable? triggerSource)
         {
         }
 
-        public bool ChangeFocus(Drawable? potentialFocusTarget)
+        bool IFocusManager.ChangeFocus(Drawable? potentialFocusTarget)
         {
             if (potentialFocusTarget == null)
             {

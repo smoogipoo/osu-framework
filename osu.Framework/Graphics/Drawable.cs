@@ -2040,9 +2040,7 @@ namespace osu.Framework.Graphics
 
                 case ClickEvent click:
                 {
-                    var focusSystem = this as IFocusSystem ?? this.FindClosestParent<IFocusSystem>()!;
-
-                    using (var context = focusSystem.BeginFocusUpdate())
+                    using (var context = this.FindClosestParentOrSelf<IFocusSystem>()!.BeginFocusUpdate())
                     {
                         bool handled = OnClick(click);
 
