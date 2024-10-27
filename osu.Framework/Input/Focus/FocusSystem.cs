@@ -64,19 +64,21 @@ namespace osu.Framework.Input.Focus
         {
             IFocusEnvironment environment = target.FindClosestParent<IFocusEnvironment>()!;
 
-            Drawable? lastFirstResponder = FirstResponder;
+            Drawable? lastFirstResponder = null;
             Drawable? nextFirstResponder = null;
 
-            if (lastFirstResponder != nextFirstResponder)
+            if (FirstResponder != target)
             {
+                lastFirstResponder = FirstResponder;
                 nextFirstResponder = target;
-                lastFirstResponder?.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
             }
 
+            lastFirstResponder?.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
             environment.ChangeFocus(state, target);
             nextFirstResponder?.TriggerEvent(new BecomeFirstResponderEvent(state, lastFirstResponder));
 
-            FirstResponder = target;
+            if (lastFirstResponder != nextFirstResponder)
+                FirstResponder = nextFirstResponder;
         }
 
         private void releaseFocus(InputState state, Drawable target)
@@ -86,19 +88,21 @@ namespace osu.Framework.Input.Focus
             if (environment.CurrentFocus != target)
                 return;
 
-            Drawable? lastFirstResponder = FirstResponder;
-            Drawable? nextFirstResponder = null!;
+            Drawable? lastFirstResponder = null;
+            Drawable? nextFirstResponder = null;
 
-            if (lastFirstResponder == target)
+            if (FirstResponder == target)
             {
+                lastFirstResponder = FirstResponder;
                 nextFirstResponder = this.ChildrenOfType<IFocusEnvironment>().Select(e => e.CurrentFocus).FirstOrDefault(d => d != null && d != lastFirstResponder);
-                lastFirstResponder.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
             }
 
+            lastFirstResponder?.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
             environment.ChangeFocus(state, null);
             nextFirstResponder?.TriggerEvent(new BecomeFirstResponderEvent(state, lastFirstResponder));
 
-            FirstResponder = nextFirstResponder;
+            if (lastFirstResponder != nextFirstResponder)
+                FirstResponder = nextFirstResponder;
         }
     }
 }
