@@ -2239,6 +2239,16 @@ namespace osu.Framework.Graphics
         protected virtual void OnFocusLost(FocusLostEvent e) => Handle(e);
 
         /// <summary>
+        /// Notifies that this drawable will be the first target for keyboard input.
+        /// </summary>
+        protected virtual void OnBecomeFirstResponder(BecomeFirstResponderEvent e) => Handle(e);
+
+        /// <summary>
+        /// Notifies that this drawable will no longer be the first target for keyboard input.
+        /// </summary>
+        protected virtual void OnResignFirstResponder(ResignFirstResponderEvent e) => Handle(e);
+
+        /// <summary>
         /// An event that occurs when a <see cref="Key"/> is pressed.
         /// </summary>
         /// <remarks>
