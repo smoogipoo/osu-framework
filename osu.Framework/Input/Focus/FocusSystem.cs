@@ -11,7 +11,7 @@ using osuTK;
 
 namespace osu.Framework.Input.Focus
 {
-    public class FocusSystem : FocusEnvironment, IFocusSystem
+    public class FocusSystem : FocusEnvironment, IFocusSystem, IFocusManager
     {
         public Drawable? FirstResponder { get; private set; }
 
@@ -103,6 +103,23 @@ namespace osu.Framework.Input.Focus
 
             if (lastFirstResponder != nextFirstResponder)
                 FirstResponder = nextFirstResponder;
+        }
+
+        public void TriggerFocusContention(Drawable? triggerSource)
+        {
+        }
+
+        public bool ChangeFocus(Drawable? potentialFocusTarget)
+        {
+            if (potentialFocusTarget == null)
+            {
+                if (CurrentFocus != null)
+                    ReleaseFocus(CurrentFocus);
+            }
+            else
+                AcquireFocus(potentialFocusTarget);
+
+            return CurrentFocus == potentialFocusTarget;
         }
     }
 }
