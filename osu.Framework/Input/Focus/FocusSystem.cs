@@ -57,7 +57,7 @@ namespace osu.Framework.Input.Focus
         public void AcquireFocus(Drawable target)
             => context.AcquireFocus(GetContainingInputManager()?.CurrentState ?? new InputState(), target);
 
-        public void ReleaseFocus(Drawable target)
+        public void ResignFocus(Drawable target)
             => context.ReleaseFocus(GetContainingInputManager()?.CurrentState ?? new InputState(), target);
 
         public IFocusUpdateContext BeginFocusUpdate()
@@ -120,7 +120,7 @@ namespace osu.Framework.Input.Focus
             if (potentialFocusTarget == null)
             {
                 if (CurrentFocus != null)
-                    ReleaseFocus(CurrentFocus);
+                    ResignFocus(CurrentFocus);
             }
             else
                 AcquireFocus(potentialFocusTarget);

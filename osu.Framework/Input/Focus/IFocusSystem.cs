@@ -25,7 +25,7 @@ namespace osu.Framework.Input.Focus
         /// Requests focus to be removed from a given drawable.
         /// </summary>
         /// <param name="target">The drawable.</param>
-        void ReleaseFocus(Drawable target);
+        void ResignFocus(Drawable target);
 
         IFocusUpdateContext BeginFocusUpdate();
     }
