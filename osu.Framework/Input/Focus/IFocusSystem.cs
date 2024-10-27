@@ -8,7 +8,7 @@ namespace osu.Framework.Input.Focus
     /// <summary>
     /// Manages focus and captures the first input responder.
     /// </summary>
-    public interface IFocusSystem
+    public interface IFocusSystem : IDrawable
     {
         /// <summary>
         /// The drawable that will be the first target for keyboard input.

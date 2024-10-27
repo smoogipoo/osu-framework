@@ -32,6 +32,7 @@ using osu.Framework.Development;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.Focus;
 using osu.Framework.Input.States;
 using osu.Framework.Layout;
 using osu.Framework.Utils;
@@ -2038,7 +2039,19 @@ namespace osu.Framework.Graphics
                     return false;
 
                 case ClickEvent click:
-                    return OnClick(click);
+                {
+                    var focusSystem = this as IFocusSystem ?? this.FindClosestParent<IFocusSystem>()!;
+
+                    using (var context = focusSystem.BeginFocusUpdate())
+                    {
+                        bool handled = OnClick(click);
+
+                        if (handled && ChangeFocusOnClick)
+                            context.HandleClick(click.CurrentState, this);
+
+                        return handled;
+                    }
+                }
 
                 case DoubleClickEvent doubleClick:
                     return OnDoubleClick(doubleClick);

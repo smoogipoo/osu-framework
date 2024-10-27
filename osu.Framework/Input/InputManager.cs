@@ -14,7 +14,6 @@ using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
-using osu.Framework.Input.Focus;
 using osu.Framework.Input.Handlers;
 using osu.Framework.Input.StateChanges;
 using osu.Framework.Input.StateChanges.Events;
@@ -152,19 +151,10 @@ namespace osu.Framework.Input
         /// </summary>
         protected virtual bool AllowRightClickFromLongTouch => true;
 
-        public readonly FocusSystem FocusSystem;
-
-        protected override Container<Drawable> Content => FocusSystem;
-
         protected InputManager()
         {
             CurrentState = CreateInitialState();
             RelativeSizeAxes = Axes.Both;
-
-            InternalChild = FocusSystem = new FocusSystem
-            {
-                RelativeSizeAxes = Axes.Both
-            };
 
             foreach (var button in Enum.GetValues<MouseButton>())
             {
@@ -571,7 +561,7 @@ namespace osu.Framework.Input
         /// </summary>
         public virtual bool HandleHoverEvents => true;
 
-        public Drawable FocusedDrawable => FocusSystem.FirstResponder;
+        public Drawable FocusedDrawable => null;
 
         private void updateHoverEvents(InputState state)
         {
