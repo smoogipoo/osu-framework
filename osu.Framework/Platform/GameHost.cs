@@ -42,7 +42,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.Veldrid;
 using osu.Framework.Graphics.Video;
-using osu.Framework.Input.Focus;
 using osu.Framework.IO.Serialization;
 using osu.Framework.IO.Stores;
 using osu.Framework.Localisation;
@@ -1182,18 +1181,14 @@ namespace osu.Framework.Platform
         private void bootstrapSceneGraph(Game game)
         {
             var root = game.CreateUserInputManager()
-                           .WithChild(new FocusSystem
+                           .WithChild(new PlatformActionContainer
                            {
-                               RelativeSizeAxes = Axes.Both,
-                               Child = new PlatformActionContainer
+                               Child = new FrameworkActionContainer
                                {
-                                   Child = new FrameworkActionContainer
+                                   Child = new SafeAreaDefiningContainer
                                    {
-                                       Child = new SafeAreaDefiningContainer
-                                       {
-                                           RelativeSizeAxes = Axes.Both,
-                                           Child = game
-                                       }
+                                       RelativeSizeAxes = Axes.Both,
+                                       Child = game
                                    }
                                }
                            });

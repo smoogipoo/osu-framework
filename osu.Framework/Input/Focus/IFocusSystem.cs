@@ -26,7 +26,5 @@ namespace osu.Framework.Input.Focus
         /// </summary>
         /// <param name="target">The drawable.</param>
         void ResignFocus(Drawable target);
-
-        IFocusUpdateContext BeginFocusUpdate();
     }
 }

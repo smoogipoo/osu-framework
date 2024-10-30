@@ -14,6 +14,7 @@ using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.Focus;
 using osu.Framework.Input.Handlers;
 using osu.Framework.Input.StateChanges;
 using osu.Framework.Input.StateChanges.Events;
@@ -31,7 +32,7 @@ using MouseState = osu.Framework.Input.States.MouseState;
 
 namespace osu.Framework.Input
 {
-    public abstract partial class InputManager : Container, IInputStateChangeHandler
+    public abstract partial class InputManager : FocusEnvironment, IInputStateChangeHandler
     {
         /// <summary>
         /// The initial delay before key repeat begins.
