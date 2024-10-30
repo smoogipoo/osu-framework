@@ -5,8 +5,8 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.Focus;
 using osuTK.Input;
 
 namespace osu.Framework.Graphics.Containers
@@ -50,7 +50,8 @@ namespace osu.Framework.Graphics.Containers
 
         private void moveToNextTabStop(CompositeDrawable target, bool reverse)
         {
-            var focusManager = GetContainingFocusManager().AsNonNull();
+            IFocusSystem focusSystem = GetContainingFocusSystem()!;
+            IFocusEnvironment focusEnvironment = GetContainingFocusEnvironment()!;
 
             Stack<Drawable> stack = new Stack<Drawable>();
             stack.Push(target); // Extra push for circular tabbing
@@ -64,8 +65,12 @@ namespace osu.Framework.Graphics.Containers
 
                 if (!started)
                     started = ReferenceEquals(drawable, this);
-                else if (drawable is ITabbableContainer tabbable && tabbable.CanBeTabbedTo && focusManager.ChangeFocus(drawable))
-                    return;
+                else if (drawable is ITabbableContainer tabbable && tabbable.CanBeTabbedTo)
+                {
+                    focusSystem.AcquireFocus(drawable);
+                    if (focusEnvironment.CurrentFocus == drawable)
+                        return;
+                }
 
                 if (drawable is CompositeDrawable composite)
                 {
