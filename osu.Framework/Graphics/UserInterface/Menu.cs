@@ -254,14 +254,11 @@ namespace osu.Framework.Graphics.UserInterface
             {
                 case MenuState.Closed:
                     AnimateClose();
-
-                    if (HasFocus)
-                        GetContainingFocusManager()?.ChangeFocus(parentMenu);
+                    GetContainingFocusSystem()?.ResignFocus(this);
                     break;
 
                 case MenuState.Open:
                     ContentContainer.ScrollToStart(false);
-
                     AnimateOpen();
 
                     // We may not be present at this point, so must run on the next frame.
@@ -269,7 +266,8 @@ namespace osu.Framework.Graphics.UserInterface
                     {
                         Schedule(delegate
                         {
-                            if (State == MenuState.Open) GetContainingFocusManager().AsNonNull().ChangeFocus(this);
+                            if (State == MenuState.Open)
+                                GetContainingFocusSystem().AsNonNull().AcquireFocus(this);
                         });
                     }
 
@@ -578,10 +576,7 @@ namespace osu.Framework.Graphics.UserInterface
 
             if (item.Item.Items.Count > 0)
             {
-                if (submenu.State == MenuState.Open)
-                    Schedule(delegate { GetContainingFocusManager().AsNonNull().ChangeFocus(submenu); });
-                else
-                    submenu.Open();
+                submenu.Open();
 
                 // Check if submenu has changed before firing, to prevent extraneous callbacks (e.g. re-hovering the triggeringItem of an already open submenu)
                 if (submenuChanged)
