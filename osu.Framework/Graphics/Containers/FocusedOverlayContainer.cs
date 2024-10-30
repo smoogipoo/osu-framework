@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using osu.Framework.Bindables;
+using osu.Framework.Input.Focus;
 
 namespace osu.Framework.Graphics.Containers
 {
@@ -14,6 +15,18 @@ namespace osu.Framework.Graphics.Containers
 
         public override bool AcceptsFocus => State.Value == Visibility.Visible;
 
+        protected override Container<Drawable> Content => focusEnvironment;
+
+        private readonly FocusEnvironment focusEnvironment;
+
+        protected FocusedOverlayContainer()
+        {
+            InternalChild = focusEnvironment = new FocusEnvironment
+            {
+                RelativeSizeAxes = Axes.Both
+            };
+        }
+
         protected override void UpdateState(ValueChangedEvent<Visibility> state)
         {
             base.UpdateState(state);
@@ -21,12 +34,8 @@ namespace osu.Framework.Graphics.Containers
             switch (state.NewValue)
             {
                 case Visibility.Hidden:
-                    if (HasFocus)
-                        GetContainingFocusManager()?.ChangeFocus(null);
-                    break;
-
-                case Visibility.Visible:
-                    Schedule(() => GetContainingFocusManager()?.TriggerFocusContention(this));
+                    if (focusEnvironment.CurrentFocus != null)
+                        GetContainingFocusSystem()?.ResignFocus(focusEnvironment.CurrentFocus);
                     break;
             }
         }
