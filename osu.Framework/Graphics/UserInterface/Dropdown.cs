@@ -30,7 +30,7 @@ namespace osu.Framework.Graphics.UserInterface
     /// </summary>
     /// <typeparam name="T">Type of value to select.</typeparam>
     [Cached(typeof(IDropdown))]
-    public abstract partial class Dropdown<T> : CompositeDrawable, IHasCurrentValue<T>, IFocusManager, IDropdown
+    public abstract partial class Dropdown<T> : CompositeDrawable, IHasCurrentValue<T>, IDropdown
     {
         protected internal DropdownHeader Header;
         protected internal DropdownMenu Menu;
@@ -783,16 +783,6 @@ namespace osu.Framework.Graphics.UserInterface
 
         #endregion
 
-        #region IFocusManager
-
-        // Isolate input so that the Menu doesn't disturb focus. Focus is managed via the IDropdown interface.
-        void IFocusManager.TriggerFocusContention(Drawable triggerSource) { }
-
-        // Isolate input so that the Menu doesn't disturb focus. Focus is managed via the IDropdown interface.
-        bool IFocusManager.ChangeFocus(Drawable potentialFocusTarget) => false;
-
-        #endregion
-
         #region IDropdown
 
         event Action<MenuState> IDropdown.MenuStateChanged
@@ -838,10 +828,6 @@ namespace osu.Framework.Graphics.UserInterface
 
             SelectedItem = (DropdownMenuItem<T>)preselectedItem.Item;
         }
-
-        void IDropdown.TriggerFocusContention(Drawable triggerSource) => GetContainingFocusManager()?.TriggerFocusContention(triggerSource);
-
-        bool IDropdown.ChangeFocus(Drawable potentialFocusTarget) => GetContainingFocusManager()?.ChangeFocus(potentialFocusTarget) ?? false;
 
         #endregion
     }

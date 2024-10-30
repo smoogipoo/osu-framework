@@ -6,12 +6,13 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Input;
+using osu.Framework.Input.Focus;
 using osu.Framework.Platform;
 using osuTK;
 
 namespace osu.Framework.Graphics.UserInterface
 {
-    public abstract partial class DropdownSearchBar : VisibilityContainer, IFocusManager
+    public abstract partial class DropdownSearchBar : VisibilityContainer
     {
         public Bindable<string> SearchTerm { get; } = new Bindable<string>();
 
@@ -44,9 +45,10 @@ namespace osu.Framework.Graphics.UserInterface
             RelativeSizeAxes = Axes.Both;
             AlwaysPresent = true;
 
-            InternalChildren = new Drawable[]
+            InternalChild = new FocusEnvironment
             {
-                textBox = CreateTextBox().With(t =>
+                RelativeSizeAxes = Axes.Both,
+                Child = textBox = CreateTextBox().With(t =>
                 {
                     t.RelativeSizeAxes = Axes.Both;
                     t.Size = new Vector2(1f);
@@ -142,14 +144,11 @@ namespace osu.Framework.Graphics.UserInterface
             {
                 // Reset states when the menu is closed by any means.
                 SearchTerm.Value = string.Empty;
-
-                if (textBox.HasFocus)
-                    dropdown.ChangeFocus(null);
-
                 dropdown.CloseMenu();
+                GetContainingFocusSystem()?.ResignFocus(textBox);
             }
             else
-                dropdown.ChangeFocus(textBox);
+                GetContainingFocusSystem()?.AcquireFocus(textBox);
 
             updateTextBoxVisibility();
         }
@@ -158,24 +157,6 @@ namespace osu.Framework.Graphics.UserInterface
         /// Creates the <see cref="TextBox"/>.
         /// </summary>
         protected abstract TextBox CreateTextBox();
-
-        void IFocusManager.TriggerFocusContention(Drawable? triggerSource)
-        {
-            // Clear search text first without releasing focus.
-            if (Back())
-                return;
-
-            dropdown.TriggerFocusContention(triggerSource);
-        }
-
-        bool IFocusManager.ChangeFocus(Drawable? potentialFocusTarget)
-        {
-            // Clear search text first without releasing focus.
-            if (Back())
-                return false;
-
-            return dropdown.ChangeFocus(potentialFocusTarget);
-        }
 
         private class DropdownTextInputSource : TextInputSource
         {

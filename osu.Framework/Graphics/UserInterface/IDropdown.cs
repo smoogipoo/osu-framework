@@ -3,7 +3,6 @@
 
 using System;
 using osu.Framework.Bindables;
-using osu.Framework.Input;
 
 namespace osu.Framework.Graphics.UserInterface
 {
@@ -43,21 +42,5 @@ namespace osu.Framework.Graphics.UserInterface
         /// Commits the current pre-selected value.
         /// </summary>
         void CommitPreselection();
-
-        /// <summary>
-        /// Triggers focus contention on the parenting <see cref="IFocusManager"/>.
-        /// </summary>
-        /// <remarks>
-        /// Focus management is isolated by the <see cref="Dropdown{T}"/>. This invokes the method on the parenting <see cref="IFocusManager"/> un-interrupted.
-        /// </remarks>
-        void TriggerFocusContention(Drawable? triggerSource);
-
-        /// <summary>
-        /// Triggers a change of focus on the parenting <see cref="IFocusManager"/>.
-        /// </summary>
-        /// <remarks>
-        /// Focus management is isolated by the <see cref="Dropdown{T}"/>. This invokes the method on the parenting <see cref="IFocusManager"/> un-interrupted.
-        /// </remarks>
-        bool ChangeFocus(Drawable? potentialFocusTarget);
     }
 }
