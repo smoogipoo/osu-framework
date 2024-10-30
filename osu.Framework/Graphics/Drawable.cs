@@ -32,6 +32,7 @@ using osu.Framework.Development;
 using osu.Framework.Extensions.EnumExtensions;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.Focus;
 using osu.Framework.Input.States;
 using osu.Framework.Layout;
 using osu.Framework.Utils;
@@ -1502,6 +1503,12 @@ namespace osu.Framework.Graphics
         /// <returns>The first parent <see cref="IFocusManager"/>.</returns>
         [CanBeNull]
         protected internal IFocusManager GetContainingFocusManager() => this.FindClosestParent<IFocusManager>();
+
+        [CanBeNull]
+        protected internal IFocusSystem GetContainingFocusSystem() => this.FindClosestParent<IFocusSystem>();
+
+        [CanBeNull]
+        protected internal IFocusEnvironment GetContainingFocusEnvironment() => this.FindClosestParent<IFocusEnvironment>();
 
         private CompositeDrawable parent;
 
