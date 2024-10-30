@@ -12,6 +12,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.Focus;
 
 namespace osu.Framework.Graphics.Cursor
 {
@@ -41,12 +42,18 @@ namespace osu.Framework.Graphics.Cursor
         /// </summary>
         protected ContextMenuContainer()
         {
-            AddInternal(content = new Container
-            {
-                RelativeSizeAxes = Axes.Both,
-            });
-
-            AddInternal(menu = CreateMenu());
+            InternalChildren =
+            [
+                content = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                },
+                new FocusEnvironment
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Child = menu = CreateMenu()
+                }
+            ];
         }
 
         protected override void OnSizingChanged()
