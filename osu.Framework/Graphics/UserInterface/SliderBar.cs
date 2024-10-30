@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
 using osuTK.Input;
@@ -166,7 +167,7 @@ namespace osu.Framework.Graphics.UserInterface
                 return false;
             }
 
-            GetContainingFocusManager()?.ChangeFocus(this);
+            GetContainingFocusSystem().AsNonNull().AcquireFocus(this);
             handleMouseInput(e);
             return true;
         }
