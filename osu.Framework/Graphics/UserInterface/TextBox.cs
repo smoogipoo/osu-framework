@@ -1158,11 +1158,7 @@ namespace osu.Framework.Graphics.UserInterface
 
         private string lastCommitText = string.Empty;
 
-        private void killFocus()
-        {
-            if (GetContainingInputManager()?.FocusedDrawable == this)
-                GetContainingFocusManager()?.ChangeFocus(null);
-        }
+        private void killFocus() => GetContainingFocusSystem()?.ResignFocus(this);
 
         /// <summary>
         /// Commits current text on this <see cref="TextBox"/> and releases focus if <see cref="ReleaseFocusOnCommit"/> is set.
@@ -1243,7 +1239,7 @@ namespace osu.Framework.Graphics.UserInterface
 
                 selectionEnd = getCharacterClosestTo(e.MousePosition);
                 if (hasSelection)
-                    GetContainingFocusManager().AsNonNull().ChangeFocus(this);
+                    GetContainingFocusSystem().AsNonNull().AcquireFocus(this);
             }
 
             cursorAndLayout.Invalidate();
