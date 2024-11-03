@@ -41,10 +41,13 @@ namespace osu.Framework.Input.Focus
         {
             Drawable? d = target;
 
-            while (d != null && d is not IFocusEnvironment)
+            while (d != null)
             {
                 if (d is Drawable obj)
                     yield return obj;
+
+                if (d is IFocusEnvironment)
+                    break;
 
                 d = d.Parent;
             }
