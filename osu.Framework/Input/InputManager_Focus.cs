@@ -137,11 +137,11 @@ namespace osu.Framework.Input
         private IFocusEnvironment? getEnvironment(Drawable? drawable)
             => drawable?.FindClosestParentOrSelf<IFocusEnvironment>();
 
-        public void TriggerFocusContention(Drawable? triggerSource)
+        void IFocusManager.TriggerFocusContention(Drawable? triggerSource)
         {
         }
 
-        public bool ChangeFocus(Drawable? potentialFocusTarget)
+        bool IFocusManager.ChangeFocus(Drawable? potentialFocusTarget)
         {
             if (potentialFocusTarget == null)
             {
