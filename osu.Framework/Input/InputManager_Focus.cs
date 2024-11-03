@@ -28,19 +28,31 @@ namespace osu.Framework.Input
         public void ResignFocus(Drawable target)
             => enqueueRequest(new FocusRequest(FocusRequestType.Resign, CurrentState, target));
 
-        public void BeginFocusUpdate() => isHandlingClick++;
+        internal ClickFocusUpdateContext BeginClickFocusUpdate() => new ClickFocusUpdateContext(this);
 
-        public void EndFocusUpdate(Drawable? handled)
+        internal readonly ref struct ClickFocusUpdateContext
         {
-            Debug.Assert(isHandlingClick >= 1);
+            private readonly InputManager inputManager;
 
-            pendingRequests.Insert(0,
-                handled != null
-                    ? new FocusRequest(FocusRequestType.Acquire, CurrentState, handled)
-                    : new FocusRequest(FocusRequestType.Clear, CurrentState, null));
+            public ClickFocusUpdateContext(InputManager inputManager)
+            {
+                this.inputManager = inputManager;
+                inputManager.isHandlingClick++;
+            }
 
-            isHandlingClick--;
-            processPendingRequests();
+            public void HandleClick(Drawable? drawable)
+            {
+                inputManager.pendingRequests.Insert(0,
+                    drawable != null
+                        ? new FocusRequest(FocusRequestType.Acquire, inputManager.CurrentState, drawable)
+                        : new FocusRequest(FocusRequestType.Clear, inputManager.CurrentState, null));
+            }
+
+            public void Dispose()
+            {
+                inputManager.isHandlingClick--;
+                inputManager.processPendingRequests();
+            }
         }
 
         private void enqueueRequest(FocusRequest request)
