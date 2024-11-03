@@ -9,23 +9,13 @@ namespace osu.Framework.Graphics.Containers
     /// <summary>
     /// An overlay container that eagerly holds keyboard focus.
     /// </summary>
-    public abstract partial class FocusedOverlayContainer : OverlayContainer
+    public abstract partial class FocusedOverlayContainer : OverlayContainer, IFocusEnvironment
     {
         public override bool RequestsFocus => State.Value == Visibility.Visible;
 
         public override bool AcceptsFocus => State.Value == Visibility.Visible;
 
-        protected override Container<Drawable> Content => focusEnvironment;
-
-        private readonly FocusEnvironment focusEnvironment;
-
-        protected FocusedOverlayContainer()
-        {
-            InternalChild = focusEnvironment = new FocusEnvironment
-            {
-                RelativeSizeAxes = Axes.Both
-            };
-        }
+        public Drawable? CurrentFocus { get; private set; }
 
         protected override void UpdateState(ValueChangedEvent<Visibility> state)
         {
@@ -33,11 +23,21 @@ namespace osu.Framework.Graphics.Containers
 
             switch (state.NewValue)
             {
+                case Visibility.Visible:
+                    GetContainingFocusSystem()?.AcquireFocus(this);
+                    break;
+
                 case Visibility.Hidden:
-                    if (focusEnvironment.CurrentFocus != null)
-                        GetContainingFocusSystem()?.ResignFocus(focusEnvironment.CurrentFocus);
+                    if (CurrentFocus != null)
+                        GetContainingFocusSystem()?.ResignFocus(CurrentFocus);
                     break;
             }
+        }
+
+        Drawable? IFocusEnvironment.CurrentFocus
+        {
+            get => CurrentFocus;
+            set => CurrentFocus = value;
         }
     }
 }
