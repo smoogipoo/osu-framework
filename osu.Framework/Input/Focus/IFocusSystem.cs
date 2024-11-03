@@ -15,6 +15,8 @@ namespace osu.Framework.Input.Focus
         /// </summary>
         Drawable? FirstResponder { get; }
 
+        void RequestFocus(Drawable target);
+
         /// <summary>
         /// Requests a drawable to be focused.
         /// </summary>

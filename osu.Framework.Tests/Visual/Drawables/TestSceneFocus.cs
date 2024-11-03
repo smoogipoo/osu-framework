@@ -424,6 +424,12 @@ namespace osu.Framework.Tests.Visual.Drawables
                     Origin = Anchor.Centre,
                 });
             }
+
+            protected override void Update()
+            {
+                base.Update();
+                GetContainingFocusSystem()!.RequestFocus(this);
+            }
         }
 
         public partial class FocusBox : CompositeDrawable

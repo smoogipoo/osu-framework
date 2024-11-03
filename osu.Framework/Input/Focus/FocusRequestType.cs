@@ -5,6 +5,7 @@ namespace osu.Framework.Input.Focus
 {
     public enum FocusRequestType
     {
+        Request,
         Acquire,
         Resign,
         Clear

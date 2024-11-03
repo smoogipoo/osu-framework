@@ -19,6 +19,9 @@ namespace osu.Framework.Input
         private readonly List<FocusRequest> pendingRequests = new List<FocusRequest>();
         private int isHandlingClick;
 
+        public void RequestFocus(Drawable target)
+            => enqueueRequest(new FocusRequest(FocusRequestType.Request, CurrentState, target));
+
         public void AcquireFocus(Drawable target)
             => enqueueRequest(new FocusRequest(FocusRequestType.Acquire, CurrentState, target));
 
@@ -58,6 +61,12 @@ namespace osu.Framework.Input
 
                 switch (req.Type)
                 {
+                    case FocusRequestType.Request:
+                        Debug.Assert(req.Target != null);
+                        if (getEnvironment(req.Target)?.CurrentFocus == null)
+                            acquire(req.State, req.Target);
+                        break;
+
                     case FocusRequestType.Acquire:
                         Debug.Assert(req.Target != null);
                         acquire(req.State, req.Target);
@@ -79,8 +88,8 @@ namespace osu.Framework.Input
 
             void acquire(InputState state, Drawable target)
             {
-                Debug.Assert(target != null);
-                IFocusEnvironment environment = target.FindClosestParent<IFocusEnvironment>()!;
+                if (getEnvironment(target) is not IFocusEnvironment environment)
+                    return;
 
                 Drawable? lastFirstResponder = null;
                 Drawable? nextFirstResponder = null;
@@ -101,7 +110,8 @@ namespace osu.Framework.Input
 
             void resign(InputState state, Drawable target)
             {
-                IFocusEnvironment environment = target.FindClosestParent<IFocusEnvironment>()!;
+                if (getEnvironment(target) is not IFocusEnvironment environment)
+                    return;
 
                 if (environment.CurrentFocus != target)
                     return;
@@ -123,6 +133,9 @@ namespace osu.Framework.Input
                     FirstResponder = nextFirstResponder;
             }
         }
+
+        private IFocusEnvironment? getEnvironment(Drawable? drawable)
+            => drawable?.FindClosestParentOrSelf<IFocusEnvironment>();
 
         public void TriggerFocusContention(Drawable? triggerSource)
         {
