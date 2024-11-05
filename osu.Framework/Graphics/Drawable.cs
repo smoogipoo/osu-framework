@@ -1532,11 +1532,7 @@ namespace osu.Framework.Graphics
 
                 // When this drawable is part of any focus hierarchy (whether it is the first responder or not) unfocus the environment.
                 if (HasFocus)
-                {
-                    // Prevent re-entry.
-                    HasFocus = false;
-                    GetContainingFocusSystem()!.ResignFocus(GetContainingFocusEnvironment()!.CurrentFocus!);
-                }
+                    GetContainingFocusSystem()!.ResignFocusImmediately(this);
 
                 parent = value;
                 Invalidate(InvalidationFromParentSize | Invalidation.Colour | Invalidation.Presence | Invalidation.Parent);
@@ -2415,6 +2411,8 @@ namespace osu.Framework.Graphics
         /// This value is true by default if <see cref="Handle"/> or any positional (i.e. mouse related) "On-" input methods are overridden.
         /// </summary>
         public virtual bool HandlePositionalInput => RequestsPositionalInput;
+
+        internal bool HadFocus { get; set; }
 
         /// <summary>
         /// Check whether we have active focus.

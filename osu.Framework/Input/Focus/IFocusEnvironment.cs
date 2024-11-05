@@ -41,37 +41,5 @@ namespace osu.Framework.Input.Focus
 
             CurrentFocus = target;
         }
-
-        internal static bool IsDrawableValidForFocus(Drawable drawable)
-        {
-            while (drawable != null)
-            {
-                if (!drawable.IsAlive || !drawable.IsPresent || drawable.Parent == null)
-                    return false;
-
-                if (drawable is IFocusEnvironment)
-                    return true;
-
-                drawable = drawable.Parent;
-            }
-
-            return false;
-        }
-
-        internal static IEnumerable<Drawable> BuildFocusSet(Drawable? target)
-        {
-            Drawable? d = target;
-
-            while (d != null)
-            {
-                if (d is Drawable obj)
-                    yield return obj;
-
-                if (d is IFocusEnvironment)
-                    break;
-
-                d = d.Parent;
-            }
-        }
     }
 }

@@ -30,9 +30,10 @@ namespace osu.Framework.Input
                     Debug.Assert(env.CurrentFocus != null);
 
                     if (!isDrawableValidForFocus(env.CurrentFocus))
-                    {
-                    }
+                        env.ChangeFocus(CurrentState, null);
                 }
+
+                activeEnvironments.Clear();
             }
 
             foreach (IFocusEnvironment env in activeEnvironments)
@@ -49,6 +50,12 @@ namespace osu.Framework.Input
 
         public void ResignFocus(Drawable target)
             => enqueueRequest(new FocusRequest(FocusRequestType.Resign, CurrentState, target));
+
+        public void ResignFocusImmediately(Drawable target)
+        {
+            Debug.Assert(target.HasFocus);
+            resign(CurrentState, getEnvironment(target)!.CurrentFocus!);
+        }
 
         internal FocusUpdateBatch BeginFocusUpdateBatch() => new FocusUpdateBatch(this);
 
@@ -132,40 +139,78 @@ namespace osu.Framework.Input
                 {
                     lastFirstResponder = FirstResponder;
                     nextFirstResponder = target;
+
+                    FirstResponder = target;
                 }
 
-                lastFirstResponder?.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
-                environment.ChangeFocus(state, target);
-                nextFirstResponder?.TriggerEvent(new BecomeFirstResponderEvent(state, lastFirstResponder));
+                IEnumerable<Drawable> lastFocusSet = [];
+                IEnumerable<Drawable> nextFocusSet = [];
 
-                if (lastFirstResponder != nextFirstResponder)
-                    FirstResponder = nextFirstResponder;
-            }
-
-            void resign(InputState state, Drawable target)
-            {
-                if (getEnvironment(target) is not IFocusEnvironment environment)
-                    return;
-
-                if (environment.CurrentFocus != target)
-                    return;
-
-                Drawable? lastFirstResponder = null;
-                Drawable? nextFirstResponder = null;
-
-                if (FirstResponder == target)
+                if (target != environment.CurrentFocus)
                 {
-                    lastFirstResponder = FirstResponder;
-                    nextFirstResponder = this.ChildrenOfType<IFocusEnvironment>().Select(e => e.CurrentFocus).FirstOrDefault(d => d != null && d != lastFirstResponder);
+                    lastFocusSet = enumerateFocusSet(environment.CurrentFocus);
+                    nextFocusSet = enumerateFocusSet(target);
+
+                    foreach (var drawable in lastFocusSet)
+                    {
+                        drawable.HadFocus = drawable.HasFocus;
+                        drawable.HasFocus = false;
+                    }
+
+                    foreach (var drawable in nextFocusSet)
+                    {
+                        drawable.HadFocus = drawable.HasFocus;
+                        drawable.HasFocus = true;
+                    }
+
+                    environment.CurrentFocus = target;
                 }
 
+                // 1. Resign old responder.
                 lastFirstResponder?.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
-                environment.ChangeFocus(state, null);
-                nextFirstResponder?.TriggerEvent(new BecomeFirstResponderEvent(state, lastFirstResponder));
 
-                if (lastFirstResponder != nextFirstResponder)
-                    FirstResponder = nextFirstResponder;
+                // 2. Resign focus on old drawables.
+                foreach (var drawable in lastFocusSet)
+                {
+                    if (drawable.HadFocus && !drawable.HasFocus)
+                        drawable.TriggerEvent(new FocusLostEvent(state, target));
+                }
+
+                // 3. Acquire focus on new drawables.
+                foreach (var drawable in nextFocusSet.Reverse())
+                {
+                    if (!drawable.HadFocus && drawable.HadFocus)
+                        drawable.TriggerEvent(new FocusLostEvent(state, target));
+                }
+
+                // 4. Acquire new responder.
+                nextFirstResponder?.TriggerEvent(new BecomeFirstResponderEvent(state, lastFirstResponder));
             }
+        }
+
+        private void resign(InputState state, Drawable target)
+        {
+            if (getEnvironment(target) is not IFocusEnvironment environment)
+                return;
+
+            if (environment.CurrentFocus != target)
+                return;
+
+            Drawable? lastFirstResponder = null;
+            Drawable? nextFirstResponder = null;
+
+            if (FirstResponder == target)
+            {
+                lastFirstResponder = FirstResponder;
+                nextFirstResponder = this.ChildrenOfType<IFocusEnvironment>().Select(e => e.CurrentFocus).FirstOrDefault(d => d != null && d != lastFirstResponder);
+            }
+
+            lastFirstResponder?.TriggerEvent(new ResignFirstResponderEvent(state, nextFirstResponder));
+            environment.ChangeFocus(state, null);
+            nextFirstResponder?.TriggerEvent(new BecomeFirstResponderEvent(state, lastFirstResponder));
+
+            if (lastFirstResponder != nextFirstResponder)
+                FirstResponder = nextFirstResponder;
         }
 
         private IFocusEnvironment? getEnvironment(Drawable? drawable)
@@ -185,6 +230,29 @@ namespace osu.Framework.Input
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Enumerates self and all parenting drawables from a target drawable until the first focus environment is found.
+        /// When the target drawable's focus is changed, the returned set contains all targets that must receive focus change events
+        /// in order from target to environment.
+        /// </summary>
+        /// <param name="target">The drawable whose focus state is changed.</param>
+        /// <returns>The set of all drawables that must receive focus change events in order from target to environment.</returns>
+        private static IEnumerable<Drawable> enumerateFocusSet(Drawable? target)
+        {
+            Drawable? d = target;
+
+            while (d != null)
+            {
+                if (d is Drawable obj)
+                    yield return obj;
+
+                if (d is IFocusEnvironment)
+                    break;
+
+                d = d.Parent;
+            }
         }
 
         void IFocusManager.TriggerFocusContention(Drawable? triggerSource)
