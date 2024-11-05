@@ -157,7 +157,7 @@ namespace osu.Framework.Input
 
             Drawable? clicked;
 
-            using (var focus = InputManager.BeginClickFocusUpdate())
+            using (var focus = InputManager.BeginFocusUpdateBatch())
             {
                 clicked = PropagateButtonEvent(drawables, new ClickEvent(state, Button, MouseDownPosition));
                 ClickedDrawable.SetTarget(clicked!);

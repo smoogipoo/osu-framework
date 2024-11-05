@@ -1530,6 +1530,14 @@ namespace osu.Framework.Graphics
                 if (value != null && parent != null)
                     throw new InvalidOperationException("May not add a drawable to multiple containers.");
 
+                // When this drawable is part of any focus hierarchy (whether it is the first responder or not) unfocus the environment.
+                if (HasFocus)
+                {
+                    // Prevent re-entry.
+                    HasFocus = false;
+                    GetContainingFocusSystem()!.ResignFocus(GetContainingFocusEnvironment()!.CurrentFocus!);
+                }
+
                 parent = value;
                 Invalidate(InvalidationFromParentSize | Invalidation.Colour | Invalidation.Presence | Invalidation.Parent);
 

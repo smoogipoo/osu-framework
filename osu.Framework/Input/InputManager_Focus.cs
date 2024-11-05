@@ -16,8 +16,30 @@ namespace osu.Framework.Input
     {
         public Drawable? FirstResponder { get; private set; }
 
+        private readonly List<IFocusEnvironment> activeEnvironments = new List<IFocusEnvironment>();
         private readonly List<FocusRequest> pendingRequests = new List<FocusRequest>();
-        private int isHandlingClick;
+        private int isBatchingUpdates;
+
+        private void updateFocus()
+        {
+            using (BeginFocusUpdateBatch())
+            {
+                for (int i = activeEnvironments.Count - 1; i >= 0; i--)
+                {
+                    IFocusEnvironment env = activeEnvironments[i];
+                    Debug.Assert(env.CurrentFocus != null);
+
+                    if (!isDrawableValidForFocus(env.CurrentFocus))
+                    {
+                    }
+                }
+            }
+
+            foreach (IFocusEnvironment env in activeEnvironments)
+            {
+                Debug.Assert(env.CurrentFocus != null);
+            }
+        }
 
         public void RequestFocus(Drawable target)
             => enqueueRequest(new FocusRequest(FocusRequestType.Request, CurrentState, target));
@@ -28,16 +50,16 @@ namespace osu.Framework.Input
         public void ResignFocus(Drawable target)
             => enqueueRequest(new FocusRequest(FocusRequestType.Resign, CurrentState, target));
 
-        internal ClickFocusUpdateContext BeginClickFocusUpdate() => new ClickFocusUpdateContext(this);
+        internal FocusUpdateBatch BeginFocusUpdateBatch() => new FocusUpdateBatch(this);
 
-        internal readonly ref struct ClickFocusUpdateContext
+        internal readonly ref struct FocusUpdateBatch
         {
             private readonly InputManager inputManager;
 
-            public ClickFocusUpdateContext(InputManager inputManager)
+            public FocusUpdateBatch(InputManager inputManager)
             {
                 this.inputManager = inputManager;
-                inputManager.isHandlingClick++;
+                inputManager.isBatchingUpdates++;
             }
 
             public void HandleClick(Drawable? drawable)
@@ -50,7 +72,7 @@ namespace osu.Framework.Input
 
             public void Dispose()
             {
-                inputManager.isHandlingClick--;
+                inputManager.isBatchingUpdates--;
                 inputManager.processPendingRequests();
             }
         }
@@ -63,8 +85,8 @@ namespace osu.Framework.Input
 
         private void processPendingRequests()
         {
-            Debug.Assert(isHandlingClick >= 0);
-            if (isHandlingClick > 0)
+            Debug.Assert(isBatchingUpdates >= 0);
+            if (isBatchingUpdates > 0)
                 return;
 
             for (int i = 0; i < pendingRequests.Count; i++)
@@ -148,6 +170,22 @@ namespace osu.Framework.Input
 
         private IFocusEnvironment? getEnvironment(Drawable? drawable)
             => drawable?.FindClosestParentOrSelf<IFocusEnvironment>();
+
+        private bool isDrawableValidForFocus(Drawable drawable)
+        {
+            while (drawable != null)
+            {
+                if (!drawable.IsAlive || !drawable.IsPresent || drawable.Parent == null)
+                    return false;
+
+                if (drawable is IFocusEnvironment)
+                    break;
+
+                drawable = drawable.Parent;
+            }
+
+            return true;
+        }
 
         void IFocusManager.TriggerFocusContention(Drawable? triggerSource)
         {
