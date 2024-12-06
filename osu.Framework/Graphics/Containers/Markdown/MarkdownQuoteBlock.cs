@@ -14,6 +14,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// <code>
     /// > Quote
     /// </code>
+    [Cached(typeof(IMarkdownTextFlowComponent))]
     public partial class MarkdownQuoteBlock : CompositeDrawable, IMarkdownTextFlowComponent
     {
         private readonly QuoteBlock quoteBlock;

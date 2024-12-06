@@ -17,6 +17,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// <code>
     /// |  cell 1   |  cell 2   |
     /// </code>
+    [Cached(typeof(IMarkdownTextFlowComponent))]
     public partial class MarkdownTableCell : CompositeDrawable, IMarkdownTextFlowComponent
     {
         public float ContentWidth => textFlow.TotalTextWidth;

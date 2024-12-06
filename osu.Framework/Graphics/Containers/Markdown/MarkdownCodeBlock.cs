@@ -25,6 +25,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     ///     code3
     ///
     /// </code>
+    [Cached(typeof(IMarkdownTextFlowComponent))]
     public partial class MarkdownCodeBlock : CompositeDrawable, IMarkdownTextFlowComponent
     {
         private readonly CodeBlock codeBlock;

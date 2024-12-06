@@ -17,6 +17,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// <code>
     /// [link text](url)
     /// </code>
+    [Cached(typeof(IMarkdownTextComponent))]
     public partial class MarkdownLinkText : CompositeDrawable, IHasTooltip, IMarkdownTextComponent
     {
         public LocalisableString TooltipText => Url;

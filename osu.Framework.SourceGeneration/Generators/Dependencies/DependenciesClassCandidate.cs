@@ -28,14 +28,6 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies
 
         protected override void Process(INamedTypeSymbol symbol)
         {
-            // Process any [Cached] attributes on any interface on the class excluding base types.
-            foreach (var iFace in SyntaxHelpers.GetDeclaredInterfacesOnType(symbol))
-            {
-                // Add an entry if this interface has a cached attribute.
-                foreach (var attrib in iFace.GetAttributes().Where(SyntaxHelpers.IsCachedAttribute))
-                    CachedInterfaces.Add(CachedAttributeData.FromInterfaceOrClass(iFace, attrib));
-            }
-
             // Process any [Cached] attributes on the class.
             foreach (var attrib in symbol.GetAttributes().Where(SyntaxHelpers.IsCachedAttribute))
                 CachedClasses.Add(CachedAttributeData.FromInterfaceOrClass(symbol, attrib));

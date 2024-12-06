@@ -17,7 +17,7 @@ using osu.Framework.Utils;
 namespace osu.Framework.Allocation
 {
     /// <summary>
-    /// An attribute that may be attached to a class, interface, field, or property definitions of a <see cref="Drawable"/>
+    /// An attribute that may be attached to a class, field, or property definitions of a <see cref="Drawable"/>
     /// to indicate that the value should be cached as a dependency.
     /// Cached values may be resolved through <see cref="BackgroundDependencyLoaderAttribute"/> or <see cref="ResolvedAttribute"/>.
     /// </summary>
@@ -43,15 +43,10 @@ namespace osu.Framework.Allocation
     /// See the examples section of the <see cref="Type"/> property documentation for further information.
     /// </para>
     /// </item>
-    /// <item>
-    /// If a class implements an interface annotated with <see cref="CachedAttribute"/>, then instances of that class will cache themselves for their own children using the interface type.
-    /// As with classes, the <see cref="CachedAttribute"/> is not inherited between interfaces either,
-    /// but an instance of a class will cache itself to children using all cacheable interface types that it implements.
-    /// </item>
     /// </list>
     /// </remarks>
     [MeansImplicitUse]
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Interface, AllowMultiple = true, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true, Inherited = false)]
     public class CachedAttribute : Attribute
     {
         private static readonly GlobalStatistic<int> count_reflection_attributes = GlobalStatistics.Get<int>("Dependencies", "Reflected [Cached]s");
@@ -62,7 +57,7 @@ namespace osu.Framework.Allocation
         /// The type to cache the value as. If null, the type depends on the type of member that the attribute is placed on:
         /// <list type="bullet">
         /// <item>In the case of fields and properties, the attribute will use the concrete/most-derived type of the field/property's value.</item>
-        /// <item>In the case of classes and interfaces, the attribute will use the class/interface type on which the <see cref="CachedAttribute"/> was <em>directly placed</em>.</item>
+        /// <item>In the case of classes, the attribute will use the class type on which the <see cref="CachedAttribute"/> was <em>directly placed</em>.</item>
         /// </list>
         /// </summary>
         /// <example>
@@ -91,7 +86,6 @@ namespace osu.Framework.Allocation
         /// To achieve that effect, the <see cref="CachedAttribute"/> has to be repeated on class <c>B</c>.
         /// </item>
         /// </list>
-        /// <see cref="CachedAttribute"/> placed in interface inheritance hierarchies follows analogous rules to the ones described above for classes.
         /// </para>
         /// </example>
         public Type Type;
@@ -127,12 +121,6 @@ namespace osu.Framework.Allocation
             count_reflection_attributes.Value++;
 
             var additionActivators = new List<Action<object, DependencyContainer, CacheInfo>>();
-
-            foreach (var iface in type.GetInterfaces())
-            {
-                foreach (var attribute in iface.GetCustomAttributes<CachedAttribute>())
-                    additionActivators.Add((target, dc, info) => SourceGeneratorUtils.CacheDependency(dc, type, target, info, attribute.Type ?? iface, attribute.Name, null));
-            }
 
             foreach (var attribute in type.GetCustomAttributes<CachedAttribute>())
                 additionActivators.Add((target, dc, info) => SourceGeneratorUtils.CacheDependency(dc, type, target, info, attribute.Type ?? type, attribute.Name, null));

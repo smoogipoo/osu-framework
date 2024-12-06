@@ -12,6 +12,8 @@ namespace osu.Framework.Graphics.Containers.Markdown.Footnotes
     /// <summary>
     /// Visualises a single <see cref="Markdig.Extensions.Footnotes.Footnote"/> within a <see cref="FootnoteGroup"/>.
     /// </summary>
+    [Cached(typeof(IMarkdownTextComponent))]
+    [Cached(typeof(IMarkdownTextFlowComponent))]
     public partial class MarkdownFootnote : CompositeDrawable, IMarkdownTextComponent, IMarkdownTextFlowComponent
     {
         public readonly Footnote Footnote;

@@ -269,17 +269,6 @@ namespace osu.Framework.Tests.Dependencies.SourceGeneration
         }
 
         [Test]
-        public void TestCachedViaInterface()
-        {
-            var provider = new Provider25();
-
-            var dependencies = DependencyActivator.MergeDependencies(provider, new DependencyContainer());
-
-            Assert.IsNotNull(dependencies.Get<IProviderInterface3>());
-            Assert.IsNotNull(dependencies.Get<IProviderInterface2>());
-        }
-
-        [Test]
         public void TestInheritancePreservesCachingViaBaseType()
         {
             var provider = new Provider26();
@@ -288,18 +277,6 @@ namespace osu.Framework.Tests.Dependencies.SourceGeneration
 
             Assert.AreEqual(provider, dependencies.Get<Provider1>());
             Assert.IsNull(dependencies.Get<Provider26>());
-        }
-
-        [Test]
-        public void TestImplementationOfDerivedInterfacePreservesCaching()
-        {
-            var provider = new Provider27();
-
-            var dependencies = DependencyActivator.MergeDependencies(provider, new DependencyContainer());
-
-            Assert.AreEqual(provider, dependencies.Get<IProviderInterface2>());
-            Assert.IsNull(dependencies.Get<IProviderInterface4>());
-            Assert.IsNull(dependencies.Get<Provider27>());
         }
 
         private interface IProvidedInterface1
@@ -469,29 +446,7 @@ namespace osu.Framework.Tests.Dependencies.SourceGeneration
             public object Provided1 => null;
         }
 
-        private partial class Provider25 : IProviderInterface3
-        {
-        }
-
         private partial class Provider26 : Provider1
-        {
-        }
-
-        private partial class Provider27 : IProviderInterface4
-        {
-        }
-
-        [Cached]
-        private interface IProviderInterface3 : IProviderInterface2
-        {
-        }
-
-        [Cached]
-        private interface IProviderInterface2 : IDependencyInjectionCandidate
-        {
-        }
-
-        private interface IProviderInterface4 : IProviderInterface2
         {
         }
     }

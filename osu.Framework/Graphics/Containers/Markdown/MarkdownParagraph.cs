@@ -9,6 +9,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// <summary>
     /// Visualises a paragraph.
     /// </summary>
+    [Cached(typeof(IMarkdownTextFlowComponent))]
     public partial class MarkdownParagraph : CompositeDrawable, IMarkdownTextFlowComponent
     {
         private readonly ParagraphBlock paragraphBlock;

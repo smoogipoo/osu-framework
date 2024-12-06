@@ -15,6 +15,7 @@ namespace osu.Framework.Graphics.Containers.Markdown
     /// ## H2
     /// ### H3
     /// </code>
+    [Cached(typeof(IMarkdownTextFlowComponent))]
     public partial class MarkdownHeading : CompositeDrawable, IMarkdownTextFlowComponent
     {
         private readonly HeadingBlock headingBlock;
