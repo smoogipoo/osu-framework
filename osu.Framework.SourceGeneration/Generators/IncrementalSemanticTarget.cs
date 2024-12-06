@@ -10,8 +10,6 @@ namespace osu.Framework.SourceGeneration.Generators
 {
     public abstract class IncrementalSemanticTarget
     {
-        public readonly ClassDeclarationSyntax ClassSyntax;
-
         public readonly string FullyQualifiedTypeName = string.Empty;
         public readonly string GlobalPrefixedTypeName = string.Empty;
         public readonly bool NeedsOverride;
@@ -22,9 +20,7 @@ namespace osu.Framework.SourceGeneration.Generators
 
         protected IncrementalSemanticTarget(ClassDeclarationSyntax classSyntax, SemanticModel semanticModel)
         {
-            ClassSyntax = classSyntax;
-
-            INamedTypeSymbol symbol = semanticModel.GetDeclaredSymbol(ClassSyntax)!;
+            INamedTypeSymbol symbol = semanticModel.GetDeclaredSymbol(classSyntax)!;
 
             IsValid = CheckValid(symbol);
 

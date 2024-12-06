@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace osu.Framework.SourceGeneration.Generators.HandleInput
 {
-    [Generator]
     public class HandleInputSourceGenerator : AbstractIncrementalGenerator
     {
         protected override IncrementalSemanticTarget CreateSemanticTarget(ClassDeclarationSyntax node, SemanticModel semanticModel)

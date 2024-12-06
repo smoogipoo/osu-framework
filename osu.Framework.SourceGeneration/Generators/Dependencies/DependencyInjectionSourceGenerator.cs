@@ -7,7 +7,6 @@ using osu.Framework.SourceGeneration.Generators.Dependencies.Emitters;
 
 namespace osu.Framework.SourceGeneration.Generators.Dependencies
 {
-    [Generator]
     public class DependencyInjectionSourceGenerator : AbstractIncrementalGenerator
     {
         protected override IncrementalSemanticTarget CreateSemanticTarget(ClassDeclarationSyntax node, SemanticModel semanticModel)
