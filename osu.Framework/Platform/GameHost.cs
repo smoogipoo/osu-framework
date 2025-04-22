@@ -1399,6 +1399,9 @@ namespace osu.Framework.Platform
 
         protected virtual TextInputSource CreateTextInput() => new TextInputSource();
 
+        [CanBeNull]
+        public virtual IAttestationService CreateAttestationService() => null;
+
         #region IDisposable Support
 
         private bool isDisposed;

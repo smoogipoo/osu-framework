@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DeviceCheck;
 using Foundation;
 using osu.Framework.Configuration;
 using osu.Framework.Extensions;
@@ -130,5 +131,7 @@ namespace osu.Framework.iOS
         }
 
         public override IEnumerable<KeyBinding> PlatformKeyBindings => MacOSGameHost.KeyBindings;
+
+        public override IAttestationService? CreateAttestationService() => DCAppAttestService.SharedService.Supported ? new IOSAttestationService() : null;
     }
 }

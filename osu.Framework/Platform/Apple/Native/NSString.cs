@@ -26,5 +26,7 @@ namespace osu.Framework.Platform.Apple.Native
             fixed (char* strPtr = str)
                 return new NSString(Interop.SendIntPtr(class_pointer, sel_string_with_characters, (IntPtr)strPtr, str.Length));
         }
+
+        public static implicit operator IntPtr(NSString str) => str.Handle;
     }
 }

@@ -14,6 +14,7 @@ namespace osu.Framework.Platform.Apple.Native
         internal const string LIB_CORE_GRAPHICS = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
         internal const string LIB_ACCELERATE = "/System/Library/Frameworks/Accelerate.framework/Accelerate";
         internal const string LIB_CORE_FOUNDATION = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
+        internal const string LIB_DEVICE_CHECK = "/System/Library/Frameworks/DeviceCheck.framework/DeviceCheck";
 
         internal const int RTLD_NOW = 2;
 
@@ -95,6 +96,8 @@ namespace osu.Framework.Platform.Apple.Native
         {
             AppKitLibrary = dlopen(LIB_APPKIT, RTLD_NOW);
         }
+
+        public static IntPtr Open(string libName) => dlopen(libName, RTLD_NOW);
 
         public static IntPtr GetStringConstant(IntPtr handle, string symbol)
         {
