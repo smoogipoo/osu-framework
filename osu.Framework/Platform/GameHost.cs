@@ -45,6 +45,7 @@ using osu.Framework.Graphics.Video;
 using osu.Framework.IO.Serialization;
 using osu.Framework.IO.Stores;
 using osu.Framework.Localisation;
+using Veldrid.MTL;
 using Rectangle = System.Drawing.Rectangle;
 using Size = System.Drawing.Size;
 
@@ -354,6 +355,8 @@ namespace osu.Framework.Platform
             {
                 Converters = new List<JsonConverter> { new Vector2Converter() }
             };
+
+            MtlStatics.RenderFrame += () => DrawThread?.RunSingleFrame();
         }
 
         protected virtual IRenderer CreateGLRenderer() => new GLRenderer();
@@ -523,6 +526,8 @@ namespace osu.Framework.Platform
 
             if (buffer == null)
                 return;
+
+            MtlStatics.FrameReady.Wait();
 
             Debug.Assert(buffer.Object != null);
 

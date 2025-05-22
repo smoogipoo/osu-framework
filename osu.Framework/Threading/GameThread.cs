@@ -413,8 +413,11 @@ namespace osu.Framework.Threading
             {
                 Initialize(true);
 
-                while (Running)
-                    RunSingleFrame();
+                if (this is not DrawThread)
+                {
+                    while (Running)
+                        RunSingleFrame();
+                }
             }
         }
 
