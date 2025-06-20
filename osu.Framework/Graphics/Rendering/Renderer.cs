@@ -265,7 +265,7 @@ namespace osu.Framework.Graphics.Rendering
             PushDepthInfo(DepthInfo.Default);
             PushStencilInfo(StencilInfo.Default);
 
-            Clear(new ClearInfo(Color4.Black));
+            Clear(new ClearInfo(Color4.FromHsv(new Vector4(FrameIndex / 1000f % 1f, 1, 1, 1))));
 
             freeUnusedVertexBuffers();
             vboInUse.Value = vertexBuffersInUse.Count;
