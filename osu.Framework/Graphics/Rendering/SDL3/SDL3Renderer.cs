@@ -38,17 +38,14 @@ namespace osu.Framework.Graphics.Rendering.SDL3
         /// <summary>
         /// The copy command buffer for the current frame.
         /// </summary>
-        private SDL_GPUCommandBuffer* currentCopyComandBuffer;
+        private SDL_GPUCommandBuffer* currentCopyCommandBuffer;
 
         /// <summary>
         /// The swapchain texture for the current frame.
         /// </summary>
         private SDL_GPUTexture* currentSwapchainTexture;
 
-        /// <summary>
-        /// The currently-active render pass.
-        /// </summary>
-        private SDL_GPURenderPass* currentRenderPass;
+        private ClearInfo? currentClearInfo;
 
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
@@ -56,7 +53,7 @@ namespace osu.Framework.Graphics.Rendering.SDL3
                 throw new NotSupportedException($"{nameof(SDL3Renderer)} can only be used with an SDL3 window.");
 
             window = sdl3Surface.SDLWindowHandle;
-            device = SDL_CreateGPUDevice(SDL_GPUShaderFormat.SDL_GPU_SHADERFORMAT_SPIRV, true, (byte*)null);
+            device = SDL_CreateGPUDevice(SDL_GPUShaderFormat.SDL_GPU_SHADERFORMAT_MSL, true, (byte*)null);
             if (device == null)
                 throw new InvalidOperationException("Failed to initialise SDL GPU device.");
 
@@ -70,8 +67,8 @@ namespace osu.Framework.Graphics.Rendering.SDL3
             if (currentRenderCommandBuffer == null)
                 throw new InvalidOperationException("Failed to create the render command buffer.");
 
-            currentCopyComandBuffer = SDL_AcquireGPUCommandBuffer(device);
-            if (currentCopyComandBuffer == null)
+            currentCopyCommandBuffer = SDL_AcquireGPUCommandBuffer(device);
+            if (currentCopyCommandBuffer == null)
                 throw new InvalidOperationException("Failed to create the copy command buffer.");
 
             while (true)
@@ -100,13 +97,12 @@ namespace osu.Framework.Graphics.Rendering.SDL3
 
             endRenderPass();
 
-            SDL_SubmitGPUCommandBuffer(currentCopyComandBuffer);
+            SDL_SubmitGPUCommandBuffer(currentCopyCommandBuffer);
             SDL_SubmitGPUCommandBuffer(currentRenderCommandBuffer);
 
             currentRenderCommandBuffer = null;
-            currentCopyComandBuffer = null;
+            currentCopyCommandBuffer = null;
             currentSwapchainTexture = null;
-            Debug.Assert(currentRenderPass == null);
         }
 
         protected internal override void SwapBuffers()
@@ -131,7 +127,7 @@ namespace osu.Framework.Graphics.Rendering.SDL3
 
         protected override void ClearImplementation(ClearInfo clearInfo)
         {
-            enableRenderPass(clearInfo);
+            currentClearInfo = clearInfo;
         }
 
         protected override void SetBlendImplementation(BlendingParameters blendingParameters)
@@ -169,6 +165,7 @@ namespace osu.Framework.Graphics.Rendering.SDL3
 
         protected override void SetFrameBufferImplementation(IFrameBuffer? frameBuffer)
         {
+            currentClearInfo = null;
         }
 
         protected override void DeleteFrameBufferImplementation(IFrameBuffer frameBuffer)
@@ -177,6 +174,66 @@ namespace osu.Framework.Graphics.Rendering.SDL3
 
         public override void DrawVerticesImplementation(PrimitiveTopology topology, int vertexStart, int verticesCount)
         {
+            SDL_GPUColorTargetInfo colourTargetInfo = new SDL_GPUColorTargetInfo
+            {
+                texture = currentSwapchainTexture,
+                load_op = SDL_GPULoadOp.SDL_GPU_LOADOP_LOAD,
+                store_op = SDL_GPUStoreOp.SDL_GPU_STOREOP_STORE,
+            };
+
+            if (currentClearInfo is ClearInfo clear)
+            {
+                colourTargetInfo.clear_color = new SDL_FColor { r = clear.Colour.R, g = clear.Colour.G, b = clear.Colour.B, a = clear.Colour.A };
+                colourTargetInfo.load_op = SDL_GPULoadOp.SDL_GPU_LOADOP_CLEAR;
+            }
+
+            SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(currentRenderCommandBuffer, &colourTargetInfo, 1, null);
+
+            SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(device, new SDL_GPUGraphicsPipelineCreateInfo
+            {
+                vertex_shader = null,
+                fragment_shader = null,
+                vertex_input_state = default,
+                primitive_type = topology.ToSDLPrimitiveType(),
+                rasterizer_state = new SDL_GPURasterizerState
+                {
+                    fill_mode = SDL_GPUFillMode.SDL_GPU_FILLMODE_FILL,
+                    cull_mode = SDL_GPUCullMode.SDL_GPU_CULLMODE_NONE,
+                    front_face = SDL_GPUFrontFace.SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE,
+                },
+                multisample_state = new SDL_GPUMultisampleState
+                {
+                    sample_count = SDL_GPUSampleCount.SDL_GPU_SAMPLECOUNT_1
+                },
+                depth_stencil_state = new SDL_GPUDepthStencilState
+                {
+                    compare_op = CurrentDepthInfo.Function.ToSDLCompareOp(),
+                    back_stencil_state = new SDL_GPUStencilOpState
+                    {
+                        fail_op = CurrentStencilInfo.StencilTestFailOperation.ToSDLStencilOp(),
+                        pass_op = CurrentStencilInfo.TestPassedOperation.ToSDLStencilOp(),
+                        depth_fail_op = CurrentStencilInfo.DepthTestFailOperation.ToSDLStencilOp(),
+                        compare_op = CurrentStencilInfo.TestFunction.ToSDLCompareOp()
+                    },
+                    front_stencil_state = new SDL_GPUStencilOpState
+                    {
+                        fail_op = CurrentStencilInfo.StencilTestFailOperation.ToSDLStencilOp(),
+                        pass_op = CurrentStencilInfo.TestPassedOperation.ToSDLStencilOp(),
+                        depth_fail_op = CurrentStencilInfo.DepthTestFailOperation.ToSDLStencilOp(),
+                        compare_op = CurrentStencilInfo.TestFunction.ToSDLCompareOp()
+                    },
+                    compare_mask = (byte)CurrentStencilInfo.TestValue,
+                    write_mask = (byte)CurrentStencilInfo.Mask,
+                    enable_depth_test = CurrentDepthInfo.DepthTest,
+                    enable_depth_write = CurrentDepthInfo.WriteDepth,
+                    enable_stencil_test = CurrentStencilInfo.StencilTest,
+                },
+                target_info = default,
+            });
+
+            SDL_EndGPURenderPass(renderPass);
+
+            currentClearInfo = null;
         }
 
         protected override void SetShaderImplementation(IShader shader)
@@ -189,36 +246,6 @@ namespace osu.Framework.Graphics.Rendering.SDL3
 
         protected override void SetUniformBufferImplementation(string blockName, IUniformBuffer buffer)
         {
-        }
-
-        private void enableRenderPass(ClearInfo? clearInfo)
-        {
-            if (currentRenderPass != null)
-                return;
-
-            SDL_GPUColorTargetInfo colourTargetInfo = new SDL_GPUColorTargetInfo
-            {
-                texture = currentSwapchainTexture,
-                load_op = SDL_GPULoadOp.SDL_GPU_LOADOP_LOAD,
-                store_op = SDL_GPUStoreOp.SDL_GPU_STOREOP_STORE,
-            };
-
-            if (clearInfo is ClearInfo clear)
-            {
-                colourTargetInfo.clear_color = new SDL_FColor { r = clear.Colour.R, g = clear.Colour.G, b = clear.Colour.B, a = clear.Colour.A };
-                colourTargetInfo.load_op = SDL_GPULoadOp.SDL_GPU_LOADOP_CLEAR;
-            }
-
-            currentRenderPass = SDL_BeginGPURenderPass(currentRenderCommandBuffer, &colourTargetInfo, 1, null);
-        }
-
-        private void endRenderPass()
-        {
-            if (currentRenderPass == null)
-                return;
-
-            SDL_EndGPURenderPass(currentRenderPass);
-            currentRenderPass = null;
         }
 
         protected internal override Image<Rgba32> TakeScreenshot()
