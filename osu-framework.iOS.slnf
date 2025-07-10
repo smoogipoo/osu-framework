@@ -13,7 +13,10 @@
       "osu.Framework.Tests.iOS\\osu.Framework.Tests.iOS.csproj",
       "osu.Framework\\osu.Framework.csproj",
       "SampleGame.iOS\\SampleGame.iOS.csproj",
-      "SampleGame\\SampleGame.csproj"
+      "SampleGame\\SampleGame.csproj",
+      "../veldrid/src/Veldrid/Veldrid.csproj",
+      "../veldrid/src/Veldrid.MetalBindings/Veldrid.MetalBindings.csproj",
+      "../veldrid/src/Veldrid.OpenGLBindings/Veldrid.OpenGLBindings.csproj"
     ]
   }
 }

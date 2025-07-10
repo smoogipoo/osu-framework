@@ -76,6 +76,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeAnalysis", "CodeAnalysi
 		CodeAnalysis\BannedSymbols.txt = CodeAnalysis\BannedSymbols.txt
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Veldrid", "..\veldrid\src\Veldrid\Veldrid.csproj", "{A0A246FB-399B-42F7-B329-598E179B72A3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Veldrid.MetalBindings", "..\veldrid\src\Veldrid.MetalBindings\Veldrid.MetalBindings.csproj", "{B2967861-38A4-4163-82D5-EDC391877A18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Veldrid.OpenGLBindings", "..\veldrid\src\Veldrid.OpenGLBindings\Veldrid.OpenGLBindings.csproj", "{A8058F5E-2360-42E8-BBCE-C9700D45BBE0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -186,6 +192,18 @@ Global
 		{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0DDCF0A-A352-4CC6-8E6E-0E16CAA50CDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0A246FB-399B-42F7-B329-598E179B72A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0A246FB-399B-42F7-B329-598E179B72A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0A246FB-399B-42F7-B329-598E179B72A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0A246FB-399B-42F7-B329-598E179B72A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2967861-38A4-4163-82D5-EDC391877A18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2967861-38A4-4163-82D5-EDC391877A18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2967861-38A4-4163-82D5-EDC391877A18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2967861-38A4-4163-82D5-EDC391877A18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8058F5E-2360-42E8-BBCE-C9700D45BBE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8058F5E-2360-42E8-BBCE-C9700D45BBE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8058F5E-2360-42E8-BBCE-C9700D45BBE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8058F5E-2360-42E8-BBCE-C9700D45BBE0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
