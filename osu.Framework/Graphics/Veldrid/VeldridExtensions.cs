@@ -473,5 +473,10 @@ namespace osu.Framework.Graphics.Veldrid
             Logger.Log($@"Metal Initialized
                         Metal Feature Set: {featureDevice} GPU family {featureFamily} ({featureVersion})");
         }
+
+        public static void LogSDL3(this GraphicsDevice device, out int maxTextureSize)
+        {
+            maxTextureSize = 16384;
+        }
     }
 }

@@ -27,7 +27,7 @@ namespace osu.Framework.Platform.MacOS
 
         protected override IWindow CreateWindow(GraphicsSurfaceType preferredSurface)
             => FrameworkEnvironment.UseSDL3
-                ? new SDL3MacOSWindow(preferredSurface, Options.FriendlyGameName)
+                ? new SDL3MacOSWindow(GraphicsSurfaceType.Metal, Options.FriendlyGameName)
                 : new SDL2MacOSWindow(preferredSurface, Options.FriendlyGameName);
 
         public override IEnumerable<string> UserStoragePaths

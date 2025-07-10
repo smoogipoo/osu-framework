@@ -21,6 +21,8 @@ namespace osu.Framework.Platform.SDL3
 
         private SDL_GLContextState* context;
 
+        public SDL_Window* SDLWindowHandle => window.SDLWindowHandle;
+
         public IntPtr WindowHandle => window.WindowHandle;
 
         public GraphicsSurfaceType Type { get; }

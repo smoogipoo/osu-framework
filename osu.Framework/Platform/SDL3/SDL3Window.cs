@@ -201,8 +201,7 @@ namespace osu.Framework.Platform.SDL3
         public virtual void Create()
         {
             SDL_WindowFlags flags = SDL_WindowFlags.SDL_WINDOW_RESIZABLE |
-                                    SDL_WindowFlags.SDL_WINDOW_HIGH_PIXEL_DENSITY |
-                                    SDL_WindowFlags.SDL_WINDOW_HIDDEN; // shown after first swap to avoid white flash on startup (windows)
+                                    SDL_WindowFlags.SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
             flags |= WindowState.ToFlags();
             flags |= graphicsSurface.Type.ToFlags();
