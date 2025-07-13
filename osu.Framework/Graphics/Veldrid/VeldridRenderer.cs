@@ -325,33 +325,7 @@ namespace osu.Framework.Graphics.Veldrid
         internal IStagingBuffer<T> CreateStagingBuffer<T>(uint count)
             where T : unmanaged
         {
-            switch (FrameworkEnvironment.StagingBufferType)
-            {
-                case 0:
-                    return new ManagedStagingBuffer<T>(this, count);
-
-                case 1:
-                    return new PersistentStagingBuffer<T>(this, count);
-
-                case 2:
-                    return new DeferredStagingBuffer<T>(this, count);
-
-                default:
-                    switch (Device.BackendType)
-                    {
-                        case GraphicsBackend.Direct3D11:
-                        case GraphicsBackend.Vulkan:
-                            return new PersistentStagingBuffer<T>(this, count);
-
-                        default:
-                        // Metal uses a more optimal path that elides a Blit Command Encoder.
-                        case GraphicsBackend.Metal:
-                        // OpenGL backends need additional work to support coherency and persistently mapped buffers.
-                        case GraphicsBackend.OpenGL:
-                        case GraphicsBackend.OpenGLES:
-                            return new ManagedStagingBuffer<T>(this, count);
-                    }
-            }
+            return new PersistentStagingBuffer<T>(this, count);
         }
     }
 }
