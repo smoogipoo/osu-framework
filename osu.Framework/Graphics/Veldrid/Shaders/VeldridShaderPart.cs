@@ -24,7 +24,12 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
         private static readonly Regex uniform_pattern = new Regex(@"^(\s*layout\s*\(.*)set\s*=\s*(-?\d)(.*\)\s*(?:(?:readonly\s*)?buffer|uniform))", RegexOptions.Multiline);
         private static readonly Regex include_pattern = new Regex(@"^\s*#\s*include\s+[""<](.*)["">]");
 
+        private static readonly Regex storage_buffer_pattern = new Regex(@"^layout\(std140", RegexOptions.Multiline);
+        private static readonly Regex sampler_pattern = new Regex(@"uniform\s*(?:lowp|mediump|highp)\s*sampler", RegexOptions.Multiline);
+
         public readonly ShaderPartType Type;
+        public readonly int StorageBufferCount;
+        public readonly int SamplerCount;
 
         private string header = string.Empty;
 
@@ -56,15 +61,20 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
             // After this transformation, blocks with negative sets will start from set 0, and all other user blocks begin after them.
             // The reason for doing this is that uniform blocks must be consistent between the shader stages, so they can't be appended.
             code = uniform_pattern.Replace(code, match => $"{match.Groups[1].Value}set = {int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) + Math.Abs(minSet)}{match.Groups[3].Value}");
+
+            StorageBufferCount = storage_buffer_pattern.Matches(code).Count;
+            SamplerCount = sampler_pattern.Matches(code).Count;
         }
 
-        private VeldridShaderPart(string code, string header, ShaderPartType type, IShaderStore store)
+        private VeldridShaderPart(string code, string header, ShaderPartType type, IShaderStore store, int storageBufferCount, int samplerCount)
         {
             this.code = code;
             this.header = header;
             this.store = store;
 
             Type = type;
+            StorageBufferCount = storageBufferCount;
+            SamplerCount = samplerCount;
         }
 
         private string loadFile(byte[]? bytes, bool mainFile)
@@ -186,7 +196,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
             result = result.Replace("{{ fragment_output_layout }}", attributesLayout.ToString().Trim());
             result = result.Replace("{{ fragment_output_assignment }}", attributesAssignment.ToString().Trim());
 
-            var part = new VeldridShaderPart(result, header, Type, store);
+            var part = new VeldridShaderPart(result, header, Type, store, StorageBufferCount, SamplerCount);
             part.Inputs.AddRange(Inputs.Concat(attributes).DistinctBy(a => a.Location));
             part.Outputs.AddRange(Outputs.Concat(outputAttributes));
             return part;

@@ -118,12 +118,16 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                 vertexShaderDescription = new ShaderDescription(
                     ShaderStages.Vertex,
                     Array.Empty<byte>(),
-                    renderer.Factory.BackendType == GraphicsBackend.Metal ? "main0" : "main");
+                    renderer.Factory.BackendType == GraphicsBackend.Metal ? "main0" : "main",
+                    vertex.StorageBufferCount,
+                    vertex.SamplerCount);
 
                 fragmentShaderDescription = new ShaderDescription(
                     ShaderStages.Fragment,
                     Array.Empty<byte>(),
-                    renderer.Factory.BackendType == GraphicsBackend.Metal ? "main0" : "main");
+                    renderer.Factory.BackendType == GraphicsBackend.Metal ? "main0" : "main",
+                    fragment.StorageBufferCount,
+                    fragment.SamplerCount);
 
                 // GLSL cross compile is always performed for reflection, even though the cross-compiled shaders aren't used under other backends.
                 VertexFragmentShaderCompilation compilation = compilationStore.CompileVertexFragment(
