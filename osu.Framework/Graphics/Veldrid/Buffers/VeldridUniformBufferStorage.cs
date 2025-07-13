@@ -22,7 +22,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         {
             this.renderer = renderer;
 
-            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)Marshal.SizeOf(default(TData)), BufferUsage.UniformBuffer));
+            buffer = renderer.Factory.CreateBuffer(new BufferDescription((uint)Marshal.SizeOf(default(TData)), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             memoryLease = NativeMemoryTracker.AddMemory(this, buffer.SizeInBytes);
         }
 
