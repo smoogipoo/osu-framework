@@ -179,7 +179,7 @@ namespace osu.Framework.Audio.Track
                 Bass.ChannelSetDevice(stream, bass_nodevice);
                 tempoAdjustStream = BassFx.TempoCreate(stream, BassFlags.Decode | BassFlags.FxFreeSource);
                 Bass.ChannelSetDevice(tempoAdjustStream, bass_nodevice);
-                stream = BassFx.ReverseCreate(tempoAdjustStream, 5f, BassFlags.Default | BassFlags.FxFreeSource | BassFlags.Decode);
+                stream = BassFx.ReverseCreate(tempoAdjustStream, 5f, BassFlags.Default | BassFlags.FxFreeSource);
 
                 Bass.ChannelSetAttribute(tempoAdjustStream, ChannelAttribute.TempoUseQuickAlgorithm, 1);
                 Bass.ChannelSetAttribute(tempoAdjustStream, ChannelAttribute.TempoOverlapMilliseconds, 4);

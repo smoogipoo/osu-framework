@@ -203,7 +203,7 @@ namespace osu.Framework.Audio.Sample
             if (hasChannel)
                 return;
 
-            BassFlags flags = BassFlags.SampleChannelStream | BassFlags.Decode;
+            BassFlags flags = 0;
 
             // While this shouldn't cause issues, we've had a small subset of users reporting issues on windows.
             // To keep things working let's only apply to other platforms until we know more.
