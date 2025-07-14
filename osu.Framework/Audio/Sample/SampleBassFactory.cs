@@ -32,12 +32,12 @@ namespace osu.Framework.Audio.Sample
         /// </summary>
         internal readonly Bindable<int> PlaybackConcurrency = new Bindable<int>(Sample.DEFAULT_CONCURRENCY);
 
-        private readonly BassAudioMixer mixer;
+        private readonly IBassAudioMixer mixer;
 
         private NativeMemoryTracker.NativeMemoryLease? memoryLease;
         private byte[]? data;
 
-        public SampleBassFactory(byte[] data, string name, BassAudioMixer mixer)
+        public SampleBassFactory(byte[] data, string name, IBassAudioMixer mixer)
         {
             this.data = data;
             this.mixer = mixer;

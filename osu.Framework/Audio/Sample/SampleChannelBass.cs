@@ -223,7 +223,7 @@ namespace osu.Framework.Audio.Sample
 
         #region Mixing
 
-        private BassAudioMixer bassMixer => (BassAudioMixer)Mixer.AsNonNull();
+        private IBassAudioMixer bassMixer => (IBassAudioMixer)Mixer.AsNonNull();
 
         bool IBassAudioChannel.IsActive => IsAlive;
 
@@ -231,7 +231,7 @@ namespace osu.Framework.Audio.Sample
 
         bool IBassAudioChannel.MixerChannelPaused { get; set; } = true;
 
-        BassAudioMixer IBassAudioChannel.Mixer => bassMixer;
+        IBassAudioMixer IBassAudioChannel.Mixer => bassMixer;
 
         #endregion
 

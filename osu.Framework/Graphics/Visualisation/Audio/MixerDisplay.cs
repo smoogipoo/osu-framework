@@ -88,7 +88,7 @@ namespace osu.Framework.Graphics.Visualisation.Audio
                 }
             };
 
-            if (Mixer is BassAudioMixer bassMixer)
+            if (Mixer is IBassAudioMixer bassMixer)
                 outputChannelContainer.Add(new AudioChannelDisplay(bassMixer.Handle, true));
         }
 
@@ -96,7 +96,7 @@ namespace osu.Framework.Graphics.Visualisation.Audio
         {
             base.Update();
 
-            if (!(Mixer is BassAudioMixer bassMixer))
+            if (Mixer is not IBassAudioMixer bassMixer)
                 return;
 
             int[] channels = BassMix.MixerGetChannels(bassMixer.Handle);

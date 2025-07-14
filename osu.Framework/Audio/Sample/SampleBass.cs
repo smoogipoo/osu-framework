@@ -14,9 +14,9 @@ namespace osu.Framework.Audio.Sample
         public override double Length => factory.Length;
 
         private readonly SampleBassFactory factory;
-        private readonly BassAudioMixer mixer;
+        private readonly IBassAudioMixer mixer;
 
-        internal SampleBass(SampleBassFactory factory, BassAudioMixer mixer)
+        internal SampleBass(SampleBassFactory factory, IBassAudioMixer mixer)
             : base(factory.Name)
         {
             this.factory = factory;

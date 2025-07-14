@@ -442,7 +442,7 @@ namespace osu.Framework.Audio.Track
             }
         }
 
-        private BassAudioMixer bassMixer => (BassAudioMixer)Mixer.AsNonNull();
+        private IBassAudioMixer bassMixer => (IBassAudioMixer)Mixer.AsNonNull();
 
         bool IBassAudioChannel.IsActive => !IsDisposed;
 
@@ -450,7 +450,7 @@ namespace osu.Framework.Audio.Track
 
         bool IBassAudioChannel.MixerChannelPaused { get; set; } = true;
 
-        BassAudioMixer IBassAudioChannel.Mixer => bassMixer;
+        IBassAudioMixer IBassAudioChannel.Mixer => bassMixer;
 
         #endregion
 
