@@ -41,9 +41,24 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
                                         false))))));
 
             if (data.IsAsync)
-                loadExpression = SyntaxHelpers.WrapAsyncBackgroundDependencyLoaderInvocation(loadExpression);
-
-            yield return SyntaxFactory.ExpressionStatement(loadExpression);
+            {
+                yield return
+                    SyntaxFactory.ExpressionStatement(
+                        SyntaxFactory.AwaitExpression(
+                            SyntaxFactory.InvocationExpression(
+                                             SyntaxFactory.MemberAccessExpression(
+                                                 SyntaxKind.SimpleMemberAccessExpression,
+                                                 loadExpression,
+                                                 SyntaxFactory.IdentifierName("ConfigureAwait")))
+                                         .WithArgumentList(SyntaxFactory.ArgumentList(
+                                             SyntaxFactory.SingletonSeparatedList(
+                                                 SyntaxFactory.Argument(
+                                                     SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression)))))));
+            }
+            else
+            {
+                yield return SyntaxFactory.ExpressionStatement(loadExpression);
+            }
         }
 
         private ExpressionSyntax createMemberAccessor()

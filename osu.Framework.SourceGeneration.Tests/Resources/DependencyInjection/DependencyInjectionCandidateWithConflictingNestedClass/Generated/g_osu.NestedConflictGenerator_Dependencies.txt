@@ -11,7 +11,7 @@ namespace osu
             if (registry.IsRegistered(typeof(global::osu.NestedConflictGenerator)))
                 return;
             base.RegisterForDependencyActivation(registry);
-            registry.Register(typeof(global::osu.NestedConflictGenerator), (t, d) =>
+            registry.Register(typeof(global::osu.NestedConflictGenerator), async (t, d) =>
             {
                 ((global::osu.NestedConflictGenerator)t).resolvedMember = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::osu.NestedConflictGenerator), null, null, false, true);
                 ((global::osu.NestedConflictGenerator)t).load();

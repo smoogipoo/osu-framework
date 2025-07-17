@@ -130,6 +130,8 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies.Emitters
                 return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 
             return SyntaxFactory.ParenthesizedLambdaExpression()
+                                .WithAsyncKeyword(
+                                    SyntaxFactory.Token(SyntaxKind.AsyncKeyword))
                                 .WithParameterList(
                                     SyntaxFactory.ParameterList(
                                         SyntaxFactory.SeparatedList(new[]

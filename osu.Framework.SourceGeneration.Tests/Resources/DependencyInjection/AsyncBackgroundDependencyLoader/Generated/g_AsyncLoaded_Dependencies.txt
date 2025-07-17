@@ -9,9 +9,9 @@ partial class AsyncLoaded : global::osu.Framework.Allocation.ISourceGeneratedDep
         if (registry.IsRegistered(typeof(global::AsyncLoaded)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::AsyncLoaded), (t, d) =>
+        registry.Register(typeof(global::AsyncLoaded), async (t, d) =>
         {
-            global::osu.Framework.Utils.SourceGeneratorUtils.CreateBackgroundDependencyLoaderContext().WaitFor(((global::AsyncLoaded)t).load()).Release();
+            await ((global::AsyncLoaded)t).load().ConfigureAwait(true);
         }, null);
     }
 }

@@ -90,6 +90,7 @@ namespace osu.Framework.SourceGeneration
 
         public static InvocationExpressionSyntax WrapAsyncBackgroundDependencyLoaderInvocation(ExpressionSyntax invocation)
         {
+
             return CreateInvocation(
                 CreateInvocation(
                     CreateInvocation(

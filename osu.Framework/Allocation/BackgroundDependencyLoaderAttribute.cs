@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -45,6 +43,7 @@ namespace osu.Framework.Allocation
             this.permitNulls = permitNulls;
         }
 
+        [DebuggerNonUserCode]
         internal static InjectDependencyDelegate CreateActivator(Type type)
         {
             count_reflection_attributes.Value++;
@@ -54,7 +53,7 @@ namespace osu.Framework.Allocation
             switch (loaderMethods.Length)
             {
                 case 0:
-                    return (_, _) => { };
+                    return (_, _) => ValueTask.CompletedTask;
 
                 case 1:
                     var method = loaderMethods[0];
@@ -70,21 +69,29 @@ namespace osu.Framework.Allocation
                     var parameterGetters = method.GetParameters()
                                                  .Select(parameter => getDependency(parameter.ParameterType, type, permitNulls || parameter.IsNullable())).ToArray();
 
-                    return (target, dc) =>
+                    return async (target, dc) =>
                     {
                         try
                         {
-                            object[] parameterArray = new object[parameterGetters.Length];
+                            object?[] parameterArray = new object?[parameterGetters.Length];
                             for (int i = 0; i < parameterGetters.Length; i++)
                                 parameterArray[i] = parameterGetters[i](dc);
 
-                            SourceGeneratorUtils.CreateBackgroundDependencyLoaderContext()
-                                                .WaitFor(method.Invoke(target, parameterArray) as Task)
-                                                .Release();
+                            switch (method.Invoke(target, parameterArray))
+                            {
+                                case ValueTask valueTask:
+                                    await valueTask.ConfigureAwait(true);
+                                    break;
+
+                                case Task task:
+                                    await task.ConfigureAwait(true);
+                                    break;
+                            }
                         }
                         catch (TargetInvocationException exc) // During non-await invocations
                         {
                             ExceptionDispatchInfo.Capture(exc.InnerException ?? exc).Throw();
+                            throw;
                         }
                     };
 
@@ -93,7 +100,7 @@ namespace osu.Framework.Allocation
             }
         }
 
-        private static Func<IReadOnlyDependencyContainer, object> getDependency(Type type, Type requestingType, bool permitNulls)
+        private static Func<IReadOnlyDependencyContainer, object?> getDependency(Type type, Type requestingType, bool permitNulls)
             => dc => SourceGeneratorUtils.GetDependency(dc, type, requestingType, null, null, permitNulls, false);
     }
 }

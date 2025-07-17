@@ -9,7 +9,7 @@ partial class CanBeNullParameters : global::osu.Framework.Allocation.ISourceGene
         if (registry.IsRegistered(typeof(global::CanBeNullParameters)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::CanBeNullParameters), (t, d) =>
+        registry.Register(typeof(global::CanBeNullParameters), async (t, d) =>
         {
             ((global::CanBeNullParameters)t).load(global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::CanBeNullParameters), null, null, true, false));
         }, null);

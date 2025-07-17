@@ -9,7 +9,7 @@ partial class ValueType : global::osu.Framework.Allocation.ISourceGeneratedDepen
         if (registry.IsRegistered(typeof(global::ValueType)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::ValueType), (t, d) =>
+        registry.Register(typeof(global::ValueType), async (t, d) =>
         {
             ((global::ValueType)t).load(global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<global::System.Threading.CancellationToken>(d, typeof(global::ValueType), null, null, false, false));
         }, null);

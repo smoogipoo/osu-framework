@@ -11,7 +11,7 @@ partial class ClassA
             if (registry.IsRegistered(typeof(global::ClassA.ClassB)))
                 return;
             base.RegisterForDependencyActivation(registry);
-            registry.Register(typeof(global::ClassA.ClassB), (t, d) =>
+            registry.Register(typeof(global::ClassA.ClassB), async (t, d) =>
             {
                 ((global::ClassA.ClassB)t).load();
             }, null);

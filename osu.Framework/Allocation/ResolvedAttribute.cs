@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics;
@@ -111,6 +112,8 @@ namespace osu.Framework.Allocation
             {
                 foreach (var a in activators)
                     a(target, dc);
+
+                return ValueTask.CompletedTask;
             };
         }
 

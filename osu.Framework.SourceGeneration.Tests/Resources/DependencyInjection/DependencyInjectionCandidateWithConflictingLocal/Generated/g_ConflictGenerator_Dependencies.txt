@@ -9,7 +9,7 @@ partial class ConflictGenerator : global::osu.Framework.Allocation.ISourceGenera
         if (registry.IsRegistered(typeof(global::ConflictGenerator)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::ConflictGenerator), (t, d) =>
+        registry.Register(typeof(global::ConflictGenerator), async (t, d) =>
         {
             ((global::ConflictGenerator)t).ResolvedProperty = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::ConflictGenerator), null, null, false, true);
             ((global::ConflictGenerator)t).load(global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::ConflictGenerator), null, null, false, false));

@@ -6,10 +6,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using osu.Framework.Extensions;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing;
+using osu.Framework.Threading;
 
 namespace osu.Framework.Allocation
 {
@@ -64,21 +69,44 @@ namespace osu.Framework.Allocation
         /// </summary>
         /// <param name="obj">The object to inject the dependencies into.</param>
         /// <param name="dependencies">The dependencies to use for injection.</param>
+        [DebuggerNonUserCode]
         public static void Activate<T>(T obj, IReadOnlyDependencyContainer dependencies)
             where T : IDependencyInjectionCandidate
         {
             initialiseSourceGeneratedActivators(obj);
-            activateRecursively(obj, dependencies, obj.GetType());
 
-            static void activateRecursively(object obj, IReadOnlyDependencyContainer dependencies, Type currentType)
+            // We will generally arrive here in two particular cases:
+            if (SynchronizationContext.Current is ThreadedTaskScheduler.ThreadedTaskSchedulerSynchronizationContext)
+            {
+                // We are within the BDL context, in which case we can hop through the SynchronizationContext.
+                activateRecursively(obj, dependencies, obj.GetType()).ConfigureAwait(true).GetAwaiter().GetResult();
+            }
+            else
+            {
+                // We are on the update or main thread, in which case we expect this to run in-line, blocking the current thread in order to do so.
+                // The parenting synchronization context (GameThreadSynchronizationContext) must be hidden so that the continuation runs in-line.
+                SynchronizationContext syncContext = SynchronizationContext.Current;
+
+                try
+                {
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    activateRecursively(obj, dependencies, obj.GetType()).WaitSafely();
+                }
+                finally
+                {
+                    SynchronizationContext.SetSynchronizationContext(syncContext);
+                }
+            }
+
+            static async ValueTask activateRecursively(object obj, IReadOnlyDependencyContainer dependencies, Type currentType)
             {
                 if (currentType == typeof(object))
                     return;
 
-                activateRecursively(obj, dependencies, currentType.BaseType);
+                await activateRecursively(obj, dependencies, currentType.BaseType).ConfigureAwait(true);
 
                 foreach (var a in getActivator(currentType).injectionActivators)
-                    a(obj, dependencies);
+                    await a(obj, dependencies).ConfigureAwait(true);
             }
         }
 
@@ -142,7 +170,7 @@ namespace osu.Framework.Allocation
                 // The DependencyActivator constructor stores itself to a static dictionary.
                 _ = new DependencyActivator(
                     type,
-                    injectDel ?? ((_, _) => { }),
+                    injectDel ?? ((_, _) => ValueTask.CompletedTask),
                     cacheDel ?? ((_, d, _) => d));
             }
         }
@@ -218,7 +246,7 @@ namespace osu.Framework.Allocation
         }
     }
 
-    public delegate void InjectDependencyDelegate(object target, IReadOnlyDependencyContainer dependencies);
+    public delegate ValueTask InjectDependencyDelegate(object target, IReadOnlyDependencyContainer dependencies);
 
     public delegate IReadOnlyDependencyContainer CacheDependencyDelegate(object target, IReadOnlyDependencyContainer existingDependencies, CacheInfo info);
 }

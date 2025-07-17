@@ -9,7 +9,7 @@ partial class ClassA : global::osu.Framework.Allocation.ISourceGeneratedDependen
         if (registry.IsRegistered(typeof(global::ClassA)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::ClassA), (t, d) =>
+        registry.Register(typeof(global::ClassA), async (t, d) =>
         {
             ((global::ClassA)t).load();
         }, null);

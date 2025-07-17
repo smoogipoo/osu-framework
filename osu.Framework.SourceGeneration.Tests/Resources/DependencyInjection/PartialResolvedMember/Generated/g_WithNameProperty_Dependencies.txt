@@ -9,7 +9,7 @@ partial class WithNameProperty : global::osu.Framework.Allocation.ISourceGenerat
         if (registry.IsRegistered(typeof(global::WithNameProperty)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::WithNameProperty), (t, d) =>
+        registry.Register(typeof(global::WithNameProperty), async (t, d) =>
         {
             ((global::WithNameProperty)t).ResolvedProperty = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::WithNameProperty), "Custom Name", null, false, true);
         }, null);

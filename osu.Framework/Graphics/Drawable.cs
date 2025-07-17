@@ -206,6 +206,8 @@ namespace osu.Framework.Graphics
         /// </summary>
         internal Thread LoadThread { get; private set; }
 
+        internal SynchronizationContext LoadSyncContext { get; private set; }
+
         internal readonly object LoadLock = new object();
 
         private static readonly StopwatchClock perf_clock = new StopwatchClock(true);
@@ -264,6 +266,7 @@ namespace osu.Framework.Graphics
         private void load(IFrameBasedClock clock, IReadOnlyDependencyContainer dependencies)
         {
             LoadThread = Thread.CurrentThread;
+            LoadSyncContext = SynchronizationContext.Current;
 
             // Cache eagerly during load to hopefully defer the reflection overhead to an async pathway.
             getUnbindAction();
@@ -2500,20 +2503,26 @@ namespace osu.Framework.Graphics
         /// <exception cref="InvalidThreadForMutationException">If the current thread is not valid.</exception>
         internal void EnsureMutationAllowed(string action)
         {
+            bool isAsyncLoadThread = LoadSyncContext is ThreadedTaskScheduler.ThreadedTaskSchedulerSynchronizationContext
+                                     && LoadSyncContext == SynchronizationContext.Current;
+
+            bool isUpdateLoadThread = LoadSyncContext is GameThreadSynchronizationContext
+                                      && ThreadSafety.IsUpdateThread;
+
             switch (LoadState)
             {
                 case LoadState.NotLoaded:
                     break;
 
                 case LoadState.Loading:
-                    if (Thread.CurrentThread != LoadThread)
+                    if (isAsyncLoadThread || isUpdateLoadThread)
                         throw new InvalidThreadForMutationException(LoadState, action, "not on the load thread");
 
                     break;
 
                 case LoadState.Ready:
                     // Allow mutating from the load thread since parenting containers may still be in the loading state
-                    if (Thread.CurrentThread != LoadThread && !ThreadSafety.IsUpdateThread)
+                    if (!isAsyncLoadThread && !ThreadSafety.IsUpdateThread)
                         throw new InvalidThreadForMutationException(LoadState, action, "not on the load or update threads");
 
                     break;

@@ -9,7 +9,7 @@ partial class WithCanBeNullProperty : global::osu.Framework.Allocation.ISourceGe
         if (registry.IsRegistered(typeof(global::WithCanBeNullProperty)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::WithCanBeNullProperty), (t, d) =>
+        registry.Register(typeof(global::WithCanBeNullProperty), async (t, d) =>
         {
             ((global::WithCanBeNullProperty)t).ResolvedProperty = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::WithCanBeNullProperty), null, null, true, true);
         }, null);

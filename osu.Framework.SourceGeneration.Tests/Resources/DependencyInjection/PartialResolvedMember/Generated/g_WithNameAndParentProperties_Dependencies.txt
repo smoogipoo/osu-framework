@@ -9,7 +9,7 @@ partial class WithNameAndParentProperties : global::osu.Framework.Allocation.ISo
         if (registry.IsRegistered(typeof(global::WithNameAndParentProperties)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::WithNameAndParentProperties), (t, d) =>
+        registry.Register(typeof(global::WithNameAndParentProperties), async (t, d) =>
         {
             ((global::WithNameAndParentProperties)t).ResolvedProperty = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::WithNameAndParentProperties), "Custom Name", typeof(object), false, true);
         }, null);

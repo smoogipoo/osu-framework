@@ -9,7 +9,7 @@ partial class WithParentProperty : global::osu.Framework.Allocation.ISourceGener
         if (registry.IsRegistered(typeof(global::WithParentProperty)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::WithParentProperty), (t, d) =>
+        registry.Register(typeof(global::WithParentProperty), async (t, d) =>
         {
             ((global::WithParentProperty)t).ResolvedProperty = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<object>(d, typeof(global::WithParentProperty), "ResolvedProperty", typeof(object), false, true);
         }, null);

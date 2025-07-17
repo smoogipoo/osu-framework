@@ -61,6 +61,8 @@ namespace osu.Framework.Threading
         /// </summary>
         private void processTasks()
         {
+            SynchronizationContext.SetSynchronizationContext(new ThreadedTaskSchedulerSynchronizationContext(this));
+
             try
             {
                 foreach (var t in tasks.GetConsumingEnumerable())
@@ -144,6 +146,40 @@ namespace osu.Framework.Threading
                 thread.Join(TimeSpan.FromSeconds(10));
 
             tasks.Dispose();
+        }
+
+        internal class ThreadedTaskSchedulerSynchronizationContext : SynchronizationContext
+        {
+            private readonly ThreadedTaskScheduler scheduler;
+
+            public ThreadedTaskSchedulerSynchronizationContext(ThreadedTaskScheduler scheduler)
+            {
+                this.scheduler = scheduler;
+            }
+
+            public override void Send(SendOrPostCallback d, object? state)
+            {
+                scheduler.TryExecuteTaskInline(new Task(static s =>
+                {
+                    if (s is TaskExecutionInfo info)
+                        info.Callback(info.State);
+                }, new TaskExecutionInfo(d, state)), false);
+            }
+
+            public override void Post(SendOrPostCallback d, object? state)
+            {
+                Task.Factory.StartNew(
+                    static s =>
+                    {
+                        if (s is TaskExecutionInfo info)
+                            info.Callback(info.State);
+                    }, new TaskExecutionInfo(d, state),
+                    CancellationToken.None,
+                    TaskCreationOptions.None,
+                    scheduler);
+            }
+
+            private readonly record struct TaskExecutionInfo(SendOrPostCallback Callback, object? State);
         }
     }
 }

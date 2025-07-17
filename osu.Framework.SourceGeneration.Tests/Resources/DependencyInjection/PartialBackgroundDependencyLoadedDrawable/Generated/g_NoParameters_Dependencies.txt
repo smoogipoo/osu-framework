@@ -9,7 +9,7 @@ partial class NoParameters : global::osu.Framework.Allocation.ISourceGeneratedDe
         if (registry.IsRegistered(typeof(global::NoParameters)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::NoParameters), (t, d) =>
+        registry.Register(typeof(global::NoParameters), async (t, d) =>
         {
             ((global::NoParameters)t).load();
         }, null);

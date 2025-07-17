@@ -9,7 +9,7 @@ partial class DefaultParameters : global::osu.Framework.Allocation.ISourceGenera
         if (registry.IsRegistered(typeof(global::DefaultParameters)))
             return;
         base.RegisterForDependencyActivation(registry);
-        registry.Register(typeof(global::DefaultParameters), (t, d) =>
+        registry.Register(typeof(global::DefaultParameters), async (t, d) =>
         {
             ((global::DefaultParameters)t).ResolvedProperty = global::osu.Framework.Utils.SourceGeneratorUtils.GetDependency<global::osu.Framework.Bindables.Bindable<int>?>(d, typeof(global::DefaultParameters), null, null, true, true);
         }, null);
