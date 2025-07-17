@@ -1,12 +1,11 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
-
-#nullable disable
 
 using System;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osuTK;
 
@@ -160,8 +159,35 @@ namespace osu.Framework.Graphics.Visualisation
             });
         }
 
+        protected void AddButton(IconUsage icon, Action action)
+        {
+            ToolbarContent.Add(new IconButton(icon)
+            {
+                Action = action
+            });
+        }
+
         protected override void PopIn() => this.FadeIn(100);
 
         protected override void PopOut() => this.FadeOut(100);
+
+        private partial class IconButton : BasicButton
+        {
+            public IconButton(IconUsage icon)
+            {
+                AutoSizeAxes = Axes.X;
+                Height = button_height;
+
+                Add(new SpriteIcon
+                {
+                    Size = new Vector2(16),
+                    Margin = new MarginPadding { Horizontal = 10 },
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Icon = icon,
+                    Colour = FrameworkColour.Yellow,
+                });
+            }
+        }
     }
 }

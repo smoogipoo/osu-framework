@@ -74,6 +74,9 @@ namespace osu.Framework.Tests.Visual.Input
                                         mouseStatus,
                                         keyboardStatus,
                                         joystickStatus,
+                                        touchStatus,
+                                        midiStatus,
+                                        tabletStatus,
                                         onMouseDownStatus,
                                         onMouseUpStatus,
                                         onMouseMoveStatus,
@@ -100,6 +103,9 @@ namespace osu.Framework.Tests.Visual.Input
                             mouseStatus = new SmallText(),
                             keyboardStatus = new SmallText(),
                             joystickStatus = new SmallText(),
+                            touchStatus = new SmallText(),
+                            midiStatus = new SmallText(),
+                            tabletStatus = new SmallText(),
                             onMouseDownStatus = new SmallText { Text = "OnMouseDown 0" },
                             onMouseUpStatus = new SmallText { Text = "OnMouseUp 0" },
                             onMouseMoveStatus = new SmallText { Text = "OnMouseMove 0" },
@@ -113,12 +119,14 @@ namespace osu.Framework.Tests.Visual.Input
             protected override void Update()
             {
                 var inputManager = GetContainingInputManager();
-                var currentState = inputManager.CurrentState;
-                var mouse = currentState.Mouse;
+                var currentState = inputManager!.CurrentState;
                 inputManagerStatus.Text = $"{inputManager}";
-                mouseStatus.Text = $"Mouse: {mouse.Position} {mouse.Scroll} " + string.Join(' ', mouse.Buttons);
+                mouseStatus.Text = $"Mouse: {currentState.Mouse.Position} {currentState.Mouse.Scroll} " + string.Join(' ', currentState.Mouse.Buttons);
                 keyboardStatus.Text = "Keyboard: " + string.Join(' ', currentState.Keyboard.Keys);
                 joystickStatus.Text = "Joystick: " + string.Join(' ', currentState.Joystick.Buttons);
+                touchStatus.Text = $"Touch: {string.Join(' ', currentState.Touch.ActiveSources.Select(s => $"({s},{currentState.Touch.GetTouchPosition(s)})"))}";
+                midiStatus.Text = "MIDI: " + string.Join(' ', currentState.Midi.Keys.Select(k => $"({k},{currentState.Midi.Velocities[k]})"));
+                tabletStatus.Text = "Tablet: " + string.Join(' ', currentState.Tablet.PenButtons) + " " + string.Join(' ', currentState.Tablet.AuxiliaryButtons);
                 base.Update();
             }
 
@@ -167,6 +175,14 @@ namespace osu.Framework.Tests.Visual.Input
                 return base.OnHover(e);
             }
 
+            public int KeyDownCount;
+
+            protected override bool OnKeyDown(KeyDownEvent e)
+            {
+                ++KeyDownCount;
+                return base.OnKeyDown(e);
+            }
+
             protected override bool OnClick(ClickEvent e)
             {
                 this.MoveToOffset(new Vector2(100, 0)).Then().MoveToOffset(new Vector2(-100, 0), 1000, Easing.In);
@@ -197,6 +213,11 @@ namespace osu.Framework.Tests.Visual.Input
             setCursorConfineRect(false);
 
             AddStep("Reset handlers", () => host.ResetInputHandlers());
+
+            AddLabel("Input handlers");
+
+            foreach (var h in host.AvailableInputHandlers)
+                AddToggleStep($"{h.Description} enabled", v => h.Enabled.Value = v);
         }
 
         private void setCursorSensitivityConfig(double sensitivity)

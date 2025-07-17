@@ -19,6 +19,7 @@ using osu.Framework.Graphics.Visualisation.Audio;
 using osu.Framework.Input;
 using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.StateChanges;
 using osu.Framework.IO.Stores;
 using osu.Framework.Localisation;
 using osu.Framework.Platform;
@@ -113,14 +114,32 @@ namespace osu.Framework
                 RelativeSizeAxes = Axes.Both,
             });
 
-            base.AddInternal(overlayContent = new DrawSizePreservingFillContainer
+            base.AddInternal(new SafeAreaContainer
             {
-                TargetDrawSize = new Vector2(1280, 960),
                 RelativeSizeAxes = Axes.Both,
+                Child = overlayContent = new DrawSizePreservingFillContainer
+                {
+                    TargetDrawSize = new Vector2(1280, 960),
+                    RelativeSizeAxes = Axes.Both,
+                }
             });
         }
 
         protected sealed override void AddInternal(Drawable drawable) => throw new InvalidOperationException($"Use {nameof(Add)} or {nameof(Content)} instead.");
+
+        /// <summary>
+        /// The earliest point of entry during <see cref="GameHost.Run"/> starting execution of a game.
+        /// This should be used to set up any low level tasks such as exception handling.
+        /// </summary>
+        /// <remarks>
+        /// At this point in execution, only <see cref="GameHost.Storage"/> and <see cref="GameHost.CacheStorage"/> are guaranteed to be valid for use.
+        /// They are provided as <paramref name="gameStorage"/> and <paramref name="cacheStorage"/> respectively for convenience.
+        /// </remarks>
+        /// <param name="gameStorage">The default game storage.</param>
+        /// <param name="cacheStorage">The default cache storage.</param>
+        public virtual void SetupLogging(Storage gameStorage, Storage cacheStorage)
+        {
+        }
 
         /// <summary>
         /// As Load is run post host creation, you can override this method to alter properties of the host before it makes itself visible to the user.
@@ -130,8 +149,18 @@ namespace osu.Framework
         {
             Host = host;
             host.ExitRequested += RequestExit;
-            host.Activated += () => isActive.Value = true;
-            host.Deactivated += () => isActive.Value = false;
+            host.Activated += onHostActivated;
+            host.Deactivated += onHostDeactivated;
+        }
+
+        private void onHostActivated()
+        {
+            isActive.Value = true;
+        }
+
+        private void onHostDeactivated()
+        {
+            isActive.Value = false;
         }
 
         private DependencyContainer dependencies;
@@ -148,16 +177,16 @@ namespace osu.Framework
             Textures = new TextureStore(Host.Renderer, Host.CreateTextureLoaderStore(new NamespacedResourceStore<byte[]>(Resources, @"Textures")),
                 filteringMode: DefaultTextureFilteringMode);
 
-            Textures.AddTextureSource(Host.CreateTextureLoaderStore(new OnlineStore()));
+            Textures.AddTextureSource(Host.CreateTextureLoaderStore(CreateOnlineStore()));
             dependencies.Cache(Textures);
 
             var tracks = new ResourceStore<byte[]>();
             tracks.AddStore(new NamespacedResourceStore<byte[]>(Resources, @"Tracks"));
-            tracks.AddStore(new OnlineStore());
+            tracks.AddStore(CreateOnlineStore());
 
             var samples = new ResourceStore<byte[]>();
             samples.AddStore(new NamespacedResourceStore<byte[]>(Resources, @"Samples"));
-            samples.AddStore(new OnlineStore());
+            samples.AddStore(CreateOnlineStore());
 
             Audio = new AudioManager(Host.AudioThread, tracks, samples) { EventScheduler = Scheduler };
             dependencies.Cache(Audio);
@@ -229,6 +258,11 @@ namespace osu.Framework
         }
 
         /// <summary>
+        /// Creates an <see cref="OnlineStore"/> to be used for online textures/tracks/samples lookups.
+        /// </summary>
+        protected virtual OnlineStore CreateOnlineStore() => new OnlineStore();
+
+        /// <summary>
         /// Add a font to be globally accessible to the game.
         /// </summary>
         /// <param name="store">The backing store with font resources.</param>
@@ -259,6 +293,18 @@ namespace osu.Framework
             }, overlayContent.Add);
 
             FrameStatistics.BindValueChanged(e => performanceOverlay.State = e.NewValue, true);
+
+            if (FrameworkEnvironment.FrameStatisticsViaTouch)
+            {
+                base.AddInternal(new FrameStatisticsTouchReceptor(this)
+                {
+                    Depth = float.MaxValue,
+                    Anchor = Anchor.BottomRight,
+                    Origin = Anchor.BottomRight,
+                    RelativeSizeAxes = Axes.Both,
+                    Size = new Vector2(0.2f),
+                });
+            }
         }
 
         protected readonly Bindable<FrameStatisticsMode> FrameStatistics = new Bindable<FrameStatisticsMode>();
@@ -281,22 +327,7 @@ namespace osu.Framework
             switch (e.Action)
             {
                 case FrameworkAction.CycleFrameStatistics:
-
-                    switch (FrameStatistics.Value)
-                    {
-                        case FrameStatisticsMode.None:
-                            FrameStatistics.Value = FrameStatisticsMode.Minimal;
-                            break;
-
-                        case FrameStatisticsMode.Minimal:
-                            FrameStatistics.Value = FrameStatisticsMode.Full;
-                            break;
-
-                        case FrameStatisticsMode.Full:
-                            FrameStatistics.Value = FrameStatisticsMode.None;
-                            break;
-                    }
-
+                    CycleFrameStatistics();
                     return true;
 
                 case FrameworkAction.ToggleDrawVisualiser:
@@ -395,6 +426,24 @@ namespace osu.Framework
                 => new Vector2(100 + index * (TitleBar.HEIGHT + 10));
         }
 
+        protected void CycleFrameStatistics()
+        {
+            switch (FrameStatistics.Value)
+            {
+                case FrameStatisticsMode.None:
+                    FrameStatistics.Value = FrameStatisticsMode.Minimal;
+                    break;
+
+                case FrameStatisticsMode.Minimal:
+                    FrameStatistics.Value = FrameStatisticsMode.Full;
+                    break;
+
+                case FrameStatisticsMode.Full:
+                    FrameStatistics.Value = FrameStatisticsMode.None;
+                    break;
+            }
+        }
+
         private void toggleOverlay(OverlayContainer overlay)
         {
             overlay.ToggleVisibility();
@@ -477,6 +526,31 @@ namespace osu.Framework
 
             Localisation?.Dispose();
             Localisation = null;
+
+            if (Host != null)
+            {
+                Host.ExitRequested -= RequestExit;
+                Host.Activated -= onHostActivated;
+                Host.Deactivated -= onHostDeactivated;
+            }
+        }
+
+        private partial class FrameStatisticsTouchReceptor : Drawable
+        {
+            private readonly Game game;
+
+            public FrameStatisticsTouchReceptor(Game game)
+            {
+                this.game = game;
+            }
+
+            protected override bool OnClick(ClickEvent e) => e.CurrentState.Mouse.LastSource is ISourcedFromTouch;
+
+            protected override bool OnDoubleClick(DoubleClickEvent e)
+            {
+                game.CycleFrameStatistics();
+                return base.OnDoubleClick(e);
+            }
         }
     }
 }

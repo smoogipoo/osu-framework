@@ -1,10 +1,9 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
-
-#nullable disable
 
 using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace osu.Framework.Graphics.Video
 {
@@ -15,6 +14,8 @@ namespace osu.Framework.Graphics.Video
     /// Contains decoders for ALL platforms.
     /// </remarks>
     [Flags]
+    // todo: revisit when we have a way to exclude enum members from naming rules
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public enum HardwareVideoDecoder
     {
         /// <summary>
@@ -64,6 +65,12 @@ namespace osu.Framework.Graphics.Video
         /// </remarks>
         [Description("Apple VideoToolbox")]
         VideoToolbox = 1 << 7,
+
+        /// <remarks>
+        /// Windows only.
+        /// </remarks>
+        [Description("Direct3D 11 Video Acceleration")]
+        D3D11VA = 1 << 8,
 
         [Description("Any")]
         Any = int.MaxValue,

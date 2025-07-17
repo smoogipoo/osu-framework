@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using NUnit.Framework;
 using osu.Framework.Graphics;
@@ -83,6 +81,27 @@ namespace osu.Framework.Tests.Visual.Drawables
             AddStep("zero child size", () => Assert.Throws<ArgumentException>(() => boxes[0].TransformRelativeChildSizeTo(Vector2.Zero)));
         }
 
+        [Test]
+        public void TestNestedAbsoluteSequence()
+        {
+            AddStep("Animate", () =>
+            {
+                setup();
+                animate();
+            });
+
+            AddStep("start absolute sequence", () =>
+            {
+                using (BeginAbsoluteSequence(0))
+                {
+                    using (boxes[0].BeginAbsoluteSequence(Time.Current))
+                    {
+                        boxes[0].FadeInFromZero(1000);
+                    }
+                }
+            });
+        }
+
         private void setup()
         {
             finalizeTriggered = false;
@@ -138,9 +157,7 @@ namespace osu.Framework.Tests.Visual.Drawables
 
         private void animate()
         {
-            boxes[0].Delay(500).Then(500).Then(500).Then(
-                b => b.Delay(500).Spin(1000, RotationDirection.Counterclockwise)
-            );
+            boxes[0].Delay(500).Then(500).Then(500).Then(b => b.Delay(500).Spin(1000, RotationDirection.Counterclockwise));
 
             boxes[1].Spin(1000, RotationDirection.Counterclockwise);
 
@@ -165,9 +182,7 @@ namespace osu.Framework.Tests.Visual.Drawables
                         b => b.RotateTo(0),
                         b => b.ScaleTo(2)
                     )
-                    .Then(
-                        b => b.Loop(500, 2, d => d.RotateTo(0).RotateTo(360, 1000)).Delay(500).ScaleTo(0.5f, 500)
-                    )
+                    .Then(b => b.Loop(500, 2, d => d.RotateTo(0).RotateTo(360, 1000)).Delay(500).ScaleTo(0.5f, 500))
                     .Then().FadeEdgeEffectTo(Color4.Red, 1000).ScaleTo(2, 500)
                     .Finally(_ => finalizeTriggered = true);
 

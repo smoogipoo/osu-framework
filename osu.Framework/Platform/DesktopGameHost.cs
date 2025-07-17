@@ -9,20 +9,19 @@ using System.IO;
 using System.Threading.Tasks;
 using osu.Framework.Configuration;
 using osu.Framework.Extensions;
+using osu.Framework.Logging;
 
 namespace osu.Framework.Platform
 {
-    public abstract class DesktopGameHost : SDL2GameHost
+    public abstract class DesktopGameHost : SDLGameHost
     {
-        public const int IPC_PORT = 45356;
-
-        private TcpIpcProvider ipcProvider;
-        private readonly bool bindIPCPort;
+        private NamedPipeIpcProvider ipcProvider;
+        private readonly string ipcPipeName;
 
         protected DesktopGameHost(string gameName, HostOptions options = null)
             : base(gameName, options)
         {
-            bindIPCPort = Options.BindIPC;
+            ipcPipeName = Options.IPCPipeName;
             IsPortableInstallation = Options.PortableInstallation;
         }
 
@@ -56,13 +55,13 @@ namespace osu.Framework.Platform
 
         private void ensureIPCReady()
         {
-            if (!bindIPCPort)
+            if (ipcPipeName == null)
                 return;
 
             if (ipcProvider != null)
                 return;
 
-            ipcProvider = new TcpIpcProvider(IPC_PORT);
+            ipcProvider = new NamedPipeIpcProvider(ipcPipeName);
             ipcProvider.MessageReceived += OnMessageReceived;
 
             IsPrimaryInstance = ipcProvider.Bind();
@@ -81,7 +80,14 @@ namespace osu.Framework.Platform
             if (!url.CheckIsValidUrl())
                 throw new ArgumentException("The provided URL must be one of either http://, https:// or mailto: protocols.", nameof(url));
 
-            openUsingShellExecute(url);
+            try
+            {
+                openUsingShellExecute(url);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Unable to open external link.");
+            }
         }
 
         public override bool PresentFileExternally(string filename)
@@ -91,7 +97,7 @@ namespace osu.Framework.Platform
             return true;
         }
 
-        private void openUsingShellExecute(string path) => Process.Start(new ProcessStartInfo
+        private static void openUsingShellExecute(string path) => Process.Start(new ProcessStartInfo
         {
             FileName = path,
             UseShellExecute = true //see https://github.com/dotnet/corefx/issues/10361
@@ -102,6 +108,13 @@ namespace osu.Framework.Platform
             ensureIPCReady();
 
             return ipcProvider.SendMessageAsync(message);
+        }
+
+        public override Task<IpcMessage> SendMessageWithResponseAsync(IpcMessage message)
+        {
+            ensureIPCReady();
+
+            return ipcProvider.SendMessageWithResponseAsync(message);
         }
 
         protected override void Dispose(bool isDisposing)

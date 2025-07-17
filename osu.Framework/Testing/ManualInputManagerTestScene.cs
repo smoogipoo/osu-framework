@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using NUnit.Framework;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
@@ -23,11 +21,6 @@ namespace osu.Framework.Testing
     public abstract partial class ManualInputManagerTestScene : TestScene
     {
         protected override Container<Drawable> Content { get; } = new Container { RelativeSizeAxes = Axes.Both };
-
-        /// <summary>
-        /// The position which is used to initialize the mouse position before at setup.
-        /// </summary>
-        protected virtual Vector2 InitialMousePosition => Vector2.Zero;
 
         /// <summary>
         /// The <see cref="ManualInputManager"/>.
@@ -129,7 +122,7 @@ namespace osu.Framework.Testing
             var currentState = InputManager.CurrentState;
 
             var mouse = currentState.Mouse;
-            InputManager.MoveMouseTo(InitialMousePosition);
+            InputManager.MoveMouseTo(Vector2.Zero);
             mouse.Buttons.ForEach(InputManager.ReleaseButton);
 
             var keyboard = currentState.Keyboard;

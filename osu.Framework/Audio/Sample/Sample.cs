@@ -19,7 +19,8 @@ namespace osu.Framework.Audio.Sample
             Name = name;
         }
 
-        public double Length { get; protected set; }
+        public abstract double Length { get; }
+
         public Bindable<int> PlaybackConcurrency { get; } = new Bindable<int>(DEFAULT_CONCURRENCY);
 
         internal Action<Sample> OnPlay;
@@ -33,14 +34,10 @@ namespace osu.Framework.Audio.Sample
 
         public SampleChannel GetChannel()
         {
-            if (IsDisposed)
-                throw new ObjectDisposedException(ToString(), "Can not get a channel from a disposed sample.");
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
 
             var channel = CreateChannel();
-
-            if (channel != null)
-                channel.OnPlay = onPlay;
-
+            channel.OnPlay = onPlay;
             return channel;
         }
 

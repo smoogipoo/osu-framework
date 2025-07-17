@@ -20,6 +20,8 @@ namespace osu.Framework.Input.Handlers.Tablet
 {
     public class OpenTabletDriverHandler : InputHandler, IAbsolutePointer, IRelativePointer, IPressureHandler, ITabletHandler
     {
+        private static readonly GlobalStatistic<ulong> statistic_total_events = GlobalStatistics.Get<ulong>(StatisticGroupFor<OpenTabletDriverHandler>(), "Total events");
+
         private TabletDriver? tabletDriver;
 
         private InputDeviceTree? device;
@@ -38,11 +40,20 @@ namespace osu.Framework.Input.Handlers.Tablet
 
         public Bindable<float> Rotation { get; } = new Bindable<float>();
 
-        public IBindable<TabletInfo> Tablet => tablet;
+        public BindableFloat PressureThreshold { get; } = new BindableFloat(0.0f)
+        {
+            MinValue = 0f,
+            MaxValue = 1f,
+            Precision = 0.005f,
+        };
 
-        private readonly Bindable<TabletInfo> tablet = new Bindable<TabletInfo>();
+        public IBindable<TabletInfo?> Tablet => tablet;
+
+        private readonly Bindable<TabletInfo?> tablet = new Bindable<TabletInfo?>();
 
         private Task? lastInitTask;
+
+        private IBindable<bool> windowActive = null!;
 
         public override bool Initialize(GameHost host)
         {
@@ -51,10 +62,11 @@ namespace osu.Framework.Input.Handlers.Tablet
             outputMode = new AbsoluteTabletMode(this);
 
             host.Window.Resized += () => updateOutputArea(host.Window);
+            windowActive = host.Window.IsActive.GetBoundCopy();
 
-            AreaOffset.BindValueChanged(_ => updateInputArea(device));
-            AreaSize.BindValueChanged(_ => updateInputArea(device), true);
-            Rotation.BindValueChanged(_ => updateInputArea(device), true);
+            AreaOffset.BindValueChanged(_ => updateTabletAndInputArea(device));
+            AreaSize.BindValueChanged(_ => updateTabletAndInputArea(device));
+            Rotation.BindValueChanged(_ => updateTabletAndInputArea(device), true);
 
             Enabled.BindValueChanged(enabled =>
             {
@@ -86,11 +98,21 @@ namespace osu.Framework.Input.Handlers.Tablet
             return true;
         }
 
-        void IAbsolutePointer.SetPosition(System.Numerics.Vector2 pos) => enqueueInput(new MousePositionAbsoluteInput { Position = new Vector2(pos.X, pos.Y) });
+        private TabletPenDeviceType lastTabletDeviceType = TabletPenDeviceType.Unknown;
 
-        void IRelativePointer.SetPosition(System.Numerics.Vector2 delta) => enqueueInput(new MousePositionRelativeInput { Delta = new Vector2(delta.X, delta.Y) });
+        void IAbsolutePointer.SetPosition(System.Numerics.Vector2 pos)
+        {
+            lastTabletDeviceType = TabletPenDeviceType.Unknown;
+            enqueueInput(new MousePositionAbsoluteInputFromPen { Position = new Vector2(pos.X, pos.Y), DeviceType = lastTabletDeviceType });
+        }
 
-        void IPressureHandler.SetPressure(float percentage) => enqueueInput(new MouseButtonInput(osuTK.Input.MouseButton.Left, percentage > 0));
+        void IRelativePointer.SetPosition(System.Numerics.Vector2 delta)
+        {
+            lastTabletDeviceType = TabletPenDeviceType.Indirect;
+            enqueueInput(new MousePositionRelativeInputFromPen { Delta = new Vector2(delta.X, delta.Y), DeviceType = lastTabletDeviceType });
+        }
+
+        void IPressureHandler.SetPressure(float percentage) => enqueueInput(new MouseButtonInputFromPen(percentage > PressureThreshold.Value) { DeviceType = lastTabletDeviceType });
 
         private void handleTabletsChanged(object? sender, IEnumerable<TabletReference> tablets)
         {
@@ -98,26 +120,24 @@ namespace osu.Framework.Input.Handlers.Tablet
 
             if (device != null)
             {
-                device.OutputMode = outputMode;
+                // Important to reinitialise outputMode here as the previous one is likely disposed.
+                device.OutputMode = outputMode = new AbsoluteTabletMode(this);
                 outputMode.Tablet = device.CreateReference();
 
-                updateInputArea(device);
+                updateTabletAndInputArea(device);
                 updateOutputArea(host.Window);
             }
+            else
+                tablet.Value = null;
         }
 
         private void handleDeviceReported(object? sender, IDeviceReport report)
         {
-            switch (report)
-            {
-                case ITabletReport tabletReport:
-                    handleTabletReport(tabletReport);
-                    break;
+            if (report is ITabletReport tabletReport)
+                handleTabletReport(tabletReport);
 
-                case IAuxReport auxiliaryReport:
-                    handleAuxiliaryReport(auxiliaryReport);
-                    break;
-            }
+            if (report is IAuxReport auxiliaryReport)
+                handleAuxiliaryReport(auxiliaryReport);
         }
 
         private void updateOutputArea(IWindow window)
@@ -143,7 +163,7 @@ namespace osu.Framework.Input.Handlers.Tablet
             }
         }
 
-        private void updateInputArea(InputDeviceTree? inputDevice)
+        private void updateTabletAndInputArea(InputDeviceTree? inputDevice)
         {
             if (inputDevice == null)
                 return;
@@ -206,8 +226,12 @@ namespace osu.Framework.Input.Handlers.Tablet
 
         private void enqueueInput(IInput input)
         {
+            if (!windowActive.Value)
+                return;
+
             PendingInputs.Enqueue(input);
             FrameStatistics.Increment(StatisticsCounterType.TabletEvents);
+            statistic_total_events.Value++;
         }
     }
 }

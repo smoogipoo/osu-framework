@@ -1,11 +1,12 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
-
-#nullable disable
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using osu.Framework.Development;
+using osu.Framework.Extensions.ObjectExtensions;
 
 namespace osu.Framework
 {
@@ -26,6 +27,17 @@ namespace osu.Framework
 
             return assembly.Location;
         }
+
+        /// <summary>
+        /// Gets the entry assembly.
+        /// When running under NUnit, the assembly of the current test will be returned instead.
+        /// </summary>
+        /// <returns>The entry assembly.</returns>
+        public static Assembly EntryAssembly { get; internal set; } = DebugUtils.IsNUnitRunning
+            ? DebugUtils.NUnitTestAssembly
+#pragma warning disable RS0030
+            : Assembly.GetEntryAssembly().AsNonNull();
+#pragma warning restore RS0030
 
         public static Platform OS { get; }
 
@@ -51,6 +63,8 @@ namespace osu.Framework
                 throw new PlatformNotSupportedException("Operating system could not be detected correctly.");
         }
 
+        // todo: revisit when we have a way to exclude enum members from naming rules
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         public enum Platform
         {
             Windows = 1,

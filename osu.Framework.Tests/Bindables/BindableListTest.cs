@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Globalization;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Bindables;
@@ -135,7 +136,7 @@ namespace osu.Framework.Tests.Bindables
 
             NotifyCollectionChangedEventArgs triggeredArgs = null;
             list.BindCollectionChanged((_, args) => triggeredArgs = args);
-            list.Parse(enumerable);
+            list.Parse(enumerable, CultureInfo.InvariantCulture);
 
             Assert.That(triggeredArgs, Is.Null);
         }
@@ -377,6 +378,26 @@ namespace osu.Framework.Tests.Bindables
             Assert.Contains(item, bindableStringList);
         }
 
+        [Test]
+        public void TestAddBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.Add(6);
+
+            Assert.That(b1.Count, Is.EqualTo(6));
+            Assert.That(b2.Count, Is.EqualTo(6));
+            Assert.That(b3.Count, Is.EqualTo(6));
+            Assert.That(b4.Count, Is.EqualTo(6));
+        }
+
         #endregion
 
         #region .AddRange(items)
@@ -433,6 +454,37 @@ namespace osu.Framework.Tests.Bindables
             Assert.That(list1, Is.EquivalentTo(0.Yield()));
             Assert.That(list2, Is.EquivalentTo(0.Yield()));
             Assert.That(counter, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestAddRangeBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.AddRange(new[] { 6, 7 });
+
+            Assert.That(b1.Count, Is.EqualTo(7));
+            Assert.That(b2.Count, Is.EqualTo(7));
+            Assert.That(b3.Count, Is.EqualTo(7));
+            Assert.That(b4.Count, Is.EqualTo(7));
+        }
+
+        [Test]
+        public void TestAddHashSetWithCallback()
+        {
+            var b1 = new BindableList<int>();
+
+            b1.CollectionChanged += (_, _) => { };
+            b1.AddRange(new HashSet<int>([1, 2, 3, 4]));
+
+            Assert.That(b1.Count, Is.EqualTo(4));
         }
 
         #endregion
@@ -574,6 +626,28 @@ namespace osu.Framework.Tests.Bindables
             Assert.That(triggeredArgsB2, Is.Not.Null);
         }
 
+        [Test]
+        public void TestMoveRangeBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.Move(0, 1);
+
+            foreach (var list in new[] { b1, b2, b3, b4 })
+            {
+                Assert.That(list[0], Is.EqualTo(2));
+                Assert.That(list[1], Is.EqualTo(1));
+            }
+        }
+
         #endregion
 
         #region .Insert
@@ -646,6 +720,26 @@ namespace osu.Framework.Tests.Bindables
                 Assert.AreEqual("1", list[1]);
                 Assert.AreEqual("2", list[2]);
             });
+        }
+
+        [Test]
+        public void TestInsertBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.Insert(0, 0);
+
+            Assert.That(b1.Count, Is.EqualTo(6));
+            Assert.That(b2.Count, Is.EqualTo(6));
+            Assert.That(b3.Count, Is.EqualTo(6));
+            Assert.That(b4.Count, Is.EqualTo(6));
         }
 
         #endregion
@@ -995,6 +1089,21 @@ namespace osu.Framework.Tests.Bindables
             Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
         }
 
+        [Test]
+        public void TestRemoveAtBranchingBinds()
+        {
+            var b1 = new BindableList<int> { 1, 2, 3, 4, 5 };
+
+            var b2 = b1.GetBoundCopy();
+            var b3 = b1.GetBoundCopy();
+
+            var b4 = new BindableList<int>();
+            b4.BindTo(b2);
+            b4.BindTo(b3);
+
+            b1.RemoveAt(b1.Count - 1);
+        }
+
         #endregion
 
         #region .RemoveAll(match)
@@ -1063,6 +1172,47 @@ namespace osu.Framework.Tests.Bindables
 
             Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
             Assert.That(triggeredArgs.OldItems, Is.EquivalentTo(new[] { "0", "0" }));
+        }
+
+        #endregion
+
+        #region .ReplaceRange(index, count, newItems)
+
+        [Test]
+        public void TestReplaceRangeNotifiesBoundLists()
+        {
+            string[] items = { "A", "B" };
+
+            bindableStringList.Add("0");
+            bindableStringList.Add("1");
+
+            var list = new BindableList<string>();
+            list.BindTo(bindableStringList);
+
+            NotifyCollectionChangedEventArgs triggeredArgs = null;
+            list.CollectionChanged += (_, args) => triggeredArgs = args;
+
+            bindableStringList.ReplaceRange(0, 1, items);
+
+            Assert.That(list, Is.EquivalentTo(bindableStringList));
+            Assert.That(list, Is.EquivalentTo(new[] { "A", "B", "1" }));
+
+            Assert.That(triggeredArgs.Action, Is.EqualTo(NotifyCollectionChangedAction.Replace));
+            Assert.That(triggeredArgs.NewItems, Is.EquivalentTo(items));
+            Assert.That(triggeredArgs.NewStartingIndex, Is.EqualTo(0));
+            Assert.That(triggeredArgs.OldItems, Has.One.Items.EqualTo("0"));
+            Assert.That(triggeredArgs.OldStartingIndex, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestReplaceRangeHashSetWithCallback()
+        {
+            var b1 = new BindableList<int>([1]);
+
+            b1.CollectionChanged += (_, _) => { };
+            b1.ReplaceRange(0, 1, new HashSet<int>([1, 2, 3, 4]));
+
+            Assert.That(b1.Count, Is.EqualTo(4));
         }
 
         #endregion
@@ -1319,12 +1469,13 @@ namespace osu.Framework.Tests.Bindables
 
         #endregion
 
-        #region .GetEnumberator()
+        #region .GetEnumerator()
 
         [Test]
         public void TestGetEnumeratorDoesNotReturnNull()
         {
-            Assert.NotNull(bindableStringList.GetEnumerator());
+            using var enumerator = bindableStringList.GetEnumerator();
+            Assert.NotNull(enumerator);
         }
 
         [Test]
@@ -1333,8 +1484,10 @@ namespace osu.Framework.Tests.Bindables
             string[] array = { "" };
             var list = new BindableList<string>(array);
 
-            var enumerator = list.GetEnumerator();
+            using var enumerator = list.GetEnumerator();
 
+            // ReSharper disable once NotDisposedResource
+            // Array enumerator is not disposable
             Assert.AreNotEqual(array.GetEnumerator(), enumerator);
         }
 
@@ -1361,7 +1514,7 @@ namespace osu.Framework.Tests.Bindables
         {
             bindableStringList.Add("a item");
 
-            bindableStringList.Parse(null);
+            bindableStringList.Parse(null, CultureInfo.InvariantCulture);
 
             Assert.IsEmpty(bindableStringList);
         }
@@ -1371,7 +1524,7 @@ namespace osu.Framework.Tests.Bindables
         {
             IEnumerable<string> strings = new[] { "testA", "testB" };
 
-            bindableStringList.Parse(strings);
+            bindableStringList.Parse(strings, CultureInfo.InvariantCulture);
 
             CollectionAssert.AreEquivalent(strings, bindableStringList);
         }
@@ -1383,11 +1536,11 @@ namespace osu.Framework.Tests.Bindables
 
             Assert.Multiple(() =>
             {
-                Assert.Throws(typeof(InvalidOperationException), () => bindableStringList.Parse(null));
+                Assert.Throws(typeof(InvalidOperationException), () => bindableStringList.Parse(null, CultureInfo.InvariantCulture));
                 Assert.Throws(typeof(InvalidOperationException), () => bindableStringList.Parse(new object[]
                 {
                     "test", "testabc", "asdasdasdasd"
-                }));
+                }, CultureInfo.InvariantCulture));
             });
         }
 
@@ -1396,13 +1549,13 @@ namespace osu.Framework.Tests.Bindables
         {
             Assert.Multiple(() =>
             {
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(1));
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(""));
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(new object()));
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(1.1));
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(1.1f));
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse("test123"));
-                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(29387L));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(1, CultureInfo.InvariantCulture));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse("", CultureInfo.InvariantCulture));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(new object(), CultureInfo.InvariantCulture));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(1.1, CultureInfo.InvariantCulture));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(1.1f, CultureInfo.InvariantCulture));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse("test123", CultureInfo.InvariantCulture));
+                Assert.Throws(typeof(ArgumentException), () => bindableStringList.Parse(29387L, CultureInfo.InvariantCulture));
             });
         }
 
@@ -1415,7 +1568,7 @@ namespace osu.Framework.Tests.Bindables
             var triggeredArgs = new List<NotifyCollectionChangedEventArgs>();
             bindableStringList.CollectionChanged += (_, args) => triggeredArgs.Add(args);
 
-            bindableStringList.Parse(null);
+            bindableStringList.Parse(null, CultureInfo.InvariantCulture);
 
             Assert.That(triggeredArgs, Has.Count.EqualTo(1));
             Assert.That(triggeredArgs.First().Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));
@@ -1432,7 +1585,7 @@ namespace osu.Framework.Tests.Bindables
             var triggeredArgs = new List<NotifyCollectionChangedEventArgs>();
             bindableStringList.CollectionChanged += (_, args) => triggeredArgs.Add(args);
 
-            bindableStringList.Parse(strings);
+            bindableStringList.Parse(strings, CultureInfo.InvariantCulture);
 
             Assert.That(triggeredArgs, Has.Count.EqualTo(2));
             Assert.That(triggeredArgs.First().Action, Is.EqualTo(NotifyCollectionChangedAction.Remove));

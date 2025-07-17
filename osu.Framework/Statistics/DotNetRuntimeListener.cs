@@ -74,12 +74,12 @@ namespace osu.Framework.Statistics
                 case source_runtime:
                     switch ((GCEventType)data.EventId)
                     {
-                        case GCEventType.GCStart_V1 when data.Payload != null:
+                        case GCEventType.GCStartV1 when data.Payload != null:
                             // https://docs.microsoft.com/en-us/dotnet/framework/performance/garbage-collection-etw-events#gcstart_v1_event
                             GlobalStatistics.Get<int>(gc_statistics_grouping, $"Collections Gen{data.Payload[1]}").Value++;
                             break;
 
-                        case GCEventType.GCHeapStats_V1 when data.Payload != null:
+                        case GCEventType.GCHeapStatsV1 when data.Payload != null:
                             // https://docs.microsoft.com/en-us/dotnet/framework/performance/garbage-collection-etw-events#gcheapstats_v1_event
                             for (int i = 0; i <= 6; i += 2)
                                 addStatistic<ulong>($"Size Gen{i / 2}", data.Payload[i]);
@@ -88,7 +88,7 @@ namespace osu.Framework.Statistics
                             addStatistic<uint>("Pinned objects", data.Payload[10]);
                             break;
 
-                        case GCEventType.GCAllocationTick_V2 when data.Payload != null:
+                        case GCEventType.GCAllocationTickV2 when data.Payload != null:
                             string name = (string)data.Payload[5];
                             if (string.IsNullOrEmpty(name))
                                 break;
@@ -109,7 +109,7 @@ namespace osu.Framework.Statistics
                             if (data.Payload[0] == null)
                                 break;
 
-                            var type = getTypeFromHandle((IntPtr)data.Payload[0]);
+                            var type = Type.GetTypeFromHandle(RuntimeTypeHandle.FromIntPtr((IntPtr)data.Payload[0]));
                             if (type == null)
                                 break;
 
@@ -120,34 +120,6 @@ namespace osu.Framework.Statistics
 
                     break;
             }
-        }
-
-        /// <summary>
-        /// Retrieves a <see cref="Type"/> from a CLR type id.
-        /// </summary>
-        /// <remarks>
-        /// Attrib: https://stackoverflow.com/questions/26972066/type-from-intptr-handle/54469241#54469241
-        /// </remarks>
-        // ReSharper disable once RedundantUnsafeContext
-        // ReSharper disable once UnusedParameter.Local
-        private static unsafe Type getTypeFromHandle(IntPtr handle)
-        {
-            // This is super unsafe code which is dependent upon internal CLR structures.
-            TypedReferenceAccess tr = new TypedReferenceAccess { Type = handle };
-            return __reftype(*(TypedReference*)&tr);
-        }
-
-        /// <summary>
-        /// Matches the internal layout of <see cref="TypedReference"/>.
-        /// See: https://source.dot.net/#System.Private.CoreLib/src/System/TypedReference.cs
-        /// </summary>
-        private struct TypedReferenceAccess
-        {
-            [JetBrains.Annotations.UsedImplicitly]
-            public IntPtr Value;
-
-            [JetBrains.Annotations.UsedImplicitly]
-            public IntPtr Type;
         }
 
         private void addStatistic<T>(string name, object data)
@@ -162,9 +134,9 @@ namespace osu.Framework.Statistics
 
         private enum GCEventType
         {
-            GCStart_V1 = 1,
-            GCHeapStats_V1 = 4,
-            GCAllocationTick_V2 = 10,
+            GCStartV1 = 1,
+            GCHeapStatsV1 = 4,
+            GCAllocationTickV2 = 10,
             FinalizeObject = 29
         }
     }

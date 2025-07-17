@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using osu.Framework.Allocation;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Shapes;
@@ -15,7 +16,7 @@ namespace osu.Framework.Graphics.Cursor
 {
     public partial class CursorContainer : VisibilityContainer, IRequireHighFrequencyMousePosition
     {
-        public Drawable ActiveCursor { get; protected set; } = null!;
+        public Drawable ActiveCursor { get; protected set; }
 
         private TouchLongPressFeedback longPressFeedback = null!;
 
@@ -27,12 +28,14 @@ namespace osu.Framework.Graphics.Cursor
             RelativeSizeAxes = Axes.Both;
 
             State.Value = Visibility.Visible;
+
+            ActiveCursor = CreateCursor();
         }
 
         [BackgroundDependencyLoader]
         private void load()
         {
-            Add(ActiveCursor = CreateCursor());
+            Add(ActiveCursor);
             Add(longPressFeedback = CreateLongPressFeedback());
         }
 
@@ -40,13 +43,17 @@ namespace osu.Framework.Graphics.Cursor
         {
             base.LoadComplete();
 
-            inputManager = GetContainingInputManager();
-            inputManager.TouchLongPressBegan += (position, duration) =>
-            {
-                longPressFeedback.Position = Parent.ToLocalSpace(position);
-                longPressFeedback.BeginAnimation(duration);
-            };
+            inputManager = GetContainingInputManager().AsNonNull();
+            inputManager.TouchLongPressBegan += onLongPressBegan;
             inputManager.TouchLongPressCancelled += longPressFeedback.CancelAnimation;
+        }
+
+        private void onLongPressBegan(Vector2 position, double duration)
+        {
+            if (Parent == null) return;
+
+            longPressFeedback.Position = Parent.ToLocalSpace(position);
+            longPressFeedback.BeginAnimation(duration);
         }
 
         protected virtual Drawable CreateCursor() => new Cursor();
@@ -75,6 +82,17 @@ namespace osu.Framework.Graphics.Cursor
         protected override void PopOut()
         {
             Alpha = 0;
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+
+            if (inputManager.IsNotNull())
+            {
+                inputManager.TouchLongPressBegan -= onLongPressBegan;
+                inputManager.TouchLongPressCancelled -= longPressFeedback.CancelAnimation;
+            }
         }
 
         private partial class Cursor : CircularContainer
@@ -130,8 +148,8 @@ namespace osu.Framework.Graphics.Cursor
                     progress.FadeColour(Color4.SkyBlue)
                             .TransformTo(nameof(progress.InnerRadius), 0.2f)
                             .TransformTo(nameof(progress.InnerRadius), 0.3f, 150, Easing.OutQuint)
-                            .TransformBindableTo(progress.Current, 0)
-                            .TransformBindableTo(progress.Current, 1, duration / 3 * 2);
+                            .ProgressTo(0)
+                            .ProgressTo(1, duration / 3 * 2);
 
                     using (BeginDelayedSequence(duration / 3 * 2))
                     {
@@ -147,7 +165,7 @@ namespace osu.Framework.Graphics.Cursor
             {
                 this.FadeOut(400, Easing.OutQuint);
 
-                progress.TransformBindableTo(progress.Current, 0, 400, Easing.OutQuint)
+                progress.ProgressTo(0, 400, Easing.OutQuint)
                         .TransformTo(nameof(progress.InnerRadius), 0.2f, 50, Easing.OutQuint);
             }
         }

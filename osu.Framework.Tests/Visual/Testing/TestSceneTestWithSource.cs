@@ -1,7 +1,5 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
-
-#nullable disable
 
 using System.Collections;
 using NUnit.Framework;
@@ -32,6 +30,8 @@ namespace osu.Framework.Tests.Visual.Testing
         };
 
         protected static object[] SingleParameterSource = { 1, 2, 3, 4 };
+
+        protected static string[] SingleParameterStringsSource = { "1", "2", "3", "4" };
 
         protected static object[][] DifferentTypesSource =
         {
@@ -76,6 +76,11 @@ namespace osu.Framework.Tests.Visual.Testing
 
         [TestCaseSource(nameof(SingleParameterSource))]
         public void TestSingleParameterSource(int x)
+        {
+        }
+
+        [TestCaseSource(nameof(SingleParameterStringsSource))]
+        public void TestSingleParameterStringsSource(string x)
         {
         }
 

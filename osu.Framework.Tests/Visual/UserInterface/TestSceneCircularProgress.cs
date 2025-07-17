@@ -32,9 +32,10 @@ namespace osu.Framework.Tests.Visual.UserInterface
         private Texture gradientTextureHorizontal;
         private Texture gradientTextureVertical;
         private Texture gradientTextureBoth;
+        private Texture textureAtlasTexture;
 
         [BackgroundDependencyLoader]
-        private void load()
+        private void load(TextureStore textures)
         {
             const int width = 128;
 
@@ -82,6 +83,8 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             gradientTextureBoth.SetData(new TextureUpload(image));
 
+            textureAtlasTexture = textures.Get("sample-texture");
+
             Box background;
             Container maskingContainer;
 
@@ -116,7 +119,8 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             AddStep("Horizontal Gradient Texture", delegate { setTexture(1); });
             AddStep("Vertical Gradient Texture", delegate { setTexture(2); });
-            AddStep("2D Graident Texture", delegate { setTexture(3); });
+            AddStep("2D Gradient Texture", delegate { setTexture(3); });
+            AddStep("Texture Atlas Texture", delegate { setTexture(4); });
             AddStep("White Texture", delegate { setTexture(0); });
 
             AddStep("Red Colour", delegate { setColour(1); });
@@ -145,23 +149,23 @@ namespace osu.Framework.Tests.Visual.UserInterface
             switch (rotateMode)
             {
                 case 0:
-                    clock.Current.Value = Time.Current % (period * 2) / period - 1;
+                    clock.Progress = Time.Current % (period * 2) / period - 1;
                     break;
 
                 case 1:
-                    clock.Current.Value = Time.Current % period / period;
+                    clock.Progress = Time.Current % period / period;
                     break;
 
                 case 2:
-                    clock.Current.Value = Time.Current % period / period - 1;
+                    clock.Progress = Time.Current % period / period - 1;
                     break;
 
                 case 3:
-                    clock.Current.Value = Time.Current % transition_period / transition_period / 5 - 0.1f;
+                    clock.Progress = Time.Current % transition_period / transition_period / 5 - 0.1f;
                     break;
 
                 case 4:
-                    clock.Current.Value = (Time.Current % transition_period / transition_period / 5 - 0.1f + 2) % 2 - 1;
+                    clock.Progress = (Time.Current % transition_period / transition_period / 5 - 0.1f + 2) % 2 - 1;
                     break;
             }
         }
@@ -190,6 +194,10 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
                 case 3:
                     clock.Texture = gradientTextureBoth;
+                    break;
+
+                case 4:
+                    clock.Texture = textureAtlasTexture;
                     break;
             }
         }
@@ -245,19 +253,19 @@ namespace osu.Framework.Tests.Visual.UserInterface
             switch (tf)
             {
                 case 0:
-                    clock.FillTo(0).Then().FillTo(1, 1000).Loop();
+                    clock.ProgressTo(0).Then().ProgressTo(1, 1000).Loop();
                     break;
 
                 case 1:
-                    clock.FillTo(1).Then().FillTo(0, 1000).Loop();
+                    clock.ProgressTo(1).Then().ProgressTo(0, 1000).Loop();
                     break;
 
                 case 2:
-                    clock.FillTo(0, 1000).Then().FillTo(1, 1000).Loop();
+                    clock.ProgressTo(0, 1000).Then().ProgressTo(1, 1000).Loop();
                     break;
 
                 case 3:
-                    clock.FillTo(0).Then().FillTo(1, 1000, Easing.InOutQuart).Loop();
+                    clock.ProgressTo(0).Then().ProgressTo(1, 1000, Easing.InOutQuart).Loop();
                     break;
             }
         }

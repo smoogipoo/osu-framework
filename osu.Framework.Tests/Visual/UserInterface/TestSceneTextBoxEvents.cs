@@ -12,6 +12,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
 using osuTK;
 using osuTK.Input;
 
@@ -20,7 +21,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
     public partial class TestSceneTextBoxEvents : ManualInputManagerTestScene
     {
         private EventQueuesTextBox textBox;
-        private ManualTextInput textInput;
+        private ManualTextInputSource textInput;
         private ManualTextInputContainer textInputContainer;
 
         private const string default_text = "some default text";
@@ -205,7 +206,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             AddAssert("text input not deactivated", () => textInput.DeactivationQueue.Count == 0);
             AddAssert("text input not activated again", () => textInput.ActivationQueue.Count == 0);
-            AddAssert("text input ensure activated", () => textInput.EnsureActivatedQueue.Dequeue() && textInput.EnsureActivatedQueue.Count == 0);
+            AddAssert("text input ensure activated", () => textInput.EnsureActivatedQueue.Dequeue() != default && textInput.EnsureActivatedQueue.Count == 0);
 
             AddStep("click deselection", () =>
             {
@@ -216,7 +217,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             AddAssert("text input not deactivated", () => textInput.DeactivationQueue.Count == 0);
             AddAssert("text input not activated again", () => textInput.ActivationQueue.Count == 0);
-            AddAssert("text input ensure activated", () => textInput.EnsureActivatedQueue.Dequeue() && textInput.EnsureActivatedQueue.Count == 0);
+            AddAssert("text input ensure activated", () => textInput.EnsureActivatedQueue.Dequeue() != default && textInput.EnsureActivatedQueue.Count == 0);
 
             AddStep("click-drag selection", () =>
             {
@@ -499,7 +500,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             AddStep("add second textbox", () => textInputContainer.Add(secondTextBox = new EventQueuesTextBox
             {
-                ImeAllowed = allowIme,
+                InputProperties = new TextInputProperties(TextInputType.Text, allowIme),
                 Anchor = Anchor.CentreLeft,
                 Origin = Anchor.CentreLeft,
                 CommitOnFocusLost = true,
@@ -516,7 +517,7 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
             AddAssert("text input not deactivated", () => textInput.DeactivationQueue.Count == 0);
             AddAssert("text input not activated again", () => textInput.ActivationQueue.Count == 0);
-            AddAssert($"text input ensure activated {(allowIme ? "with" : "without")} IME", () => textInput.EnsureActivatedQueue.Dequeue() == allowIme && textInput.EnsureActivatedQueue.Count == 0);
+            AddAssert($"text input ensure activated {(allowIme ? "with" : "without")} IME", () => textInput.EnsureActivatedQueue.Dequeue().AllowIme == allowIme && textInput.EnsureActivatedQueue.Count == 0);
 
             AddStep("commit text", () => InputManager.Key(Key.Enter));
             AddAssert("text input deactivated", () => textInput.DeactivationQueue.Dequeue());
@@ -573,10 +574,6 @@ namespace osu.Framework.Tests.Visual.UserInterface
 
         public partial class EventQueuesTextBox : TestSceneTextBox.InsertableTextBox
         {
-            public bool ImeAllowed { get; set; } = true;
-
-            protected override bool AllowIme => ImeAllowed;
-
             public readonly Queue<bool> InputErrorQueue = new Queue<bool>();
             public readonly Queue<string> UserConsumedTextQueue = new Queue<string>();
             public readonly Queue<string> UserRemovedTextQueue = new Queue<string>();
@@ -618,57 +615,12 @@ namespace osu.Framework.Tests.Visual.UserInterface
         public partial class ManualTextInputContainer : Container
         {
             [Cached(typeof(TextInputSource))]
-            public readonly ManualTextInput TextInput;
+            public readonly ManualTextInputSource TextInput;
 
             public ManualTextInputContainer()
             {
                 RelativeSizeAxes = Axes.Both;
-                TextInput = new ManualTextInput();
-            }
-        }
-
-        public class ManualTextInput : TextInputSource
-        {
-            public void Text(string text) => TriggerTextInput(text);
-
-            public new void TriggerImeComposition(string text, int start, int length)
-            {
-                base.TriggerImeComposition(text, start, length);
-            }
-
-            public new void TriggerImeResult(string text)
-            {
-                base.TriggerImeResult(text);
-            }
-
-            public override void ResetIme()
-            {
-                base.ResetIme();
-
-                // this call will be somewhat delayed in a real world scenario, but let's run it immediately for simplicity.
-                base.TriggerImeComposition(string.Empty, 0, 0);
-            }
-
-            public readonly Queue<bool> ActivationQueue = new Queue<bool>();
-            public readonly Queue<bool> EnsureActivatedQueue = new Queue<bool>();
-            public readonly Queue<bool> DeactivationQueue = new Queue<bool>();
-
-            protected override void ActivateTextInput(bool allowIme)
-            {
-                base.ActivateTextInput(allowIme);
-                ActivationQueue.Enqueue(allowIme);
-            }
-
-            protected override void EnsureTextInputActivated(bool allowIme)
-            {
-                base.EnsureTextInputActivated(allowIme);
-                EnsureActivatedQueue.Enqueue(allowIme);
-            }
-
-            protected override void DeactivateTextInput()
-            {
-                base.DeactivateTextInput();
-                DeactivationQueue.Enqueue(true);
+                TextInput = new ManualTextInputSource();
             }
         }
 

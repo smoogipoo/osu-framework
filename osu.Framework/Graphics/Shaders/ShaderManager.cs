@@ -90,7 +90,9 @@ namespace osu.Framework.Graphics.Shaders
 
         private string ensureValidName(string name, ShaderPartType partType)
         {
-            string ending = getFileEnding(partType);
+            string ending = string.Empty;
+            if (string.IsNullOrEmpty(Path.GetExtension(name)))
+                ending = getFileEnding(partType);
 
             if (!name.StartsWith(shader_prefix, StringComparison.Ordinal))
                 name = shader_prefix + name;
@@ -151,7 +153,6 @@ namespace osu.Framework.Graphics.Shaders
         public const string TEXTURE_2 = "Texture2D";
         public const string TEXTURE_3 = "Texture3D";
         public const string POSITION = "Position";
-        public const string BLUR = "Blur";
     }
 
     public static class FragmentShaderDescriptor

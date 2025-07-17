@@ -1,9 +1,9 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
+using System.IO;
+using osu.Framework.Platform.Apple.Native;
 using osu.Framework.Platform.MacOS.Native;
 using SixLabors.ImageSharp;
 
@@ -13,13 +13,35 @@ namespace osu.Framework.Platform.MacOS
     {
         private readonly NSPasteboard generalPasteboard = NSPasteboard.GeneralPasteboard();
 
-        public override string GetText() => Cocoa.FromNSString(getFromPasteboard(Class.Get("NSString")));
+        public override string GetText()
+        {
+            var nsString = new NSString(getFromPasteboard(Class.Get("NSString")));
+            return nsString.ToString();
+        }
 
-        public override Image<TPixel> GetImage<TPixel>() => Cocoa.FromNSImage<TPixel>(getFromPasteboard(Class.Get("NSImage")));
+        public override Image<TPixel>? GetImage<TPixel>()
+        {
+            var nsImage = new NSImage(getFromPasteboard(Class.Get("NSImage")));
+            if (nsImage.Handle == IntPtr.Zero)
+                return null;
 
-        public override void SetText(string selectedText) => setToPasteboard(Cocoa.ToNSString(selectedText));
+            return Image.Load<TPixel>(nsImage.TiffRepresentation.ToBytes());
+        }
 
-        public override bool SetImage(Image image) => setToPasteboard(Cocoa.ToNSImage(image));
+        public override void SetText(string text) => setToPasteboard(NSString.FromString(text).Handle);
+
+        public override bool SetImage(Image image)
+        {
+            using var stream = new MemoryStream();
+            image.SaveAsTiff(stream);
+
+            using (NSAutoreleasePool.Init())
+            {
+                var nsData = NSData.FromBytes(stream.ToArray());
+                using var nsImage = NSImage.InitWithData(nsData);
+                return setToPasteboard(nsImage.Handle);
+            }
+        }
 
         private IntPtr getFromPasteboard(IntPtr @class)
         {
@@ -29,7 +51,7 @@ namespace osu.Framework.Platform.MacOS
                 return IntPtr.Zero;
 
             var result = generalPasteboard.ReadObjectsForClasses(classArray, null);
-            var objects = result?.ToArray();
+            IntPtr[]? objects = result?.ToArray();
 
             return objects?.Length > 0 ? objects[0] : IntPtr.Zero;
         }

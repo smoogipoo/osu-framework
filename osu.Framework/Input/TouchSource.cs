@@ -1,8 +1,6 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 namespace osu.Framework.Input
 {
     /// <summary>
@@ -59,5 +57,10 @@ namespace osu.Framework.Input
         /// The tenth and last available touch source.
         /// </summary>
         Touch10,
+
+        /// <summary>
+        /// A touch source that represents a pen/stylus.
+        /// </summary>
+        PenTouch,
     }
 }

@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Threading;
 using osu.Framework.Graphics.Primitives;
@@ -29,28 +27,45 @@ namespace osu.Framework.Input
         /// Activates this <see cref="TextInputSource"/>.
         /// User text input can be acquired through <see cref="OnTextInput"/>, <see cref="OnImeComposition"/> and <see cref="OnImeResult"/>.
         /// </summary>
-        /// <param name="allowIme">Whether input using IME should be allowed.</param>
+        /// <param name="properties">A set of properties to consider during this text input session.</param>
+        /// <param name="imeRectangle">
+        /// Rough location of where the text will be input, so the native implementation
+        /// can adjust virtual keyboards and IME popups.
+        /// </param>
         /// <remarks>
         /// Each <see cref="Activate"/> must be followed by a <see cref="Deactivate"/>.
         /// </remarks>
-        public void Activate(bool allowIme)
+        public void Activate(TextInputProperties properties, RectangleF imeRectangle)
         {
             if (Interlocked.Increment(ref activationCounter) == 1)
-                ActivateTextInput(allowIme);
+            {
+                SetImeRectangle(imeRectangle);
+                ActivateTextInput(properties);
+            }
             else
                 // the latest consumer that activated should always take precedence in (dis)allowing IME.
-                EnsureActivated(allowIme);
+                EnsureActivated(properties, imeRectangle);
         }
 
         /// <summary>
         /// Ensures that the native implementation that retrieves user text input is activated
         /// and that the user can start entering text.
         /// </summary>
-        /// <param name="allowIme">Whether input using IME should be allowed.</param>
-        public void EnsureActivated(bool allowIme)
+        /// <param name="properties">A set of properties to consider during this text input session.</param>
+        /// <param name="imeRectangle">
+        /// Rough location of where the text will be input, so the native implementation
+        /// can adjust virtual keyboards and IME popups. Can be <c>null</c> to avoid changing
+        /// the IME rectangle.
+        /// </param>
+        public void EnsureActivated(TextInputProperties properties, RectangleF? imeRectangle = null)
         {
             if (activationCounter >= 1)
-                EnsureTextInputActivated(allowIme);
+            {
+                if (imeRectangle.HasValue)
+                    SetImeRectangle(imeRectangle.Value);
+
+                EnsureTextInputActivated(properties);
+            }
         }
 
         /// <summary>
@@ -86,29 +101,29 @@ namespace osu.Framework.Input
         /// <summary>
         /// Invoked on text input.
         /// </summary>
-        public event Action<string> OnTextInput;
+        public event Action<string>? OnTextInput;
 
         /// <summary>
         /// Invoked when IME composition starts or changes.
         /// </summary>
         /// <remarks>Empty string for text means that the composition has been cancelled.</remarks>
-        public event ImeCompositionDelegate OnImeComposition;
+        public event ImeCompositionDelegate? OnImeComposition;
 
         /// <summary>
         /// Invoked when IME composition successfully completes.
         /// </summary>
-        public event Action<string> OnImeResult;
+        public event Action<string>? OnImeResult;
 
         /// <summary>
         /// Activates the native implementation that provides text input.
         /// Should be overriden per-platform.
         /// </summary>
-        /// <param name="allowIme">Whether input using IME should be allowed.</param>
+        /// <param name="properties">A set of properties to consider during this text input session.</param>
         /// <remarks>
         /// An active native implementation should call <see cref="TriggerTextInput"/> on new text input
         /// and forward IME composition events through <see cref="TriggerImeComposition"/> and <see cref="TriggerImeResult"/>.
         /// </remarks>
-        protected virtual void ActivateTextInput(bool allowIme)
+        protected virtual void ActivateTextInput(TextInputProperties properties)
         {
         }
 
@@ -117,7 +132,7 @@ namespace osu.Framework.Input
         /// <remarks>
         /// Only called if the native implementation has been activated with <see cref="Activate"/>.
         /// </remarks>
-        protected virtual void EnsureTextInputActivated(bool allowIme)
+        protected virtual void EnsureTextInputActivated(TextInputProperties properties)
         {
         }
 

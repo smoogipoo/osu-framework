@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Diagnostics;
 using System.Threading;
 
@@ -9,101 +10,107 @@ namespace osu.Framework.Allocation
     /// <summary>
     /// Handles triple-buffering of any object type.
     /// Thread safety assumes at most one writer and one reader.
+    /// Comes with the added assurance that the most recent <see cref="GetForRead"/> object is not written to.
     /// </summary>
-    public class TripleBuffer<T>
+    internal class TripleBuffer<T>
         where T : class
     {
-        private readonly ObjectUsage<T>[] buffers = new ObjectUsage<T>[3];
-
-        private int? lastCompletedWriteIndex;
-
-        private int? activeReadIndex;
-
-        private readonly ManualResetEventSlim writeCompletedEvent = new ManualResetEventSlim();
+        /// <summary>
+        /// The default amount of time (in milliseconds) to wait for a write to occur during <see cref="GetForRead"/>.
+        /// </summary>
+        public const int DEFAULT_READ_TIMEOUT = 100;
 
         private const int buffer_count = 3;
+
+        private readonly Buffer[] buffers = new Buffer[buffer_count];
+        private readonly Stopwatch stopwatch = new Stopwatch();
+
+        private int writeIndex;
+        private int flipIndex = 1;
+        private int readIndex = 2;
 
         public TripleBuffer()
         {
             for (int i = 0; i < buffer_count; i++)
-                buffers[i] = new ObjectUsage<T>(i, finishUsage);
+                buffers[i] = new Buffer(i, finishUsage);
         }
 
-        public ObjectUsage<T> GetForWrite()
+        /// <summary>
+        /// Retrieves a buffer to be written to.
+        /// </summary>
+        /// <returns>The buffer.</returns>
+        public Buffer GetForWrite()
         {
-            ObjectUsage<T> buffer;
-
-            lock (buffers)
-            {
-                buffer = getNextWriteBuffer();
-
-                Debug.Assert(buffer.Usage == UsageType.None);
-                buffer.Usage = UsageType.Write;
-            }
-
-            return buffer;
+            Buffer usage = buffers[writeIndex];
+            usage.LastUsage = UsageType.Write;
+            return usage;
         }
 
-        public ObjectUsage<T>? GetForRead()
+        /// <summary>
+        /// Attempts to retrieve a buffer to read.
+        /// </summary>
+        /// <param name="timeout">Amount of time (in milliseconds) to wait for a buffer to be written.</param>
+        /// <returns>An available buffer to be read, or <c>null</c> if no buffer has been written.</returns>
+        public Buffer? GetForRead(int timeout = DEFAULT_READ_TIMEOUT)
         {
-            writeCompletedEvent.Reset();
+            stopwatch.Restart();
 
-            lock (buffers)
+            while (true)
             {
-                if (lastCompletedWriteIndex != null)
-                {
-                    var buffer = buffers[lastCompletedWriteIndex.Value];
-                    lastCompletedWriteIndex = null;
-                    buffer.Usage = UsageType.Read;
+                flip(ref readIndex);
 
-                    Debug.Assert(activeReadIndex == null);
-                    activeReadIndex = buffer.Index;
-                    return buffer;
-                }
+                if (buffers[readIndex].LastUsage != UsageType.Read)
+                    break;
+
+                if (timeout == 0 || stopwatch.ElapsedMilliseconds > timeout)
+                    return null;
             }
 
-            // A completed write wasn't available, so wait for the next to complete.
-            if (!writeCompletedEvent.Wait(100))
-                // Generally shouldn't happen, but this avoids spinning forever.
-                return null;
+            Buffer usage = buffers[readIndex];
 
-            return GetForRead();
+            Debug.Assert(usage.LastUsage == UsageType.Write);
+            usage.LastUsage = UsageType.Read;
+
+            return usage;
         }
 
-        private ObjectUsage<T> getNextWriteBuffer()
+        private void finishUsage(Buffer usage)
         {
-            for (int i = 0; i < buffer_count - 1; i++)
-            {
-                if (i == activeReadIndex) continue;
-                if (i == lastCompletedWriteIndex) continue;
-
-                return buffers[i];
-            }
-
-            return buffers[buffer_count - 1];
+            if (usage.LastUsage == UsageType.Write)
+                flip(ref writeIndex);
         }
 
-        private void finishUsage(ObjectUsage<T> obj)
+        private void flip(ref int localIndex)
         {
-            lock (buffers)
+            localIndex = Interlocked.Exchange(ref flipIndex, localIndex);
+        }
+
+        public class Buffer : IDisposable
+        {
+            public T? Object;
+
+            public volatile UsageType LastUsage;
+
+            public readonly int Index;
+
+            private readonly Action<Buffer>? finish;
+
+            public Buffer(int index, Action<Buffer>? finish)
             {
-                switch (obj.Usage)
-                {
-                    case UsageType.Read:
-                        Debug.Assert(activeReadIndex != null);
-                        activeReadIndex = null;
-                        break;
-
-                    case UsageType.Write:
-                        Debug.Assert(lastCompletedWriteIndex != obj.Index);
-                        lastCompletedWriteIndex = obj.Index;
-
-                        writeCompletedEvent.Set();
-                        break;
-                }
-
-                obj.Usage = UsageType.None;
+                Index = index;
+                this.finish = finish;
             }
+
+            public void Dispose()
+            {
+                finish?.Invoke(this);
+            }
+        }
+
+        public enum UsageType
+        {
+            Read,
+            Write
         }
     }
 }

@@ -1,7 +1,5 @@
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
-
-#nullable disable
 
 using System.Collections.Generic;
 using System.Linq;
@@ -26,19 +24,16 @@ namespace osu.Framework.Input
         public void HandleRepeat(InputState state)
         {
             // Only drawables that can still handle input should handle the repeat
-            var drawables = ButtonDownInputQueue.AsNonNull().Intersect(InputQueue).Where(t => t.IsAlive && t.IsPresent);
+            var drawables = ButtonDownInputQueue.AsNonNull().Intersect(InputQueue);
 
             PropagateButtonEvent(drawables, new KeyDownEvent(state, Button, true));
         }
 
-        protected override Drawable HandleButtonDown(InputState state, List<Drawable> targets) => PropagateButtonEvent(targets, new KeyDownEvent(state, Button));
+        protected override Drawable? HandleButtonDown(InputState state, List<Drawable> targets) => PropagateButtonEvent(targets, new KeyDownEvent(state, Button));
 
-        protected override void HandleButtonUp(InputState state, List<Drawable> targets)
-        {
-            if (targets == null)
-                return;
-
+        protected override void HandleButtonUp(InputState state, List<Drawable> targets) =>
             PropagateButtonEvent(targets, new KeyUpEvent(state, Button));
-        }
+
+        protected override bool SuppressLoggingEventInformation(Drawable drawable) => drawable is ICanSuppressKeyEventLogging canSuppress && canSuppress.SuppressKeyEventLogging;
     }
 }

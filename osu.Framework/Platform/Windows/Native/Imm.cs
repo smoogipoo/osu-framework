@@ -8,6 +8,8 @@ using System.Text;
 using Microsoft.Win32.SafeHandles;
 using osu.Framework.Extensions.EnumExtensions;
 
+// ReSharper disable InconsistentNaming
+
 namespace osu.Framework.Platform.Windows.Native
 {
     /// <summary>
@@ -241,8 +243,7 @@ namespace osu.Framework.Platform.Windows.Native
             /// <exception cref="ObjectDisposedException">Thrown if the <see cref="handle"/> was disposed/closed.</exception>
             private bool handleInvalidOrClosed()
             {
-                if (handle.IsClosed)
-                    throw new ObjectDisposedException(handle.ToString(), $"Attempted to use a closed {nameof(InputContextHandle)}.");
+                ObjectDisposedException.ThrowIf(handle.IsClosed, handle);
 
                 return handle.IsInvalid;
             }
