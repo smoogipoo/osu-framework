@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using osu.Framework.Extensions.TypeExtensions;
 
@@ -183,6 +184,7 @@ namespace osu.Framework.Allocation
         /// <typeparam name="T">The type of the instance to inject dependencies into.</typeparam>
         /// <param name="instance">The instance to inject dependencies into.</param>
         /// <exception cref="OperationCanceledException">When the injection process was cancelled.</exception>
+        [StackTraceHidden]
         public void Inject<T>(T instance)
             where T : class, IDependencyInjectionCandidate
             => DependencyActivator.Activate(instance, this);

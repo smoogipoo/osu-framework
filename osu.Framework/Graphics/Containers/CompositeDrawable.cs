@@ -75,6 +75,7 @@ namespace osu.Framework.Graphics.Containers
         /// </summary>
         public IReadOnlyDependencyContainer Dependencies { get; private set; }
 
+        [StackTraceHidden]
         protected sealed override void InjectDependencies(IReadOnlyDependencyContainer dependencies)
         {
             // get our dependencies from our parent, but allow local overriding of our inherited dependency container
@@ -246,6 +247,7 @@ namespace osu.Framework.Graphics.Containers
             }
         }
 
+        [StackTraceHidden]
         [BackgroundDependencyLoader(true)]
         private void load(ShaderManager shaders, CancellationToken? cancellation)
         {
@@ -277,6 +279,7 @@ namespace osu.Framework.Graphics.Containers
         /// Loads a <see cref="Drawable"/> child. This will not throw in the event of the load being cancelled.
         /// </summary>
         /// <param name="child">The <see cref="Drawable"/> child to load.</param>
+        [StackTraceHidden]
         private void loadChild(Drawable child)
         {
             try

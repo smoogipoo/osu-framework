@@ -218,6 +218,7 @@ namespace osu.Framework.Graphics
         /// <param name="dependencies">The dependency tree we will inherit by default. May be extended via <see cref="CompositeDrawable.CreateChildDependencies"/></param>
         /// <param name="isDirectAsyncContext">Whether this call is being executed from a directly async context (not a parent).</param>
         /// <returns>Whether the load was successful.</returns>
+        [StackTraceHidden]
         internal bool LoadFromAsync(IFrameBasedClock clock, IReadOnlyDependencyContainer dependencies, bool isDirectAsyncContext = false)
         {
             lock (LoadLock)
@@ -236,6 +237,7 @@ namespace osu.Framework.Graphics
         /// <param name="clock">The clock we should use by default.</param>
         /// <param name="dependencies">The dependency tree we will inherit by default. May be extended via <see cref="CompositeDrawable.CreateChildDependencies"/></param>
         /// <param name="isDirectAsyncContext">Whether this call is being executed from a directly async context (not a parent).</param>
+        [StackTraceHidden]
         internal void Load(IFrameBasedClock clock, IReadOnlyDependencyContainer dependencies, bool isDirectAsyncContext = false)
         {
             lock (LoadLock)
@@ -261,6 +263,7 @@ namespace osu.Framework.Graphics
             }
         }
 
+        [StackTraceHidden]
         private void load(IFrameBasedClock clock, IReadOnlyDependencyContainer dependencies)
         {
             LoadThread = Thread.CurrentThread;
@@ -302,6 +305,7 @@ namespace osu.Framework.Graphics
         /// Injects dependencies from an <see cref="IReadOnlyDependencyContainer"/> into this <see cref="Drawable"/>.
         /// </summary>
         /// <param name="dependencies">The dependencies to inject.</param>
+        [StackTraceHidden]
         protected virtual void InjectDependencies(IReadOnlyDependencyContainer dependencies) => dependencies.Inject(this);
 
         /// <summary>

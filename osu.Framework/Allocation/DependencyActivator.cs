@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics.Containers;
@@ -64,12 +65,14 @@ namespace osu.Framework.Allocation
         /// </summary>
         /// <param name="obj">The object to inject the dependencies into.</param>
         /// <param name="dependencies">The dependencies to use for injection.</param>
+        [StackTraceHidden]
         public static void Activate<T>(T obj, IReadOnlyDependencyContainer dependencies)
             where T : IDependencyInjectionCandidate
         {
             initialiseSourceGeneratedActivators(obj);
             activateRecursively(obj, dependencies, obj.GetType());
 
+            [StackTraceHidden]
             static void activateRecursively(object obj, IReadOnlyDependencyContainer dependencies, Type currentType)
             {
                 if (currentType == typeof(object))

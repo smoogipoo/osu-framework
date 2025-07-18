@@ -44,6 +44,7 @@ namespace osu.Framework.Allocation
             this.permitNulls = permitNulls;
         }
 
+        [StackTraceHidden]
         internal static InjectDependencyDelegate CreateActivator(Type type)
         {
             count_reflection_attributes.Value++;
