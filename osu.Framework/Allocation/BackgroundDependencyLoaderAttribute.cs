@@ -1,13 +1,11 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-#nullable disable
-
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.ExceptionServices;
 using JetBrains.Annotations;
 using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Statistics;
@@ -66,32 +64,26 @@ namespace osu.Framework.Allocation
                     var attribute = method.GetCustomAttribute<BackgroundDependencyLoaderAttribute>();
                     Debug.Assert(attribute != null);
 
-                    bool permitNulls = attribute.permitNulls;
-                    var parameterGetters = method.GetParameters()
-                                                 .Select(parameter => getDependency(parameter.ParameterType, type, permitNulls || parameter.IsNullable())).ToArray();
+                    ParameterExpression targetParam = Expression.Parameter(typeof(object), "target");
+                    ParameterExpression dcParam = Expression.Parameter(typeof(IReadOnlyDependencyContainer), "dc");
+                    MethodCallExpression loaderInvocation = Expression.Call(
+                        Expression.Convert(targetParam, type),
+                        method,
+                        method.GetParameters().Select(p =>
+                            Expression.Convert(
+                                Expression.Invoke(
+                                    Expression.Constant(getDependency(p.ParameterType, type, attribute.permitNulls || p.IsNullable())),
+                                    dcParam),
+                                p.ParameterType)));
 
-                    return (target, dc) =>
-                    {
-                        try
-                        {
-                            object[] parameterArray = new object[parameterGetters.Length];
-                            for (int i = 0; i < parameterGetters.Length; i++)
-                                parameterArray[i] = parameterGetters[i](dc);
-
-                            method.Invoke(target, parameterArray);
-                        }
-                        catch (TargetInvocationException exc) // During non-await invocations
-                        {
-                            ExceptionDispatchInfo.Capture(exc.InnerException ?? exc).Throw();
-                        }
-                    };
+                    return Expression.Lambda<InjectDependencyDelegate>(loaderInvocation, $"{type}.{method.Name}()", [targetParam, dcParam]).Compile();
 
                 default:
                     throw new MultipleDependencyLoaderMethodsException(type);
             }
         }
 
-        private static Func<IReadOnlyDependencyContainer, object> getDependency(Type type, Type requestingType, bool permitNulls)
+        private static Func<IReadOnlyDependencyContainer, object?> getDependency(Type type, Type requestingType, bool permitNulls)
             => dc => SourceGeneratorUtils.GetDependency(dc, type, requestingType, null, null, permitNulls, false);
     }
 }
