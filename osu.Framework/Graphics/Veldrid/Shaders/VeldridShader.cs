@@ -137,33 +137,34 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
                 cached &= compilation.WasCached;
 
-                if (renderer.SurfaceType == GraphicsSurfaceType.Vulkan)
+                VertexFragmentShaderCompilation? platformCompilation = null;
+
+                switch (renderer.SurfaceType)
                 {
-                    vertexShaderDescription.ShaderBytes = compilation.VertexBytes;
-                    fragmentShaderDescription.ShaderBytes = compilation.FragmentBytes;
+                    case GraphicsSurfaceType.SDL3 when renderer.Device.BackendType == GraphicsBackend.Vulkan:
+                    case GraphicsSurfaceType.Vulkan:
+                        vertexShaderDescription.ShaderBytes = compilation.VertexBytes;
+                        fragmentShaderDescription.ShaderBytes = compilation.FragmentBytes;
+                        break;
+
+                    case GraphicsSurfaceType.OpenGL:
+                        platformCompilation = compilation;
+                        break;
+
+                    case GraphicsSurfaceType.SDL3 when renderer.Device.BackendType == GraphicsBackend.Metal:
+                    case GraphicsSurfaceType.Metal:
+                        platformCompilation = compilationStore.CompileVertexFragment(vertex.GetRawText(), fragment.GetRawText(), CrossCompileTarget.MSL);
+                        break;
+
+                    case GraphicsSurfaceType.SDL3 when renderer.Device.BackendType == GraphicsBackend.Direct3D11:
+                    case GraphicsSurfaceType.Direct3D11:
+                        platformCompilation = compilationStore.CompileVertexFragment(vertex.GetRawText(), fragment.GetRawText(), CrossCompileTarget.HLSL);
+                        break;
                 }
-                else
+
+                if (platformCompilation != null)
                 {
-                    VertexFragmentShaderCompilation platformCompilation = compilation;
-
-                    // If we don't have an OpenGL surface, we need to cross-compile once more for the correct platform.
-                    if (renderer.SurfaceType != GraphicsSurfaceType.OpenGL)
-                    {
-                        CrossCompileTarget target = renderer.SurfaceType switch
-                        {
-                            GraphicsSurfaceType.Metal => CrossCompileTarget.MSL,
-                            GraphicsSurfaceType.Direct3D11 => CrossCompileTarget.HLSL,
-                            _ => throw new InvalidOperationException($"Unsupported surface type: {renderer.SurfaceType}.")
-                        };
-
-                        platformCompilation = compilationStore.CompileVertexFragment(
-                            vertex.GetRawText(),
-                            fragment.GetRawText(),
-                            target);
-
-                        cached &= platformCompilation.WasCached;
-                    }
-
+                    cached &= platformCompilation.WasCached;
                     vertexShaderDescription.ShaderBytes = Encoding.UTF8.GetBytes(platformCompilation.VertexText);
                     fragmentShaderDescription.ShaderBytes = Encoding.UTF8.GetBytes(platformCompilation.FragmentText);
                 }

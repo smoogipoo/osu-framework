@@ -851,6 +851,7 @@ namespace osu.Framework.Platform
                     yield return RendererType.Deferred_Direct3D11;
                     yield return RendererType.OpenGL;
                     yield return RendererType.Deferred_Vulkan;
+                    yield return RendererType.SDL3;
 
                     break;
 
@@ -858,6 +859,7 @@ namespace osu.Framework.Platform
                     yield return RendererType.OpenGL;
                     yield return RendererType.Deferred_OpenGL;
                     yield return RendererType.Deferred_Vulkan;
+                    yield return RendererType.SDL3;
 
                     break;
 
@@ -865,6 +867,7 @@ namespace osu.Framework.Platform
                     yield return RendererType.Metal;
                     yield return RendererType.Deferred_Metal;
                     yield return RendererType.OpenGL;
+                    yield return RendererType.SDL3;
 
                     break;
 
@@ -931,6 +934,7 @@ namespace osu.Framework.Platform
                             SetupRendererAndWindow(new DeferredRenderer(), rendererToGraphicsSurfaceType(type));
                             break;
 
+                        case RendererType.SDL3:
                         default:
                             SetupRendererAndWindow(new VeldridRenderer(), rendererToGraphicsSurfaceType(type));
                             break;
@@ -978,6 +982,10 @@ namespace osu.Framework.Platform
                 case RendererType.Deferred_OpenGL:
                 case RendererType.OpenGL:
                     surface = GraphicsSurfaceType.OpenGL;
+                    break;
+
+                case RendererType.SDL3:
+                    surface = GraphicsSurfaceType.SDL3;
                     break;
 
                 default:

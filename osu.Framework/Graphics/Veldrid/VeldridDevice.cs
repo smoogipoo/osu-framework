@@ -125,103 +125,112 @@ namespace osu.Framework.Graphics.Veldrid
 
             int maxTextureSize;
 
-            if (graphicsSurface is SDL3GraphicsSurface sdl3Surface && GraphicsDevice.IsBackendSupported(GraphicsBackend.SDL3))
+            switch (graphicsSurface.Type)
             {
-                swapchain.Source = SwapchainSource.CreateSDL3(sdl3Surface.SDLWindowHandle);
-                Device = GraphicsDevice.CreateSDL3(options, swapchain);
-                Device.LogSDL3(out maxTextureSize);
-            }
-            else
-            {
-                switch (RuntimeInfo.OS)
-                {
-                    case RuntimeInfo.Platform.Windows:
-                    {
-                        swapchain.Source = SwapchainSource.CreateWin32(this.graphicsSurface.WindowHandle, IntPtr.Zero);
-                        break;
-                    }
+                case GraphicsSurfaceType.SDL3:
+                    if (graphicsSurface is not SDL3GraphicsSurface sdl3Surface)
+                        throw new NotSupportedException("SDL3 graphics surface may only be used on SDL3 windows.");
 
-                    case RuntimeInfo.Platform.macOS:
+                    if (!GraphicsDevice.IsBackendSupported(GraphicsBackend.SDL3))
+                        throw new NotSupportedException("SDL3 graphics surface not supported on this device.");
+
+                    swapchain.Source = SwapchainSource.CreateSDL3(sdl3Surface.SDLWindowHandle);
+                    Device = GraphicsDevice.CreateSDL3(options, swapchain);
+                    Device.LogSDL3(out maxTextureSize);
+                    break;
+
+                default:
+                    switch (RuntimeInfo.OS)
                     {
-                        // OpenGL doesn't use a swapchain, so it's only needed on Metal.
-                        // Creating a Metal surface in general would otherwise destroy the GL context.
-                        if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal)
+                        case RuntimeInfo.Platform.Windows:
                         {
-                            var metalGraphics = (IMetalGraphicsSurface)this.graphicsSurface;
-                            swapchain.Source = SwapchainSource.CreateNSView(metalGraphics.CreateMetalView());
+                            swapchain.Source = SwapchainSource.CreateWin32(this.graphicsSurface.WindowHandle, IntPtr.Zero);
+                            break;
                         }
 
-                        break;
-                    }
-
-                    case RuntimeInfo.Platform.iOS:
-                    {
-                        // OpenGL doesn't use a swapchain, so it's only needed on Metal.
-                        // Creating a Metal surface in general would otherwise destroy the GL context.
-                        if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal)
+                        case RuntimeInfo.Platform.macOS:
                         {
-                            var metalGraphics = (IMetalGraphicsSurface)this.graphicsSurface;
-                            swapchain.Source = SwapchainSource.CreateUIView(metalGraphics.CreateMetalView());
+                            // OpenGL doesn't use a swapchain, so it's only needed on Metal.
+                            // Creating a Metal surface in general would otherwise destroy the GL context.
+                            if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal)
+                            {
+                                var metalGraphics = (IMetalGraphicsSurface)this.graphicsSurface;
+                                swapchain.Source = SwapchainSource.CreateNSView(metalGraphics.CreateMetalView());
+                            }
+
+                            break;
                         }
 
-                        break;
+                        case RuntimeInfo.Platform.iOS:
+                        {
+                            // OpenGL doesn't use a swapchain, so it's only needed on Metal.
+                            // Creating a Metal surface in general would otherwise destroy the GL context.
+                            if (this.graphicsSurface.Type == GraphicsSurfaceType.Metal)
+                            {
+                                var metalGraphics = (IMetalGraphicsSurface)this.graphicsSurface;
+                                swapchain.Source = SwapchainSource.CreateUIView(metalGraphics.CreateMetalView());
+                            }
+
+                            break;
+                        }
+
+                        case RuntimeInfo.Platform.Linux:
+                        {
+                            var linuxGraphics = (ILinuxGraphicsSurface)this.graphicsSurface;
+                            swapchain.Source = linuxGraphics.IsWayland
+                                ? SwapchainSource.CreateWayland(linuxGraphics.DisplayHandle, this.graphicsSurface.WindowHandle)
+                                : SwapchainSource.CreateXlib(linuxGraphics.DisplayHandle, this.graphicsSurface.WindowHandle);
+                            break;
+                        }
+
+                        case RuntimeInfo.Platform.Android:
+                        {
+                            var androidGraphics = (IAndroidGraphicsSurface)this.graphicsSurface;
+                            swapchain.Source = SwapchainSource.CreateAndroidSurface(androidGraphics.SurfaceHandle, androidGraphics.JniEnvHandle);
+                            break;
+                        }
                     }
 
-                    case RuntimeInfo.Platform.Linux:
+                    switch (this.graphicsSurface.Type)
                     {
-                        var linuxGraphics = (ILinuxGraphicsSurface)this.graphicsSurface;
-                        swapchain.Source = linuxGraphics.IsWayland
-                            ? SwapchainSource.CreateWayland(linuxGraphics.DisplayHandle, this.graphicsSurface.WindowHandle)
-                            : SwapchainSource.CreateXlib(linuxGraphics.DisplayHandle, this.graphicsSurface.WindowHandle);
-                        break;
+                        case GraphicsSurfaceType.OpenGL:
+                            var openGLGraphics = (IOpenGLGraphicsSurface)this.graphicsSurface;
+                            var openGLInfo = new OpenGLPlatformInfo(
+                                openGLContextHandle: openGLGraphics.WindowContext,
+                                getProcAddress: openGLGraphics.GetProcAddress,
+                                makeCurrent: openGLGraphics.MakeCurrent,
+                                getCurrentContext: () => openGLGraphics.CurrentContext,
+                                clearCurrentContext: openGLGraphics.ClearCurrent,
+                                deleteContext: openGLGraphics.DeleteContext,
+                                swapBuffers: openGLGraphics.SwapBuffers,
+                                setSyncToVerticalBlank: v => openGLGraphics.VerticalSync = v,
+                                setSwapchainFramebuffer: () => OpenGLNative.glBindFramebuffer(FramebufferTarget.Framebuffer, (uint)(openGLGraphics.BackbufferFramebuffer ?? 0)),
+                                null);
+
+                            Device = GraphicsDevice.CreateOpenGL(options, openGLInfo, swapchain.Width, swapchain.Height);
+                            Device.LogOpenGL(out maxTextureSize);
+                            break;
+
+                        case GraphicsSurfaceType.Vulkan:
+                            Device = GraphicsDevice.CreateVulkan(options, swapchain);
+                            Device.LogVulkan(out maxTextureSize);
+                            break;
+
+                        case GraphicsSurfaceType.Direct3D11:
+                            Device = GraphicsDevice.CreateD3D11(options, swapchain);
+                            Device.LogD3D11(out maxTextureSize);
+                            break;
+
+                        case GraphicsSurfaceType.Metal:
+                            Device = GraphicsDevice.CreateMetal(options, swapchain);
+                            Device.LogMetal(out maxTextureSize);
+                            break;
+
+                        default:
+                            throw new InvalidOperationException();
                     }
 
-                    case RuntimeInfo.Platform.Android:
-                    {
-                        var androidGraphics = (IAndroidGraphicsSurface)this.graphicsSurface;
-                        swapchain.Source = SwapchainSource.CreateAndroidSurface(androidGraphics.SurfaceHandle, androidGraphics.JniEnvHandle);
-                        break;
-                    }
-                }
-
-                switch (this.graphicsSurface.Type)
-                {
-                    case GraphicsSurfaceType.OpenGL:
-                        var openGLGraphics = (IOpenGLGraphicsSurface)this.graphicsSurface;
-                        var openGLInfo = new OpenGLPlatformInfo(
-                            openGLContextHandle: openGLGraphics.WindowContext,
-                            getProcAddress: openGLGraphics.GetProcAddress,
-                            makeCurrent: openGLGraphics.MakeCurrent,
-                            getCurrentContext: () => openGLGraphics.CurrentContext,
-                            clearCurrentContext: openGLGraphics.ClearCurrent,
-                            deleteContext: openGLGraphics.DeleteContext,
-                            swapBuffers: openGLGraphics.SwapBuffers,
-                            setSyncToVerticalBlank: v => openGLGraphics.VerticalSync = v,
-                            setSwapchainFramebuffer: () => OpenGLNative.glBindFramebuffer(FramebufferTarget.Framebuffer, (uint)(openGLGraphics.BackbufferFramebuffer ?? 0)),
-                            null);
-
-                        Device = GraphicsDevice.CreateOpenGL(options, openGLInfo, swapchain.Width, swapchain.Height);
-                        Device.LogOpenGL(out maxTextureSize);
-                        break;
-
-                    case GraphicsSurfaceType.Vulkan:
-                        Device = GraphicsDevice.CreateVulkan(options, swapchain);
-                        Device.LogVulkan(out maxTextureSize);
-                        break;
-
-                    case GraphicsSurfaceType.Direct3D11:
-                        Device = GraphicsDevice.CreateD3D11(options, swapchain);
-                        Device.LogD3D11(out maxTextureSize);
-                        break;
-
-                    case GraphicsSurfaceType.Metal:
-                        Device = GraphicsDevice.CreateMetal(options, swapchain);
-                        Device.LogMetal(out maxTextureSize);
-                        break;
-
-                    default:
-                        throw new InvalidOperationException();
-                }
+                    break;
             }
 
             Logger.Log($"{nameof(UseStructuredBuffers)}: {UseStructuredBuffers}");

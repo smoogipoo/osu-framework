@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Veldrid.Buffers;
+using osu.Framework.Platform;
 using osu.Framework.Statistics;
 
 namespace osu.Framework.Graphics.Veldrid.Batches
@@ -94,7 +95,9 @@ namespace osu.Framework.Graphics.Veldrid.Batches
 
         protected IVeldridVertexBuffer<T> CreateVertexBuffer(VeldridRenderer renderer)
         {
-            return new VeldridVertexBuffer<T>(renderer, Size);
+            return renderer.SurfaceType == GraphicsSurfaceType.Metal
+                ? new VeldridMetalVertexBuffer<T>(renderer, Size)
+                : new VeldridVertexBuffer<T>(renderer, Size);
         }
 
         /// <summary>
