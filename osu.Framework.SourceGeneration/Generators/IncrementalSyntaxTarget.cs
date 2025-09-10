@@ -4,59 +4,48 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace osu.Framework.SourceGeneration.Generators
 {
     public class IncrementalSyntaxTarget : IEquatable<IncrementalSyntaxTarget>
     {
-        public readonly ClassDeclarationSyntax Syntax;
-        public string? SyntaxName { get; set; }
-        public long? GenerationId;
+        public readonly GeneratorSyntaxContext Context;
+        public readonly OptimizationLevel OptimisationLevel;
+        public readonly SyntaxNode Node;
+
+        public string? SyntaxName { get; private set; }
         public IncrementalSemanticTarget? SemanticTarget { get; private set; }
 
-        private SemanticModel? semanticModel;
+        public long? GenerationId;
 
-        public IncrementalSyntaxTarget(ClassDeclarationSyntax syntax, SemanticModel semanticModel)
+        public IncrementalSyntaxTarget(GeneratorSyntaxContext context)
         {
-            Syntax = syntax;
-            this.semanticModel = semanticModel;
+            Context = context;
+            OptimisationLevel = context.SemanticModel.Compilation.Options.OptimizationLevel;
+            Node = context.Node;
         }
 
-        public IncrementalSyntaxTarget WithName()
+        public IncrementalSyntaxTarget WithSemanticInformation(Func<ClassDeclarationSyntax, SemanticModel, IncrementalSemanticTarget> createTarget)
         {
-            SyntaxName ??= SyntaxHelpers.GetFullyQualifiedSyntaxName(Syntax);
-            return this;
-        }
+            ClassDeclarationSyntax classSyntax = (ClassDeclarationSyntax)Context.Node;
 
-        public IncrementalSyntaxTarget WithSemanticTarget(Func<ClassDeclarationSyntax, SemanticModel, IncrementalSemanticTarget> createTarget)
-        {
-            SemanticTarget ??= createTarget(Syntax, semanticModel!);
-            semanticModel = null;
-            return this;
+            return new IncrementalSyntaxTarget(Context)
+            {
+                SyntaxName = SyntaxHelpers.GetFullyQualifiedSyntaxName(classSyntax),
+                SemanticTarget = createTarget(classSyntax, Context.SemanticModel)
+            };
         }
 
         public bool Equals(IncrementalSyntaxTarget? other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-
-            return Syntax == other.Syntax;
-        }
+            => other != null && SyntaxFactory.AreEquivalent(Node, other.Node);
 
         public override bool Equals(object? obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-
-            return Equals((IncrementalSyntaxTarget)obj);
-        }
+            => obj is IncrementalSyntaxTarget other && Equals(other);
 
         public override int GetHashCode()
-        {
-            return Syntax.GetHashCode();
-        }
+            => Node.GetHashCode();
 
         public class SyntaxNameComparer : IEqualityComparer<IncrementalSyntaxTarget>
         {

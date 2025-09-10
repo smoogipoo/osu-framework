@@ -18,14 +18,14 @@ namespace osu.Framework.SourceGeneration.Generators
         {
             // Stage 1: Create SyntaxTarget objects for all classes.
             IncrementalValuesProvider<IncrementalSyntaxTarget> syntaxTargets =
-                context.SyntaxProvider.CreateSyntaxProvider(
+                context.SyntaxProvider
+                       .CreateSyntaxProvider
+                       (
                            (n, _) => isSyntaxTarget(n),
-                           (ctx, _) => returnWithEvent(new IncrementalSyntaxTarget((ClassDeclarationSyntax)ctx.Node, ctx.SemanticModel), EventDriver.OnSyntaxTargetCreated))
-                       .Select((t, _) => t.WithName())
-                       .Combine(context.CompilationProvider)
-                       .Where(c => c.Right.Options.OptimizationLevel == OptimizationLevel.Release)
-                       .Select((t, _) => t.Item1)
-                       .Select((t, _) => returnWithEvent(t.WithSemanticTarget(CreateSemanticTarget), EventDriver.OnSemanticTargetCreated));
+                           (ctx, _) => returnWithEvent(new IncrementalSyntaxTarget(ctx), EventDriver.OnSyntaxTargetCreated)
+                       )
+                       .Where(t => t.OptimisationLevel == OptimizationLevel.Release)
+                       .Select((t, _) => returnWithEvent(t.WithSemanticInformation(CreateSemanticTarget), EventDriver.OnSemanticTargetCreated));
 
             // Stage 2: Separate out the old and new syntax targets for the same class object.
             // At this point, there are a bunch of old and new syntax targets that may refer to the same class object.
