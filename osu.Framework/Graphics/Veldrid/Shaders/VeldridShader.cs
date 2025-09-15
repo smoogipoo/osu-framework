@@ -4,10 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Spirv;
+using osu.Framework.Graphics.Spirv.Instructions;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Framework.Threading;
@@ -137,6 +140,13 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
                 cached &= compilation.WasCached;
 
+                if (renderer.SurfaceType == GraphicsSurfaceType.SDL3)
+                {
+                    // Rewrite SPIR-V to merge descriptor sets because they're not supported by SDL3.
+                    compilation.VertexBytes = mergeDescriptorSets(compilation.VertexBytes);
+                    compilation.FragmentBytes = mergeDescriptorSets(compilation.FragmentBytes);
+                }
+
                 VertexFragmentShaderCompilation? platformCompilation = null;
 
                 switch (renderer.SurfaceType)
@@ -209,6 +219,28 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                 Logger.Error(e, $"🖍️ Failed to initialise shader {name}");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Merges all descriptor sets in the given SPIR-V code.
+        /// </summary>
+        private byte[] mergeDescriptorSets(byte[] code)
+        {
+            using var readMs = new MemoryStream(code);
+            using var reader = new SpvReader(readMs);
+
+            using var writeMs = new MemoryStream();
+            using var writer = new SpvWriter(writeMs, reader.Header);
+
+            while (reader.TryReadInstruction(out SpvInstruction instruction))
+            {
+                if (instruction is SpvDecorateInstruction decorate && (decorate.Decoration == SpvDecoration.SpvDecorationDescriptorSet || decorate.Decoration == SpvDecoration.SpvDecorationBinding))
+                    continue;
+
+                writer.Write(instruction);
+            }
+
+            return writeMs.ToArray();
         }
 
         private void loadToGpu()
