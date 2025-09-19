@@ -250,27 +250,10 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
                 throw new InvalidOperationException("No index buffer bound.");
 
             pipelineDesc.PrimitiveTopology = topology;
-            Array.Resize(ref pipelineDesc.ResourceLayouts, currentShader.LayoutCount);
+            Array.Resize(ref pipelineDesc.ResourceLayouts, currentShader.ResourceLayouts.Count);
 
-            // Activate texture layouts.
-            foreach (var (unit, _) in attachedTextures)
-            {
-                var layout = currentShader.GetTextureLayout(unit);
-                if (layout == null)
-                    continue;
-
+            foreach (var layout in currentShader.ResourceLayouts)
                 pipelineDesc.ResourceLayouts[layout.Set] = layout.Layout;
-            }
-
-            // Activate uniform buffer layouts.
-            foreach (var (name, _) in attachedUniformBuffers)
-            {
-                var layout = currentShader.GetUniformBufferLayout(name);
-                if (layout == null)
-                    continue;
-
-                pipelineDesc.ResourceLayouts[layout.Set] = layout.Layout;
-            }
 
             // Activate the pipeline.
             Commands.SetPipeline(createPipeline());
@@ -288,12 +271,14 @@ namespace osu.Framework.Graphics.Veldrid.Pipelines
             // Activate uniform buffer resources.
             foreach (var (name, buffer) in attachedUniformBuffers)
             {
-                var layout = currentShader.GetUniformBufferLayout(name);
-                if (layout == null)
+                var layouts = currentShader.GetUniformBufferLayout(name);
+                if (layouts == null)
                     continue;
 
                 uint bufferOffset = uniformBufferOffsets.GetValueOrDefault(buffer);
-                Commands.SetGraphicsResourceSet((uint)layout.Set, buffer.GetResourceSet(layout.Layout), 1, ref bufferOffset);
+
+                foreach (var layout in layouts)
+                    Commands.SetGraphicsResourceSet((uint)layout.Set, buffer.GetResourceSet(layout.Layout), 1, ref bufferOffset);
             }
 
             int indexStart = currentIndexBuffer.TranslateToIndex(vertexStart);

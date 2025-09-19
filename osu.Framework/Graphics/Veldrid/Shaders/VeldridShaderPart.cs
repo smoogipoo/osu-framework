@@ -45,8 +45,11 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
             Type = type;
 
+            if (type == ShaderPartType.Vertex)
+                code += "#define OSU_IS_VERTEX_SHADER\n";
+
             if (!renderer.UseStructuredBuffers)
-                code = "#define OSU_GRAPHICS_NO_SSBO\n";
+                code += "#define OSU_GRAPHICS_NO_SSBO\n";
 
             // Load the shader files.
             code += loadFile(data, true);

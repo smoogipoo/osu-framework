@@ -36,9 +36,10 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
         private ShaderDescription fragmentShaderDescription;
 
         IReadOnlyDictionary<string, IUniform> IShader.Uniforms => throw new NotSupportedException();
-        public int LayoutCount => uniformLayouts.Count + textureLayouts.Count;
 
-        private readonly Dictionary<string, VeldridUniformLayout> uniformLayouts = new Dictionary<string, VeldridUniformLayout>();
+        public readonly List<VeldridUniformLayout> ResourceLayouts = new List<VeldridUniformLayout>();
+
+        private readonly Dictionary<string, List<VeldridUniformLayout>> uniformLayouts = new Dictionary<string, List<VeldridUniformLayout>>();
         private readonly List<VeldridUniformLayout> textureLayouts = new List<VeldridUniformLayout>();
 
         public VeldridShader(IVeldridRenderer renderer, string name, VeldridShaderPart[] parts, ShaderCompilationStore compilationStore)
@@ -98,7 +99,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
 
         public VeldridUniformLayout? GetTextureLayout(int textureUnit) => textureUnit >= textureLayouts.Count ? null : textureLayouts[textureUnit];
 
-        public VeldridUniformLayout? GetUniformBufferLayout(string name) => uniformLayouts.GetValueOrDefault(name);
+        public List<VeldridUniformLayout>? GetUniformBufferLayout(string name) => uniformLayouts.GetValueOrDefault(name);
 
         private void compile()
         {
@@ -172,6 +173,7 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                 for (int set = 0; set < compilation.Reflection.ResourceLayouts.Length; set++)
                 {
                     ResourceLayoutDescription layout = compilation.Reflection.ResourceLayouts[set];
+                    ResourceLayouts.Add(new VeldridUniformLayout(set, renderer.Factory.CreateResourceLayout(layout)));
 
                     if (layout.Elements.Length == 0)
                         continue;
@@ -194,7 +196,9 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                             case ResourceKind.UniformBuffer:
                             case ResourceKind.StructuredBufferReadOnly:
                             case ResourceKind.StructuredBufferReadWrite:
-                                uniformLayouts[layout.Elements[0].Name] = new VeldridUniformLayout(set, renderer.Factory.CreateResourceLayout(layout));
+                                if (!uniformLayouts.TryGetValue(layout.Elements[0].Name, out var list))
+                                    list = uniformLayouts[layout.Elements[0].Name] = new List<VeldridUniformLayout>();
+                                list.Add(new VeldridUniformLayout(set, renderer.Factory.CreateResourceLayout(layout)));
                                 break;
                         }
                     }
@@ -246,8 +250,11 @@ namespace osu.Framework.Graphics.Veldrid.Shaders
                     Shaders[i].Dispose();
             }
 
-            foreach (var (_, layout) in uniformLayouts)
-                layout.Dispose();
+            foreach (var (_, layouts) in uniformLayouts)
+            {
+                foreach (var layout in layouts)
+                    layout.Dispose();
+            }
 
             foreach (var layout in textureLayouts)
                 layout.Dispose();

@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using osu.Framework.Platform;
 using Veldrid;
@@ -14,8 +15,8 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
         private readonly VeldridRenderer renderer;
         private readonly DeviceBuffer buffer;
         private readonly NativeMemoryTracker.NativeMemoryLease memoryLease;
+        private readonly Dictionary<ResourceSetDescription, ResourceSet> setCache = new Dictionary<ResourceSetDescription, ResourceSet>();
 
-        private ResourceSet? set;
         private TData data;
 
         public VeldridUniformBufferStorage(VeldridRenderer renderer)
@@ -37,13 +38,23 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             }
         }
 
-        public ResourceSet GetResourceSet(ResourceLayout layout) => set ??= renderer.Factory.CreateResourceSet(new ResourceSetDescription(layout, buffer));
+        public ResourceSet GetResourceSet(ResourceLayout layout)
+        {
+            var desc = new ResourceSetDescription(layout, buffer);
+
+            if (setCache.TryGetValue(desc, out var set))
+                return set;
+
+            return setCache[desc] = renderer.Factory.CreateResourceSet(desc);
+        }
 
         public void Dispose()
         {
             buffer.Dispose();
             memoryLease.Dispose();
-            set?.Dispose();
+
+            foreach (var (_, set) in setCache)
+                set.Dispose();
         }
     }
 }
