@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -22,27 +23,35 @@ namespace osu.Framework.SourceGeneration.Generators
                            comp.Options.OptimizationLevel == OptimizationLevel.Release);
 
             // 2: Create syntax targets for all classes.
-            IncrementalValuesProvider<IncrementalSyntaxTarget> syntaxTargets =
-                context.SyntaxProvider.CreateSyntaxProvider(
-                    (n, _) => isSyntaxTarget(n),
-                    (ctx, _) => returnWithEvent(new IncrementalSyntaxTarget((ClassDeclarationSyntax)ctx.Node), EventDriver.OnSyntaxTargetCreated));
+            IncrementalValuesProvider<ClassDeclarationSyntax> syntaxTargets =
+                context.SyntaxProvider
+                       .CreateSyntaxProvider(
+                           (n, _) => isSyntaxTarget(n),
+                           (ctx, _) => returnWithEvent((ClassDeclarationSyntax)ctx.Node, EventDriver.OnSyntaxTargetCreated));
 
             // 3. Get release-only syntax targets.
-            IncrementalValuesProvider<IncrementalSyntaxTarget> releaseOnlySyntaxTargets =
-                syntaxTargets.Combine(isReleaseBuild)
-                             .Where(x => x.Right)
-                             .Select((x, _) => x.Left);
+            IncrementalValuesProvider<ClassDeclarationSyntax> releaseOnlySyntaxTargets =
+                syntaxTargets
+                    .Combine(isReleaseBuild)
+                    .Where(x => x.Right)
+                    .Select((x, _) => x.Left);
 
-            // 4. Create release-only semantic targets.
-            IncrementalValuesProvider<IncrementalSemanticTarget> releaseOnlySemanticTargets =
+            // 4. Get release-only symbols for the syntax targets.
+            IncrementalValuesProvider<INamedTypeSymbol> releaseOnlySemanticTargets =
                 releaseOnlySyntaxTargets
                     .Combine(context.CompilationProvider)
-                    .Select((x, _) => CreateSemanticTarget(x.Left.Syntax, x.Right.GetSemanticModel(x.Left.Syntax.SyntaxTree)));
+                    .Select((x, _) => x.Right.GetSemanticModel(x.Left.SyntaxTree).GetDeclaredSymbol(x.Left)!);
 
-            context.RegisterImplementationSourceOutput(releaseOnlySemanticTargets, emit);
+            // 5. Create semantic targets from unique symbols.
+            IncrementalValuesProvider<IncrementalSemanticTarget> uniqueSemanticTargets =
+                releaseOnlySemanticTargets
+                    .WithComparer(new SymbolNameComparer())
+                    .Select((x, _) => returnWithEvent(CreateSemanticTarget(x), EventDriver.OnSemanticTargetCreated));
+
+            context.RegisterImplementationSourceOutput(uniqueSemanticTargets, emit);
         }
 
-        protected abstract IncrementalSemanticTarget CreateSemanticTarget(ClassDeclarationSyntax node, SemanticModel semanticModel);
+        protected abstract IncrementalSemanticTarget CreateSemanticTarget(INamedTypeSymbol symbol);
 
         protected abstract IncrementalSourceEmitter CreateSourceEmitter(IncrementalSemanticTarget target);
 
@@ -67,6 +76,15 @@ namespace osu.Framework.SourceGeneration.Generators
         {
             @event(arg);
             return arg;
+        }
+
+        private class SymbolNameComparer : IEqualityComparer<INamedTypeSymbol>
+        {
+            public bool Equals(INamedTypeSymbol x, INamedTypeSymbol y)
+                => SyntaxHelpers.GetFullyQualifiedTypeName(x) == SyntaxHelpers.GetFullyQualifiedTypeName(y);
+
+            public int GetHashCode(INamedTypeSymbol obj)
+                => SyntaxHelpers.GetFullyQualifiedTypeName(obj).GetHashCode();
         }
     }
 }

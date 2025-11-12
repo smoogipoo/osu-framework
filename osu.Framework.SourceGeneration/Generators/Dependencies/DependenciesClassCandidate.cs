@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using osu.Framework.SourceGeneration.Generators.Dependencies.Data;
 
 namespace osu.Framework.SourceGeneration.Generators.Dependencies
@@ -17,8 +16,8 @@ namespace osu.Framework.SourceGeneration.Generators.Dependencies
         public readonly HashSet<ResolvedAttributeData> ResolvedMembers = new HashSet<ResolvedAttributeData>();
         public readonly HashSet<BackgroundDependencyLoaderAttributeData> DependencyLoaderMembers = new HashSet<BackgroundDependencyLoaderAttributeData>();
 
-        public DependenciesClassCandidate(ClassDeclarationSyntax classSyntax, SemanticModel semanticModel)
-            : base(classSyntax, semanticModel)
+        public DependenciesClassCandidate(INamedTypeSymbol symbol)
+            : base(symbol)
         {
         }
 

@@ -8,22 +8,22 @@ namespace osu.Framework.SourceGeneration.Generators
 {
     public class IncrementalSyntaxTarget : IEquatable<IncrementalSyntaxTarget>
     {
-        public ClassDeclarationSyntax Syntax { get; }
-        public string FullyQualifiedName { get; }
+        public readonly ClassDeclarationSyntax Syntax;
+        private readonly string syntaxKey;
 
         public IncrementalSyntaxTarget(ClassDeclarationSyntax syntax)
         {
             Syntax = syntax;
-            FullyQualifiedName = SyntaxHelpers.GetFullyQualifiedSyntaxName(syntax);
+            syntaxKey = $"{syntax.SyntaxTree.FilePath}|{syntax.SpanStart}";
         }
 
-        public bool Equals(IncrementalSyntaxTarget? other)
-            => other != null && FullyQualifiedName == other.FullyQualifiedName;
+        public bool Equals(IncrementalSyntaxTarget? other) =>
+            other != null && syntaxKey == other.syntaxKey;
 
         public override bool Equals(object? obj)
             => obj is IncrementalSyntaxTarget other && Equals(other);
 
         public override int GetHashCode()
-            => FullyQualifiedName.GetHashCode();
+            => syntaxKey.GetHashCode();
     }
 }

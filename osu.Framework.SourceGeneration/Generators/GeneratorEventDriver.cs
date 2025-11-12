@@ -9,39 +9,39 @@ namespace osu.Framework.SourceGeneration.Generators
 {
     public class GeneratorEventDriver
     {
-        public event Action<IncrementalSyntaxTarget>? SyntaxTargetCreated;
-        public event Action<IncrementalSyntaxTarget>? SemanticTargetCreated;
-        public event Action<ImmutableArray<IncrementalSyntaxTarget>>? Stage2Entry;
-        public event Action<ImmutableArray<IncrementalSyntaxTarget>>? Stage2GenerationIdAssigned;
-        public event Action<HashSet<IncrementalSyntaxTarget>>? Stage2Exit;
-        public event Action<IncrementalSemanticTarget>? Emit;
+        public event Action<object>? SyntaxTargetCreated;
+        public event Action<object>? SemanticTargetCreated;
+        public event Action<ImmutableArray<object>>? Stage2Entry;
+        public event Action<ImmutableArray<object>>? Stage2GenerationIdAssigned;
+        public event Action<HashSet<object>>? Stage2Exit;
+        public event Action<object>? Emit;
 
-        public void OnSyntaxTargetCreated(IncrementalSyntaxTarget target)
+        public void OnSyntaxTargetCreated(object target)
         {
             conditionalInvoke(SyntaxTargetCreated, target);
         }
 
-        public void OnSemanticTargetCreated(IncrementalSyntaxTarget target)
+        public void OnSemanticTargetCreated(object target)
         {
             conditionalInvoke(SemanticTargetCreated, target);
         }
 
-        public void OnStage2Entry(ImmutableArray<IncrementalSyntaxTarget> target)
+        public void OnStage2Entry(ImmutableArray<object> target)
         {
             conditionalInvoke(Stage2Entry, target);
         }
 
-        public void OnStage2GenerationIdAssigned(ImmutableArray<IncrementalSyntaxTarget> target)
+        public void OnStage2GenerationIdAssigned(ImmutableArray<object> target)
         {
             conditionalInvoke(Stage2GenerationIdAssigned, target);
         }
 
-        public void OnStage2Exit(HashSet<IncrementalSyntaxTarget> target)
+        public void OnStage2Exit(HashSet<object> target)
         {
             conditionalInvoke(Stage2Exit, target);
         }
 
-        public void OnEmit(IncrementalSemanticTarget candidate)
+        public void OnEmit(object candidate)
         {
             conditionalInvoke(Emit, candidate);
         }

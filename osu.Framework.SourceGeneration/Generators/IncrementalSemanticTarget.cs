@@ -3,15 +3,11 @@
 
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace osu.Framework.SourceGeneration.Generators
 {
     public abstract class IncrementalSemanticTarget
     {
-        public readonly ClassDeclarationSyntax ClassSyntax;
-
         public readonly string FullyQualifiedTypeName = string.Empty;
         public readonly string GlobalPrefixedTypeName = string.Empty;
         public readonly bool NeedsOverride;
@@ -20,12 +16,8 @@ namespace osu.Framework.SourceGeneration.Generators
 
         public readonly List<string> TypeHierarchy = new List<string>();
 
-        protected IncrementalSemanticTarget(ClassDeclarationSyntax classSyntax, SemanticModel semanticModel)
+        protected IncrementalSemanticTarget(INamedTypeSymbol symbol)
         {
-            ClassSyntax = classSyntax;
-
-            INamedTypeSymbol symbol = semanticModel.GetDeclaredSymbol(ClassSyntax)!;
-
             IsValid = CheckValid(symbol);
 
             if (!IsValid)

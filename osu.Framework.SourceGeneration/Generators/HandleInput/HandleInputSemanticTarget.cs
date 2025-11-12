@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace osu.Framework.SourceGeneration.Generators.HandleInput
 {
@@ -15,8 +14,8 @@ namespace osu.Framework.SourceGeneration.Generators.HandleInput
         public bool RequestsPositionalInput { get; private set; }
         public bool RequestsNonPositionalInput { get; private set; }
 
-        public HandleInputSemanticTarget(ClassDeclarationSyntax classSyntax, SemanticModel semanticModel)
-            : base(classSyntax, semanticModel)
+        public HandleInputSemanticTarget(INamedTypeSymbol symbol)
+            : base(symbol)
         {
         }
 

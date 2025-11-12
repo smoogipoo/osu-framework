@@ -3,7 +3,6 @@
 
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace osu.Framework.SourceGeneration.Generators.LongRunningLoad
 {
@@ -11,8 +10,8 @@ namespace osu.Framework.SourceGeneration.Generators.LongRunningLoad
     {
         public bool IsLongRunning { get; private set; }
 
-        public LongRunningLoadSemanticTarget(ClassDeclarationSyntax classSyntax, SemanticModel semanticModel)
-            : base(classSyntax, semanticModel)
+        public LongRunningLoadSemanticTarget(INamedTypeSymbol symbol)
+            : base(symbol)
         {
         }
 
