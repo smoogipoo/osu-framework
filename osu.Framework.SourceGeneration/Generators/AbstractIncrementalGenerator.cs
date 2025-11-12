@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -22,30 +21,35 @@ namespace osu.Framework.SourceGeneration.Generators
                        .Select((comp, _) =>
                            comp.Options.OptimizationLevel == OptimizationLevel.Release);
 
-            // 2: Create syntax targets for all classes.
+            // 2: Get syntax targets for all classes.
             IncrementalValuesProvider<ClassDeclarationSyntax> syntaxTargets =
                 context.SyntaxProvider
                        .CreateSyntaxProvider(
                            (n, _) => isSyntaxTarget(n),
                            (ctx, _) => returnWithEvent((ClassDeclarationSyntax)ctx.Node, EventDriver.OnSyntaxTargetCreated));
 
-            // 3. Get release-only syntax targets.
+            // 3. Filter syntax targets to release-mode compilations.
             IncrementalValuesProvider<ClassDeclarationSyntax> releaseOnlySyntaxTargets =
                 syntaxTargets
                     .Combine(isReleaseBuild)
                     .Where(x => x.Right)
                     .Select((x, _) => x.Left);
 
-            // 4. Get release-only symbols for the syntax targets.
-            IncrementalValuesProvider<INamedTypeSymbol> releaseOnlySemanticTargets =
+            // 4. Retrieve symbols for the syntax targets.
+            IncrementalValuesProvider<INamedTypeSymbol> releaseOnlySymbols =
                 releaseOnlySyntaxTargets
                     .Combine(context.CompilationProvider)
-                    .Select((x, _) => x.Right.GetSemanticModel(x.Left.SyntaxTree).GetDeclaredSymbol(x.Left)!);
+                    .Select((x, token) => x.Right.GetSemanticModel(x.Left.SyntaxTree).GetDeclaredSymbol(x.Left, token)!);
 
-            // 5. Create semantic targets from unique symbols.
+            // 5. De-duplicate symbols across partial definitions.
+            IncrementalValuesProvider<INamedTypeSymbol> uniqueSymbols =
+                releaseOnlySymbols
+                    .Collect()
+                    .SelectMany((symbols, _) => symbols.Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default));
+
+            // 6. Create final semantic targets from symbols.
             IncrementalValuesProvider<IncrementalSemanticTarget> uniqueSemanticTargets =
-                releaseOnlySemanticTargets
-                    .WithComparer(new SymbolNameComparer())
+                uniqueSymbols
                     .Select((x, _) => returnWithEvent(CreateSemanticTarget(x), EventDriver.OnSemanticTargetCreated));
 
             context.RegisterImplementationSourceOutput(uniqueSemanticTargets, emit);
@@ -76,15 +80,6 @@ namespace osu.Framework.SourceGeneration.Generators
         {
             @event(arg);
             return arg;
-        }
-
-        private class SymbolNameComparer : IEqualityComparer<INamedTypeSymbol>
-        {
-            public bool Equals(INamedTypeSymbol x, INamedTypeSymbol y)
-                => SyntaxHelpers.GetFullyQualifiedTypeName(x) == SyntaxHelpers.GetFullyQualifiedTypeName(y);
-
-            public int GetHashCode(INamedTypeSymbol obj)
-                => SyntaxHelpers.GetFullyQualifiedTypeName(obj).GetHashCode();
         }
     }
 }
