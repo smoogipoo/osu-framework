@@ -16,16 +16,28 @@ namespace osu.Framework.SourceGeneration.Generators
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // Stage 1: Create SyntaxTarget objects for all classes.
+            // 1. Get release-mode compilations.
+            IncrementalValueProvider<bool> isReleaseBuild =
+                context.CompilationProvider
+                       .Select((comp, _) =>
+                           comp.Options.OptimizationLevel == OptimizationLevel.Release);
+
+            // 2: Create syntax targets for all classes.
             IncrementalValuesProvider<IncrementalSyntaxTarget> syntaxTargets =
                 context.SyntaxProvider.CreateSyntaxProvider(
                            (n, _) => isSyntaxTarget(n),
                            (ctx, _) => returnWithEvent(new IncrementalSyntaxTarget((ClassDeclarationSyntax)ctx.Node, ctx.SemanticModel), EventDriver.OnSyntaxTargetCreated))
-                       .Select((t, _) => t.WithName())
-                       .Combine(context.CompilationProvider)
-                       .Where(c => c.Right.Options.OptimizationLevel == OptimizationLevel.Release)
-                       .Select((t, _) => t.Item1)
-                       .Select((t, _) => returnWithEvent(t.WithSemanticTarget(CreateSemanticTarget), EventDriver.OnSemanticTargetCreated));
+                       .Select((t, _) => t.WithName());
+
+            // 3. Get release-only syntax targets.
+            IncrementalValuesProvider<IncrementalSyntaxTarget> releaseOnlySyntaxTargets =
+                syntaxTargets.Combine(isReleaseBuild)
+                             .Where(x => x.Right)
+                             .Select((x, _) => x.Left);
+
+            // 4. Get release-only semantic targets.
+            IncrementalValuesProvider<IncrementalSyntaxTarget> releaseOnlySemanticTargets =
+                releaseOnlySyntaxTargets.Select((target, _) => returnWithEvent(target.WithSemanticTarget(CreateSemanticTarget), EventDriver.OnSemanticTargetCreated));
 
             // Stage 2: Separate out the old and new syntax targets for the same class object.
             // At this point, there are a bunch of old and new syntax targets that may refer to the same class object.
@@ -34,7 +46,7 @@ namespace osu.Framework.SourceGeneration.Generators
             // Example: Multi-partial definitions where an unrelated file is updated. Need to find the definition that was used for the last generation.
             // Bug: Due to an internal bug in Roslyn, this may also occur for non-multi-partial files.
             IncrementalValuesProvider<IncrementalSyntaxTarget> distinctSyntaxTargets =
-                syntaxTargets
+                releaseOnlySemanticTargets
                     .Collect()
                     .SelectMany((targets, _) =>
                     {
