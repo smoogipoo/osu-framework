@@ -2,7 +2,6 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -25,9 +24,8 @@ namespace osu.Framework.SourceGeneration.Generators
             // 2: Create syntax targets for all classes.
             IncrementalValuesProvider<IncrementalSyntaxTarget> syntaxTargets =
                 context.SyntaxProvider.CreateSyntaxProvider(
-                           (n, _) => isSyntaxTarget(n),
-                           (ctx, _) => returnWithEvent(new IncrementalSyntaxTarget((ClassDeclarationSyntax)ctx.Node, ctx.SemanticModel), EventDriver.OnSyntaxTargetCreated))
-                       .Select((t, _) => t.WithName());
+                    (n, _) => isSyntaxTarget(n),
+                    (ctx, _) => returnWithEvent(new IncrementalSyntaxTarget((ClassDeclarationSyntax)ctx.Node), EventDriver.OnSyntaxTargetCreated));
 
             // 3. Get release-only syntax targets.
             IncrementalValuesProvider<IncrementalSyntaxTarget> releaseOnlySyntaxTargets =
@@ -35,50 +33,13 @@ namespace osu.Framework.SourceGeneration.Generators
                              .Where(x => x.Right)
                              .Select((x, _) => x.Left);
 
-            // 4. Get release-only semantic targets.
-            IncrementalValuesProvider<IncrementalSyntaxTarget> releaseOnlySemanticTargets =
-                releaseOnlySyntaxTargets.Select((target, _) => returnWithEvent(target.WithSemanticTarget(CreateSemanticTarget), EventDriver.OnSemanticTargetCreated));
+            // 4. Create release-only semantic targets.
+            IncrementalValuesProvider<IncrementalSemanticTarget> releaseOnlySemanticTargets =
+                releaseOnlySyntaxTargets
+                    .Combine(context.CompilationProvider)
+                    .Select((x, _) => CreateSemanticTarget(x.Left.Syntax, x.Right.GetSemanticModel(x.Left.Syntax.SyntaxTree)));
 
-            // Stage 2: Separate out the old and new syntax targets for the same class object.
-            // At this point, there are a bunch of old and new syntax targets that may refer to the same class object.
-            // Find a distinct syntax target for any one class object, preferring the most-recent target.
-            // Example: Multi-partial definitions where one file is updated. We need to find the definition that was newly-updated.
-            // Example: Multi-partial definitions where an unrelated file is updated. Need to find the definition that was used for the last generation.
-            // Bug: Due to an internal bug in Roslyn, this may also occur for non-multi-partial files.
-            IncrementalValuesProvider<IncrementalSyntaxTarget> distinctSyntaxTargets =
-                releaseOnlySemanticTargets
-                    .Collect()
-                    .SelectMany((targets, _) =>
-                    {
-                        EventDriver.OnStage2Entry(targets);
-
-                        // Ensure all targets have a generation ID. This is over-engineered as two loops to:
-                        // 1. Increment the generation ID locally for deterministic test output.
-                        // 2. Remain performant across many thousands of objects.
-                        Dictionary<IncrementalSyntaxTarget, long> maxGenerationIds = new Dictionary<IncrementalSyntaxTarget, long>(IncrementalSyntaxTarget.SyntaxNameComparer.DEFAULT);
-
-                        foreach (var target in targets)
-                        {
-                            maxGenerationIds.TryGetValue(target, out long existingValue);
-                            maxGenerationIds[target] = Math.Max(existingValue, target.GenerationId ?? 0);
-                        }
-
-                        foreach (var target in targets)
-                            target.GenerationId ??= maxGenerationIds[target] + 1;
-
-                        EventDriver.OnStage2GenerationIdAssigned(targets);
-
-                        HashSet<IncrementalSyntaxTarget> result = new HashSet<IncrementalSyntaxTarget>(IncrementalSyntaxTarget.SyntaxNameComparer.DEFAULT);
-
-                        // Filter out the targets, preferring the most recent at all times.
-                        foreach (IncrementalSyntaxTarget t in targets.OrderByDescending(t => t.GenerationId))
-                            result.Add(t);
-
-                        EventDriver.OnStage2Exit(result);
-                        return result;
-                    });
-
-            context.RegisterImplementationSourceOutput(distinctSyntaxTargets.Select((t, _) => t.SemanticTarget!), emit);
+            context.RegisterImplementationSourceOutput(releaseOnlySemanticTargets, emit);
         }
 
         protected abstract IncrementalSemanticTarget CreateSemanticTarget(ClassDeclarationSyntax node, SemanticModel semanticModel);
