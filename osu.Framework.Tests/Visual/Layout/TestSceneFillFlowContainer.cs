@@ -297,6 +297,57 @@ namespace osu.Framework.Tests.Visual.Layout
             AddToggleStep("Stop adding children", v => spawner.AddChildren = !v);
         }
 
+        [Test]
+        public void TestCentreAlignmentWithDifferentSizedChildren()
+        {
+            FillFlowContainer container = null!;
+
+            AddStep("setup", () =>
+            {
+                Child = new Container
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    AutoSizeAxes = Axes.Both,
+                    Masking = true,
+                    BorderThickness = 2,
+                    BorderColour = Color4.White,
+                    Children = new Drawable[]
+                    {
+                        new Box
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Colour = Color4.Red
+                        },
+                        container = new FillFlowContainer
+                        {
+                            AutoSizeAxes = Axes.Both,
+                            Direction = FillDirection.Vertical,
+                            Children = new Drawable[]
+                            {
+                                new Box
+                                {
+                                    Anchor = Anchor.Centre,
+                                    Origin = Anchor.Centre,
+                                    Size = new Vector2(200, 50),
+                                    Colour = Color4.Green,
+                                },
+                                new Box
+                                {
+                                    Anchor = Anchor.Centre,
+                                    Origin = Anchor.Centre,
+                                    Size = new Vector2(200, 25),
+                                    Colour = Color4.Yellow,
+                                }
+                            }
+                        },
+                    }
+                };
+            });
+
+            AddAssert("container has correct height", () => container.DrawHeight, () => Is.EqualTo(75));
+        }
+
         private partial class TestSceneDropdownHeader : DropdownHeader
         {
             private readonly SpriteText label;
