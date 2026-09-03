@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Graphics.Pacing;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering.Deferred.Events;
 using osu.Framework.Graphics.Shaders;
@@ -31,10 +32,14 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
         private readonly Stack<DrawNode> drawNodeStack = new Stack<DrawNode>();
+
+        private VeldridFramePacer framePacer = new VeldridFramePacer();
         private VeldridStagingTexturePool texturePool = null!;
 
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
+            framePacer = new VeldridFramePacer();
+
             VeldridDevice = new VeldridDevice(graphicsSurface);
             Graphics = new GraphicsPipeline(VeldridDevice);
             texturePool = new VeldridStagingTexturePool(Graphics);
@@ -45,6 +50,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
 
         protected internal override void BeginFrame(Vector2 windowSize)
         {
+            framePacer.BeginFrame();
+
             foreach (var ubo in uniformBufferResetList)
                 ubo.ResetCounters();
 
@@ -174,13 +181,18 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => VeldridDevice.IsClipSpaceYInverted;
 
         protected internal override void SwapBuffers()
-            => VeldridDevice.SwapBuffers();
+        {
+            VeldridDevice.SwapBuffers();
+
+            // This is actually the true "end" of the frame - no more commands are submitted beyond this point.
+            framePacer.EndFrame();
+        }
 
         protected internal override void WaitUntilIdle()
             => VeldridDevice.WaitUntilIdle();
 
         protected internal override void WaitUntilNextFrameReady()
-            => VeldridDevice.WaitUntilNextFrameReady();
+            => VeldridDevice.WaitUntilNextFrameReady(framePacer);
 
         protected internal override void MakeCurrent()
             => VeldridDevice.MakeCurrent();
@@ -206,7 +218,8 @@ namespace osu.Framework.Graphics.Rendering.Deferred
         protected override IShader CreateShader(string name, IShaderPart[] parts, ShaderCompilationStore compilationStore)
             => new DeferredShader(this, new VeldridShader(this, name, parts.Cast<VeldridShaderPart>().ToArray(), compilationStore));
 
-        public override IFrameBuffer CreateFrameBuffer(TexturePixelFormat textureFormat = TexturePixelFormat.R8G8B8A8Float, RenderBufferFormat[]? renderBufferFormats = null, TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
+        public override IFrameBuffer CreateFrameBuffer(TexturePixelFormat textureFormat = TexturePixelFormat.R8G8B8A8Float, RenderBufferFormat[]? renderBufferFormats = null,
+                                                       TextureFilteringMode filteringMode = TextureFilteringMode.Linear)
             => new DeferredFrameBuffer(this, textureFormat.ToPixelFormat(), renderBufferFormats?.ToPixelFormats(), filteringMode.ToSamplerFilter());
 
         protected override INativeTexture CreateNativeTexture(int width, int height, bool manualMipmaps = false, TextureFilteringMode filteringMode = TextureFilteringMode.Linear,

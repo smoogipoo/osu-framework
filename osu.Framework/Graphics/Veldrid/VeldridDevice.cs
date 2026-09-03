@@ -250,8 +250,8 @@ namespace osu.Framework.Graphics.Veldrid
         /// <summary>
         /// Waits until the GPU signals that the next frame is ready to be rendered.
         /// </summary>
-        public void WaitUntilNextFrameReady()
-            => Device.WaitForNextFrameReady();
+        public void WaitUntilNextFrameReady(FramePacer pacer)
+            => Device.WaitForNextFrameReady(pacer);
 
         /// <summary>
         /// Invoked when the rendering thread is active and commands will be enqueued.

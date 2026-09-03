@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Graphics.Pacing;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
@@ -63,6 +64,7 @@ namespace osu.Framework.Graphics.Veldrid
 
         private readonly HashSet<IVeldridUniformBuffer> uniformBufferResetList = new HashSet<IVeldridUniformBuffer>();
 
+        private VeldridFramePacer framePacer = null!;
         private VeldridDevice veldridDevice = null!;
         private GraphicsPipeline graphicsPipeline = null!;
         private BasicPipeline bufferUpdatePipeline = null!;
@@ -75,6 +77,8 @@ namespace osu.Framework.Graphics.Veldrid
 
         protected override void Initialise(IGraphicsSurface graphicsSurface)
         {
+            framePacer = new VeldridFramePacer();
+
             veldridDevice = new VeldridDevice(graphicsSurface);
             graphicsPipeline = new GraphicsPipeline(veldridDevice);
             bufferUpdatePipeline = new BasicPipeline(veldridDevice);
@@ -86,6 +90,8 @@ namespace osu.Framework.Graphics.Veldrid
 
         protected internal override void BeginFrame(Vector2 windowSize)
         {
+            framePacer.BeginFrame();
+
             foreach (var ubo in uniformBufferResetList)
                 ubo.ResetCounters();
             uniformBufferResetList.Clear();
@@ -108,13 +114,18 @@ namespace osu.Framework.Graphics.Veldrid
         }
 
         protected internal override void SwapBuffers()
-            => veldridDevice.SwapBuffers();
+        {
+            veldridDevice.SwapBuffers();
+
+            // This is actually the true "end" of the frame - no more commands are submitted beyond this point.
+            framePacer.EndFrame();
+        }
 
         protected internal override void WaitUntilIdle()
             => veldridDevice.WaitUntilIdle();
 
         protected internal override void WaitUntilNextFrameReady()
-            => veldridDevice.WaitUntilNextFrameReady();
+            => veldridDevice.WaitUntilNextFrameReady(framePacer);
 
         protected internal override void MakeCurrent()
             => veldridDevice.MakeCurrent();
