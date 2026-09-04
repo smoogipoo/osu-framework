@@ -7,6 +7,7 @@ using osuTK;
 using osuTK.Graphics;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Allocation;
+using osu.Framework.Platform;
 
 namespace SampleGame
 {
@@ -17,19 +18,29 @@ namespace SampleGame
         [BackgroundDependencyLoader]
         private void load()
         {
-            Add(box = new Box
+            AddRange(new Drawable[]
             {
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Size = new Vector2(150, 150),
-                Colour = Color4.Tomato
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = Color4.White
+                },
+                box = new Box
+                {
+                    Origin = Anchor.Centre,
+                    Size = new Vector2(30),
+                    Colour = Color4.Tomato
+                }
             });
+
+            Host.Window.CursorState = CursorState.Default;
         }
 
         protected override void Update()
         {
             base.Update();
-            box.Rotation += (float)Time.Elapsed / 10;
+
+            box.Position = ToLocalSpace(GetContainingInputManager()!.CurrentState.Mouse.Position);
         }
     }
 }
