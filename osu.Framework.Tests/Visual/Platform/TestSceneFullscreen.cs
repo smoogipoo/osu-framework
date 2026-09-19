@@ -128,8 +128,8 @@ namespace osu.Framework.Tests.Visual.Platform
                 AddWaitStep("wait some", 10); // for macOS transition animation
                 AddStep("change window size", () => config.SetValue(FrameworkSetting.WindowedSize, testSize));
 
-                AddAssert("check window size", () => window.Size == testSize);
-                AddAssert("check client size", () => window.ClientSize == new Size((int)(testSize.Width * window.Scale), (int)(testSize.Height * window.Scale)));
+                AddAssert("check window size", () => window.Size, () => Is.EqualTo(testSize));
+                AddAssert("check client size", () => window.ClientSize, () => Is.EqualTo((testSize * window.Scale).ToSize()));
                 AddStep("store window position", () => originalWindowPosition = window.Position);
             }
 
@@ -140,9 +140,9 @@ namespace osu.Framework.Tests.Visual.Platform
                 AddWaitStep("wait some", 10); // for macOS transition animation
 
                 // Depending on platform and display, borderless windows can either cover the entire display or just the usable area. TODO: tighten the assertion to explicitly distinguish these cases.
-                AddAssert("check window position", () => new Point(window.Position.X, window.Position.Y) == display.UsableBounds.Location || new Point(window.Position.X, window.Position.Y) == display.Bounds.Location);
-                AddAssert("check window size", () => new Size(window.Size.Width, window.Size.Height) == display.UsableBounds.Size || new Size(window.Size.Width, window.Size.Height) == display.Bounds.Size);
-                AddAssert("check client size", () => window.ClientSize == new Size((int)(display.UsableBounds.Width * window.Scale), (int)(display.UsableBounds.Height * window.Scale)) || window.ClientSize == new Size((int)(display.Bounds.Width * window.Scale), (int)(display.Bounds.Height * window.Scale)));
+                AddAssert("check window position", () => window.Position, () => Is.EqualTo(display.UsableBounds.Location).Or.EqualTo(display.Bounds.Location));
+                AddAssert("check window size", () => window.Size, () => Is.EqualTo(display.UsableBounds.Size).Or.EqualTo(display.Bounds.Size));
+                AddAssert("check client size", () => window.ClientSize, () => Is.EqualTo((window.Size * window.Scale).ToSize()));
             }
 
             // if we support fullscreen mode, switch to it and test swapping resolutions
@@ -158,9 +158,9 @@ namespace osu.Framework.Tests.Visual.Platform
             {
                 AddStep("change to windowed", () => windowMode.Value = WindowMode.Windowed);
                 AddWaitStep("wait some", 10); // for macOS transition animation
-                AddAssert("check window size", () => window.Size == testSize);
-                AddAssert("check client size", () => window.ClientSize == new Size((int)(testSize.Width * window.Scale), (int)(testSize.Height * window.Scale)));
-                AddAssert("check window position", () => originalWindowPosition == window.Position);
+                AddAssert("check window size", () => window.Size, () => Is.EqualTo(testSize));
+                AddAssert("check client size", () => window.ClientSize, () => Is.EqualTo((testSize * window.Scale).ToSize()));
+                AddAssert("check window position", () => originalWindowPosition, () => Is.EqualTo(window.Position));
             }
 
             // go back to initial window mode
@@ -244,15 +244,10 @@ namespace osu.Framework.Tests.Visual.Platform
             AddStep($"set to {w}x{h}", () => sizeFullscreen.Value = new Size(w, h));
             AddWaitStep("wait some", 10); // for macOS transition animation
 
-            AddAssert("window position updated", () => window.Position, () => Is.EqualTo(display.Bounds.Location));
-            AddAssert("check window position", () =>
-            {
-                Logger.Log($"Bounds: {display.Bounds.Location}, usable bounds: {display.UsableBounds.Location}, window position: {window.Position}");
-                return new Point(window.Position.X, window.Position.Y) == display.Bounds.Location;
-            });
-            AddAssert("check window size", () => new Size(window.Size.Width, window.Size.Height) == display.Bounds.Size);
-            AddAssert("check client size", () => window.ClientSize == new Size((int)(display.Bounds.Size.Width * window.Scale), (int)(display.Bounds.Size.Height * window.Scale)));
-            AddAssert("check current screen", () => window.CurrentDisplayBindable.Value.Index == display.Index);
+            AddAssert("check window position", () => window.Position, () => Is.EqualTo(display.Bounds.Location));
+            AddAssert("check window size", () => window.Size, () => Is.EqualTo(display.Bounds.Size));
+            AddAssert("check client size", () => window.ClientSize, () => Is.EqualTo((display.Bounds.Size * window.Scale).ToSize()));
+            AddAssert("check current screen", () => window.CurrentDisplayBindable.Value.Index, () => Is.EqualTo(display.Index));
         }
 
         protected override void Dispose(bool isDisposing)

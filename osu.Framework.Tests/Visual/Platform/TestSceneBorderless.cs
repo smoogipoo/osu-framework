@@ -96,22 +96,22 @@ namespace osu.Framework.Tests.Visual.Platform
                 // borderless alignment tests
                 AddStep("switch to borderless", () => windowMode.Value = WindowMode.Borderless);
                 AddWaitStep("wait some", 10); // for macOS transition animation
-                AddAssert("check current screen", () => window.CurrentDisplayBindable.Value.Index == display.Index);
+                AddAssert("check current screen", () => window.CurrentDisplayBindable.Value.Index, () => Is.EqualTo(display.Index));
 
                 // Depending on platform and display, borderless windows can either cover the entire display or just the usable area. TODO: tighten the assertion to explicitly distinguish these cases.
-                AddAssert("check window position", () => new Point(window.Position.X, window.Position.Y) == display.UsableBounds.Location || new Point(window.Position.X, window.Position.Y) == display.Bounds.Location);
-                AddAssert("check window size", () => new Size(window.Size.Width, window.Size.Height) == display.UsableBounds.Size || new Size(window.Size.Width, window.Size.Height) == display.Bounds.Size);
-                AddAssert("check client size", () => window.ClientSize == new Size((int)(display.UsableBounds.Width * window.Scale), (int)(display.UsableBounds.Height * window.Scale)) || window.ClientSize == new Size((int)(display.Bounds.Width * window.Scale), (int)(display.Bounds.Height * window.Scale)));
+                AddAssert("check window position", () => window.Position, () => Is.EqualTo(display.UsableBounds.Location).Or.EqualTo(display.Bounds.Location));
+                AddAssert("check window size", () => window.Size, () => Is.EqualTo(display.UsableBounds.Size).Or.EqualTo(display.Bounds.Size));
+                AddAssert("check client size", () => window.ClientSize, () => Is.EqualTo((window.Size * window.Scale).ToSize()));
 
                 // verify the window size is restored correctly
                 if (supportsWindowed)
                 {
                     AddStep("switch to windowed", () => windowMode.Value = WindowMode.Windowed);
                     AddWaitStep("wait some", 10); // for macOS transition animation
-                    AddAssert("check window size", () => window.Size == testSize);
-                    AddAssert("check client size", () => window.ClientSize == new Size((int)(testSize.Width * window.Scale), (int)(testSize.Height * window.Scale)));
-                    AddAssert("check window position", () => originalWindowPosition == window.Position);
-                    AddAssert("check current screen", () => window.CurrentDisplayBindable.Value.Index == display.Index);
+                    AddAssert("check window size", () => window.Size, () => Is.EqualTo(testSize));
+                    AddAssert("check client size", () => window.ClientSize, () => Is.EqualTo((testSize * window.Scale).ToSize()));
+                    AddAssert("check window position", () => originalWindowPosition, () => Is.EqualTo(window.Position));
+                    AddAssert("check current screen", () => window.CurrentDisplayBindable.Value.Index, () => Is.EqualTo(display.Index));
                 }
             }
         }
