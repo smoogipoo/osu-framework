@@ -23,12 +23,12 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             set
             {
                 if (sampler != null)
-                    renderer.ScheduleDisposal(sampler => sampler.Dispose(), sampler);
+                    renderer.ScheduleDisposal(static sampler => sampler.Dispose(), sampler);
 
                 sampler = value;
 
                 if (Set != null)
-                    renderer.ScheduleDisposal(set => set.Dispose(), Set);
+                    renderer.ScheduleDisposal(static set => set.Dispose(), Set);
 
                 Set = null;
             }
@@ -64,7 +64,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
             isDisposed = true;
 
-            renderer.ScheduleDisposal(t =>
+            renderer.ScheduleDisposal(static t =>
             {
                 t.Texture.Dispose();
                 t.Sampler?.Dispose();

@@ -234,7 +234,7 @@ namespace osu.Framework.Graphics.OpenGL
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, ((GLFrameBuffer?)frameBuffer)?.FrameBuffer ?? backbufferFramebuffer);
 
         protected override void DeleteFrameBufferImplementation(IFrameBuffer frameBuffer)
-            => ScheduleDisposal(f => GL.DeleteFramebuffer(f.FrameBuffer), (GLFrameBuffer)frameBuffer);
+            => ScheduleDisposal(static f => GL.DeleteFramebuffer(f.FrameBuffer), (GLFrameBuffer)frameBuffer);
 
         protected override void ClearImplementation(ClearInfo clearInfo)
         {

@@ -122,7 +122,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
 
             isDisposed = true;
 
-            Renderer.ScheduleDisposal(texture =>
+            Renderer.ScheduleDisposal(static texture =>
             {
                 while (texture.tryGetNextUpload(out var upload))
                     upload.Dispose();
@@ -459,7 +459,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             if (texture == null || texture.Width != Width || texture.Height != Height)
             {
                 if (texture != null)
-                    Renderer.ScheduleDisposal(t => t.Dispose(), texture);
+                    Renderer.ScheduleDisposal(static t => t.Dispose(), texture);
 
                 var textureDescription = TextureDescription.Texture2D((uint)Width, (uint)Height, (uint)CalculateMipmapLevels(Width, Height), 1, textureFormat, Usages);
                 texture = Renderer.Factory.CreateTexture(ref textureDescription);
@@ -492,7 +492,7 @@ namespace osu.Framework.Graphics.Veldrid.Textures
             if (sampler == null || maximumUploadedLod > lastMaximumUploadedLod)
             {
                 if (sampler != null)
-                    Renderer.ScheduleDisposal(s => s.Dispose(), sampler);
+                    Renderer.ScheduleDisposal(static s => s.Dispose(), sampler);
 
                 sampler = createSampler();
             }

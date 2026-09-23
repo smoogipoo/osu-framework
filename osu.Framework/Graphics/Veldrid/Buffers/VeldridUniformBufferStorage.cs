@@ -57,7 +57,7 @@ namespace osu.Framework.Graphics.Veldrid.Buffers
             if (IsDisposed)
                 return;
 
-            renderer.ScheduleDisposal(s =>
+            renderer.ScheduleDisposal(static s =>
             {
                 s.buffer.Dispose();
                 s.memoryLease.Dispose();

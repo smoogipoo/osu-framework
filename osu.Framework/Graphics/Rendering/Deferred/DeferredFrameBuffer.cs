@@ -41,7 +41,7 @@ namespace osu.Framework.Graphics.Rendering.Deferred
             => nativeTexture.Resize(size);
 
         public void DeleteResources()
-            => renderer.ScheduleDisposal(b => b.Dispose(), nativeTexture);
+            => renderer.ScheduleDisposal(static b => b.Dispose(), nativeTexture);
 
         Framebuffer IVeldridFrameBuffer.Framebuffer
             => nativeTexture.Framebuffer;
