@@ -17,8 +17,8 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         private readonly GLRenderer renderer;
         private readonly int size;
 
+        private readonly int uboId;
         private TData data;
-        private int uboId;
 
         public GLUniformBuffer(GLRenderer renderer)
         {
@@ -57,34 +57,37 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             FrameStatistics.Increment(StatisticsCounterType.UniformUpl);
         }
 
-        #region Disposal
-
-        ~GLUniformBuffer()
-        {
-            renderer.ScheduleDisposal(static b => b.Dispose(false), this);
-        }
-
-        public void Dispose()
-        {
-            renderer.ScheduleDisposal(static v => v.Dispose(true), this);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (uboId == -1)
-                return;
-
-            GL.DeleteBuffer(uboId);
-            uboId = -1;
-        }
-
-        #endregion
-
         public int Id => uboId;
 
         public void Flush()
         {
         }
+
+        #region Disposal
+
+        private bool isDisposed;
+
+        ~GLUniformBuffer()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+                return;
+
+            isDisposed = true;
+
+            renderer.ScheduleDisposal(GL.DeleteBuffer, uboId);
+        }
+
+        #endregion
     }
 }

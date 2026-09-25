@@ -17,12 +17,15 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
         public int Id { get; }
 
+        private readonly GLRenderer renderer;
         private readonly TData[] data;
         private readonly int elementSize;
 
         public GLShaderStorageBufferObject(GLRenderer renderer, int uboSize, int ssboSize)
         {
             Trace.Assert(ThreadSafety.IsDrawThread);
+
+            this.renderer = renderer;
 
             Id = GL.GenBuffer();
             Size = renderer.UseStructuredBuffers ? ssboSize : uboSize;
@@ -80,9 +83,31 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
             changeCount = 0;
         }
 
+        #region Disposal
+
+        private bool isDisposed;
+
+        ~GLShaderStorageBufferObject()
+        {
+            Dispose(false);
+        }
+
         public void Dispose()
         {
-            GL.DeleteBuffer(Id);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+                return;
+
+            isDisposed = true;
+
+            renderer.ScheduleDisposal(GL.DeleteBuffer, Id);
+        }
+
+        #endregion
     }
 }
