@@ -17,7 +17,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         private readonly GLRenderer renderer;
         private readonly int size;
 
-        private readonly int uboId;
+        private int uboId;
         private TData data;
 
         public GLUniformBuffer(GLRenderer renderer)
@@ -85,7 +85,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             isDisposed = true;
 
-            renderer.ScheduleDisposal(GL.DeleteBuffer, uboId);
+            if (uboId > 0)
+                renderer.ScheduleDisposal(GL.DeleteBuffer, uboId);
+
+            uboId = 0;
         }
 
         #endregion

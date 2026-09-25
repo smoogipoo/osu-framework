@@ -186,7 +186,10 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
 
             isDisposed = true;
 
-            renderer.ScheduleDisposal(GL.DeleteShader, partID);
+            if (partID > 0)
+                renderer.ScheduleDisposal(GL.DeleteShader, partID);
+
+            partID = 0;
         }
 
         #endregion

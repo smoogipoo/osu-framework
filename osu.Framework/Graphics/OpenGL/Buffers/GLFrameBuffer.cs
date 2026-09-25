@@ -15,7 +15,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
     internal class GLFrameBuffer : IFrameBuffer
     {
         public Texture Texture { get; }
-        public readonly int FrameBufferId;
+        public int FrameBufferId { get; private set; }
 
         private readonly List<GLRenderBuffer> attachedRenderBuffers = new List<GLRenderBuffer>();
         private readonly GLRenderer renderer;
@@ -122,7 +122,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
                     buffer.Dispose();
             }
 
-            renderer.ScheduleDisposal(GL.DeleteFramebuffer, FrameBufferId);
+            if (FrameBufferId > 0)
+                renderer.ScheduleDisposal(GL.DeleteFramebuffer, FrameBufferId);
+
+            FrameBufferId = 0;
         }
 
         #endregion

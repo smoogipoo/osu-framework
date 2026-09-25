@@ -149,8 +149,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             Renderer.ScheduleDisposal(static o =>
             {
-                GL.DeleteBuffer(o.vboId);
-                GL.DeleteVertexArray(o.vaoId);
+                if (o.vboId > 0)
+                    GL.DeleteBuffer(o.vboId);
+                if (o.vaoId > 0)
+                    GL.DeleteVertexArray(o.vaoId);
             }, (vboId, vaoId));
 
             vboId = 0;

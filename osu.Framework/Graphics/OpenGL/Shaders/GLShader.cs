@@ -220,7 +220,10 @@ namespace osu.Framework.Graphics.OpenGL.Shaders
             if (shaderCompileDelegate.IsNotNull())
                 shaderCompileDelegate.Cancel();
 
-            renderer.ScheduleDisposal(static o => o.shader.DeleteProgram(o.programID), (shader: this, programID));
+            if (programID > 0)
+                renderer.ScheduleDisposal(static o => o.shader.DeleteProgram(o.programID), (shader: this, programID));
+
+            programID = 0;
         }
 
         #endregion

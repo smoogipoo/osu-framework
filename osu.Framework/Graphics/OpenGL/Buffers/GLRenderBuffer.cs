@@ -16,7 +16,7 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
         private readonly RenderbufferInternalFormat format;
         private readonly int sizePerPixel;
 
-        private readonly int renderBufferId;
+        private int renderBufferId;
         private FramebufferAttachment attachment;
 
         public GLRenderBuffer(GLRenderer renderer, RenderbufferInternalFormat format)
@@ -97,7 +97,10 @@ namespace osu.Framework.Graphics.OpenGL.Buffers
 
             memoryLease?.Dispose();
 
-            renderer.ScheduleDisposal(GL.DeleteRenderbuffer, renderBufferId);
+            if (renderBufferId > 0)
+                renderer.ScheduleDisposal(GL.DeleteRenderbuffer, renderBufferId);
+
+            renderBufferId = 0;
         }
 
         #endregion
